@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Heart, Sparkles, MapPin, LayoutList, LayoutGrid, Facebook, Instagram, Send } from "lucide-react";
+import { Heart, Sparkles, MapPin, Facebook, Instagram, Send } from "lucide-react";
 import KhmerGallery from "./KhmerGallery";
 import KhmerFloatingContact from "./KhmerFloatingContact";
 import FloatingMusicPlayer from "./FloatingMusicPlayer";
@@ -257,10 +257,8 @@ export function KhmerTraditionalTemplate({ event, guestName, children, hideBackg
     });
   }, [event.agenda_days, event.ceremony_time, event.reception_time]);
 
-  const initialView: AgendaViewStyle = event.agenda_view_style === "card" ? "card" : "list";
-  const [agendaView, setAgendaView] = useState<AgendaViewStyle>(initialView);
+  const agendaView: AgendaViewStyle = event.agenda_view_style === "card" ? "card" : "list";
   const [activeDay, setActiveDay] = useState(0);
-  useEffect(() => { setAgendaView(initialView); }, [initialView]);
   useEffect(() => { if (activeDay >= agendaDays.length) setActiveDay(0); }, [agendaDays.length, activeDay]);
 
   // Map image lightbox state — when true, the uploaded map image is shown
@@ -679,50 +677,18 @@ export function KhmerTraditionalTemplate({ event, guestName, children, hideBackg
               </div>
             )}
 
-            {/* View style switcher & Day header (reduced size, hidden if empty) */}
+            {/* Day header (reduced size, hidden if empty) */}
             {(() => {
               const dayTitle = agendaDays[activeDay]?.title?.trim();
+              if (!dayTitle) return null;
               return (
-                <div className={`flex items-center ${dayTitle ? "justify-between" : "justify-end"} gap-3 mb-2.5`}>
-                  {dayTitle ? (
-                    <h4
-                      className={`text-base sm:text-lg ${isEn ? "font-serif font-semibold" : "font-khmer-koulen"}`}
-                      style={{ color: colorAccent }}
-                    >
-                      {dayTitle}
-                    </h4>
-                  ) : null}
-                  <div
-                    className="inline-flex rounded-full p-1 shrink-0"
-                    style={{ background: "rgba(255,255,255,0.55)", border: `1px solid ${colorAccent}66` }}
+                <div className="text-center mb-2.5">
+                  <h4
+                    className={`text-base sm:text-lg ${isEn ? "font-serif font-semibold" : "font-khmer-koulen"}`}
+                    style={{ color: colorAccent }}
                   >
-                    <button
-                      type="button"
-                      onClick={() => setAgendaView("list")}
-                      className="px-2.5 py-1 rounded-full inline-flex items-center gap-1 text-xs"
-                      style={
-                        agendaView === "list"
-                          ? { background: colorAccent, color: "#fff" }
-                          : { color: colorPrimary, fontFamily: bodyFont }
-                      }
-                      aria-label="List view"
-                    >
-                      <LayoutList className="h-3.5 w-3.5" /> List
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setAgendaView("card")}
-                      className="px-2.5 py-1 rounded-full inline-flex items-center gap-1 text-xs"
-                      style={
-                        agendaView === "card"
-                          ? { background: colorAccent, color: "#fff" }
-                          : { color: colorPrimary, fontFamily: bodyFont }
-                      }
-                      aria-label="Card view"
-                    >
-                      <LayoutGrid className="h-3.5 w-3.5" /> Cards
-                    </button>
-                  </div>
+                    {dayTitle}
+                  </h4>
                 </div>
               );
             })()}
