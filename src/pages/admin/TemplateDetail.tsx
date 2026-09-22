@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import AdminLayout from "@/components/admin/AdminLayout";
-import { supabase, SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -199,12 +199,12 @@ export default function TemplateDetail() {
 
     // Use XHR against the storage REST endpoint so we can stream upload progress.
     const { data: { session } } = await supabase.auth.getSession();
-    const url = `${SUPABASE_URL}/storage/v1/object/event-media/${path}`;
+    const url = `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/event-media/${path}`;
     const ok = await new Promise<boolean>((resolve) => {
       const xhr = new XMLHttpRequest();
       xhr.open("POST", url);
       xhr.setRequestHeader("Authorization", `Bearer ${session?.access_token ?? ""}`);
-      xhr.setRequestHeader("apikey", SUPABASE_PUBLISHABLE_KEY);
+      xhr.setRequestHeader("apikey", import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY);
       xhr.setRequestHeader("x-upsert", "false");
       xhr.setRequestHeader("cache-control", "31536000");
       if (file.type) xhr.setRequestHeader("content-type", file.type);

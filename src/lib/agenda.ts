@@ -1,0 +1,86 @@
+import {
+  Crown, Gift, Sparkle, Sparkles, Scissors, BookOpen, Wine, Utensils,
+  Users, Heart, Music, Camera, Cake, Flower2, Bell, Sun, Moon, Star,
+  MapPin, Clock,
+} from "lucide-react";
+
+export type AgendaItem = {
+  id: string;
+  time: string;
+  icon: string;        // key into ICONS
+  iconImageUrl?: string | null; // optional custom uploaded icon overrides `icon`
+  label: string;
+  description?: string | null;
+  /** Optional sub-day section header rendered ABOVE this item
+      (e.g. "ពេលព្រឹក" / "Morning", "ពេលល្ងាច" / "Evening"). */
+  subHeader?: string | null;
+};
+
+export type AgendaDay = {
+  id: string;
+  title: string;       // header e.g. "កម្មវិធីពេលព្រឹក" or "Day 1 — Ceremony"
+  date?: string | null; // optional ISO date (YYYY-MM-DD)
+  items: AgendaItem[];
+};
+
+export type AgendaViewStyle = "list" | "card";
+
+export const AGENDA_ICONS = {
+  Sparkle, Sparkles, Crown, Gift, Scissors, BookOpen, Wine, Utensils,
+  Users, Heart, Music, Camera, Cake, Flower2, Bell, Sun, Moon, Star,
+  MapPin, Clock,
+} as const;
+
+export type AgendaIconKey = keyof typeof AGENDA_ICONS;
+
+export const AGENDA_ICON_KEYS = Object.keys(AGENDA_ICONS) as AgendaIconKey[];
+
+export function getAgendaIcon(key: string) {
+  return (AGENDA_ICONS as Record<string, typeof Sparkle>)[key] ?? Sparkle;
+}
+
+export function uid() {
+  return Math.random().toString(36).slice(2, 10);
+}
+
+/** Migrate legacy ceremony_time / reception_time into a default 1-day agenda */
+export function buildLegacyAgenda(opts: {
+  ceremony_time?: string | null;
+  reception_time?: string | null;
+}): AgendaDay[] {
+  const items: AgendaItem[] = [];
+  if (opts.ceremony_time) {
+    items.push({ id: uid(), time: opts.ceremony_time, icon: "Users", label: "ពិធីហែជំនូន", description: null });
+  }
+  if (opts.reception_time) {
+    items.push({ id: uid(), time: opts.reception_time, icon: "Wine", label: "ពិធីពិសាភោជនាអាហារ", description: null });
+  }
+  if (!items.length) return [];
+  return [{ id: uid(), title: "កម្មវិធី", date: null, items }];
+}
+
+export function normalizeAgenda(raw: unknown): AgendaDay[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .map((d: any) => {
+      if (!d || typeof d !== "object") return null;
+      const items = Array.isArray(d.items)
+        ? d.items.map((it: any) => ({
+            id: String(it?.id ?? uid()),
+            time: String(it?.time ?? ""),
+            icon: String(it?.icon ?? "Sparkle"),
+            iconImageUrl: it?.iconImageUrl ?? null,
+            label: String(it?.label ?? ""),
+            description: it?.description ?? null,
+            subHeader: it?.subHeader ?? null,
+          }))
+        : [];
+      return {
+        id: String(d.id ?? uid()),
+        title: String(d.title ?? ""),
+        date: d.date ?? null,
+        items,
+      } as AgendaDay;
+    })
+    .filter(Boolean) as AgendaDay[];
+}

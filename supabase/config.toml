@@ -1,0 +1,7 @@
+project_id = "lyhnvcpkxbbafewkzgjo"
+
+[auth]
+enable_signup = false
+
+[functions.invite-share]
+verify_jwt = false

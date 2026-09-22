@@ -5,7 +5,7 @@ import reactRefresh from "eslint-plugin-react-refresh";
 import tseslint from "typescript-eslint";
 
 export default tseslint.config(
-  { ignores: ["dist", "supabase", "cloudflare-worker"] },
+  { ignores: ["dist", "supabase/**", "cloudflare-worker/**"] },
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: ["**/*.{ts,tsx}"],
@@ -27,6 +27,7 @@ export default tseslint.config(
       "@typescript-eslint/no-unused-expressions": "off",
       "no-irregular-whitespace": "off",
       "no-empty": "off",
+      "prefer-const": "off",
     },
   },
 );
