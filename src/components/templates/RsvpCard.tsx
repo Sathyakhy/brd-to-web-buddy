@@ -19,6 +19,8 @@ type Props = {
       configured accent rather than being hard-coded. */
   accentColor?: string;
   primaryColor?: string;
+  /** Language version: "km" (Khmer, default) or "en" (English) */
+  language?: "km" | "en";
 };
 
 /**
@@ -35,6 +37,7 @@ export default function RsvpCard({
   onSubmit,
   accentColor,
   primaryColor,
+  language = "km",
 }: Props) {
   const [partySize, setPartySize] = useState(initialPartySize);
   const [message, setMessage] = useState(initialMessage);
@@ -49,9 +52,19 @@ export default function RsvpCard({
     color-mix(in srgb, ${accent} 85%, #ffffff) 50%,
     color-mix(in srgb, ${accent} 80%, #ffffff) 100%)`;
 
-  const statusLabel =
-    status === "yes" ? "នឹងចូលរួម" :
-    status === "no" ? "សុំទោស មិនអាចចូលរួមបាន" : "កំពុងរង់ចាំការឆ្លើយតប";
+  const isEn = language === "en";
+
+  const statusLabel = isEn
+    ? status === "yes"
+      ? "Attending"
+      : status === "no"
+      ? "Unable to attend"
+      : "Awaiting response"
+    : status === "yes"
+    ? "នឹងចូលរួម"
+    : status === "no"
+    ? "សុំទោស មិនអាចចូលរួមបាន"
+    : "កំពុងរង់ចាំការឆ្លើយតប";
   const statusBg =
     status === "yes" ? "rgba(34,197,94,0.15)" :
     status === "no" ? "rgba(239,68,68,0.15)" :
@@ -82,30 +95,51 @@ export default function RsvpCard({
         {/* Heading wraps naturally so the full Khmer question is always visible,
             even on narrow viewports. */}
         <h3
-          className="font-khmer-moul leading-snug break-words whitespace-normal px-2"
+          className={`leading-snug break-words whitespace-normal px-2 ${isEn ? "font-serif font-bold text-xl sm:text-2xl" : "font-khmer-moul"}`}
           style={{
-            fontSize: "clamp(0.95rem, 3.2vw, 1.35rem)",
+            fontSize: isEn ? undefined : "clamp(0.95rem, 3.2vw, 1.35rem)",
             color: accent,
             textShadow: "1px 1px 0 rgba(255,255,255,0.6), 0 0 6px rgba(255,255,255,0.4)",
           }}
         >
-          តើលោកអ្នកនឹងអញ្ជើញមកចូលរួមដែរឬទេ?
+          {isEn ? "Will you be attending our wedding celebration?" : "តើលោកអ្នកនឹងអញ្ជើញមកចូលរួមដែរឬទេ?"}
         </h3>
-        <p className="font-khmer-siemreap text-sm sm:text-base max-w-md mx-auto leading-relaxed" style={{ color: primary }}>
-          ជូនចំពោះ{" "}
-          <span
-            className="font-bold"
-            style={{
-              background: nameGradient,
-              WebkitBackgroundClip: "text",
-              backgroundClip: "text",
-              WebkitTextFillColor: "transparent",
-              filter: `drop-shadow(0 1px 0 rgba(255,255,255,0.5))`,
-            }}
-          >
-            {guestName}
-          </span>{" "}
-          វត្តមានរបស់លោកអ្នក គឺជាកិត្តិយសដ៏ធំធេងសម្រាប់ពិធីរបស់យើងខ្ញុំ។
+        <p className={`${isEn ? "font-sans" : "font-khmer-siemreap"} text-sm sm:text-base max-w-md mx-auto leading-relaxed`} style={{ color: primary }}>
+          {isEn ? (
+            <>
+              Dear{" "}
+              <span
+                className="font-bold"
+                style={{
+                  background: nameGradient,
+                  WebkitBackgroundClip: "text",
+                  backgroundClip: "text",
+                  WebkitTextFillColor: "transparent",
+                  filter: `drop-shadow(0 1px 0 rgba(255,255,255,0.5))`,
+                }}
+              >
+                {guestName}
+              </span>
+              , your presence would be our greatest honor and blessing.
+            </>
+          ) : (
+            <>
+              ជូនចំពោះ{" "}
+              <span
+                className="font-bold"
+                style={{
+                  background: nameGradient,
+                  WebkitBackgroundClip: "text",
+                  backgroundClip: "text",
+                  WebkitTextFillColor: "transparent",
+                  filter: `drop-shadow(0 1px 0 rgba(255,255,255,0.5))`,
+                }}
+              >
+                {guestName}
+              </span>{" "}
+              វត្តមានរបស់លោកអ្នក គឺជាកិត្តិយសដ៏ធំធេងសម្រាប់ពិធីរបស់យើងខ្ញុំ។
+            </>
+          )}
         </p>
         <span
           className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-[11px] font-medium border"
@@ -123,8 +157,8 @@ export default function RsvpCard({
       </div>
 
       <div className="space-y-3">
-        <Label className="block text-center text-xs sm:text-sm font-khmer-koulen" style={{ color: accent }}>
-          ចំនួនភ្ញៀវ
+        <Label className={`block text-center text-xs sm:text-sm ${isEn ? "font-medium uppercase tracking-wider" : "font-khmer-koulen"}`} style={{ color: accent }}>
+          {isEn ? "Number of Guests" : "ចំនួនភ្ញៀវ"}
         </Label>
         <div className="flex items-center justify-center gap-4">
           <button
@@ -138,11 +172,11 @@ export default function RsvpCard({
             <Minus className="h-4 w-4" />
           </button>
           <div className="min-w-[80px] text-center">
-            <div className="font-khmer-moul text-4xl sm:text-5xl leading-none" style={{ color: accent }}>
+            <div className={`text-4xl sm:text-5xl leading-none ${isEn ? "font-serif font-bold" : "font-khmer-moul"}`} style={{ color: accent }}>
               {partySize.toString().padStart(2, "0")}
             </div>
-            <div className="font-khmer-koulen text-xs mt-1" style={{ color: primary }}>
-              នាក់
+            <div className={`text-xs mt-1 ${isEn ? "font-sans uppercase tracking-wider" : "font-khmer-koulen"}`} style={{ color: primary }}>
+              {isEn ? (partySize > 1 ? "Guests" : "Guest") : "នាក់"}
             </div>
           </div>
           <button
@@ -159,16 +193,16 @@ export default function RsvpCard({
       </div>
 
       <div className="mt-6 space-y-2">
-        <Label className="block text-center text-xs sm:text-sm font-khmer-koulen" style={{ color: accent }}>
-          សារជូនពរដល់ម្ចាស់ពិធី
+        <Label className={`block text-center text-xs sm:text-sm ${isEn ? "font-medium uppercase tracking-wider" : "font-khmer-koulen"}`} style={{ color: accent }}>
+          {isEn ? "Leave a warm message for the couple" : "សារជូនពរដល់ម្ចាស់ពិធី"}
         </Label>
         <Textarea
           rows={3}
           value={message}
           onChange={e => setMessage(e.target.value)}
           readOnly={preview}
-          placeholder="សូមជូនពរឱ្យមានសុភមង្គល និងសេចក្តីស្រឡាញ់ជារៀងរហូត…"
-          className="resize-none text-center font-khmer-siemreap"
+          placeholder={isEn ? "Wishing you both a lifetime of love, health, and joy..." : "សូមជូនពរឱ្យមានសុភមង្គល និងសេចក្តីស្រឡាញ់ជារៀងរហូត…"}
+          className={`resize-none text-center ${isEn ? "font-sans" : "font-khmer-siemreap"}`}
           style={{
             background: "rgba(255,255,255,0.55)",
             border: `1px solid ${accent}55`,
@@ -183,10 +217,10 @@ export default function RsvpCard({
           type="button"
           onClick={() => onSubmit?.("yes", partySize, message)}
           disabled={preview || submitting}
-          className="h-12 font-khmer-koulen tracking-wide text-white hover:opacity-95"
+          className={`h-12 tracking-wide text-white hover:opacity-95 ${isEn ? "font-semibold" : "font-khmer-koulen"}`}
           style={{ background: accent, boxShadow: `0 6px 18px ${accent}55` }}
         >
-          <Check className="h-4 w-4 mr-2" /> យល់ព្រមចូលរួម
+          <Check className="h-4 w-4 mr-2" /> {isEn ? "Joyfully Accept" : "យល់ព្រមចូលរួម"}
         </Button>
         <Button
           size="lg"
@@ -194,15 +228,21 @@ export default function RsvpCard({
           variant="outline"
           onClick={() => onSubmit?.("no", partySize, message)}
           disabled={preview || submitting}
-          className="h-12 font-khmer-koulen tracking-wide bg-transparent hover:bg-white/40"
+          className={`h-12 tracking-wide bg-transparent hover:bg-white/40 ${isEn ? "font-semibold" : "font-khmer-koulen"}`}
           style={{ borderColor: `${accent}66`, color: primary }}
         >
-          <X className="h-4 w-4 mr-2" /> សុំទោស មិនអាចចូលរួម
+          <X className="h-4 w-4 mr-2" /> {isEn ? "Regretfully Decline" : "សុំទោស មិនអាចចូលរួម"}
         </Button>
       </div>
 
-      <p className="mt-4 text-center text-[11px] font-khmer-siemreap" style={{ color: `${primary}99` }}>
-        {preview ? "មើលជាមុន — ភ្ញៀវនឹងចុចដើម្បីឆ្លើយតប" : "សូមមេត្តាឆ្លើយតបឱ្យបានឆាប់តាមដែលអាចធ្វើបាន"}
+      <p className={`mt-4 text-center text-[11px] ${isEn ? "font-sans" : "font-khmer-siemreap"}`} style={{ color: `${primary}99` }}>
+        {preview
+          ? isEn
+            ? "Preview only — guests will click to submit their RSVP"
+            : "មើលជាមុន — ភ្ញៀវនឹងចុចដើម្បីឆ្លើយតប"
+          : isEn
+          ? "Kindly respond at your earliest convenience"
+          : "សូមមេត្តាឆ្លើយតបឱ្យបានឆាប់តាមដែលអាចធ្វើបាន"}
       </p>
     </section>
   );

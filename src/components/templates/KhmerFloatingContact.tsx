@@ -8,6 +8,8 @@ type Props = {
   contacts: ContactItem[];
   /** Accent colour (border, icon, label). Defaults to gold. */
   accentColor?: string;
+  /** Language version: "km" or "en" */
+  language?: "km" | "en";
 };
 
 /**
@@ -18,7 +20,7 @@ type Props = {
  * "sits on top" of content, and only restores to full opacity when the
  * user hovers it or opens the panel.
  */
-export default function KhmerFloatingContact({ contacts, accentColor = "#db9b0f" }: Props) {
+export default function KhmerFloatingContact({ contacts, accentColor = "#db9b0f", language = "km" }: Props) {
   const [open, setOpen] = useState(false);
   const [hovered, setHovered] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -53,7 +55,7 @@ export default function KhmerFloatingContact({ contacts, accentColor = "#db9b0f"
         className="text-xs font-bold px-2.5 py-1 rounded-md bg-white"
         style={{ color: accentColor, border: `2px solid ${accentColor}` }}
       >
-        ទំនាក់ទំនងម្ចាស់កម្មវិធី
+        {language === "en" ? "Contact Hosts" : "ទំនាក់ទំនងម្ចាស់កម្មវិធី"}
       </div>
 
       <div className="relative">

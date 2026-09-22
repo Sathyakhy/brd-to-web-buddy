@@ -8,7 +8,7 @@ type Props = {
   /** Position on screen: bottom-right (default), top-right, or bottom-left. */
   position?: "bottom-right" | "top-right" | "bottom-left";
   /** Optional container positioning mode. Defaults to "fixed". */
-  positionMode?: "fixed" | "absolute";
+  positionMode?: "fixed" | "absolute" | "inline";
   /** If true, do not attempt automatic playback on mount; wait for explicit click. */
   disableAutoPlay?: boolean;
   /** If a bottom-right floating contact widget is active, offset this player so they stack neatly without overlap. */
@@ -111,7 +111,9 @@ export default function FloatingMusicPlayer({
   };
 
   let posClass: string;
-  if (positionMode === "absolute") {
+  if (positionMode === "inline") {
+    posClass = "relative";
+  } else if (positionMode === "absolute") {
     if (position === "bottom-right") {
       posClass = "absolute bottom-4 right-4 z-40";
     } else if (position === "top-right") {

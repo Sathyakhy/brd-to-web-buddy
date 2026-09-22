@@ -28,6 +28,8 @@ type Props = {
   /** Event accent color used to tint the guest-name gradient on the gold
    *  ribbon. Defaults to the template's traditional warm-brown when absent. */
   accentColor?: string | null;
+  /** Language version: "km" (Khmer) or "en" (English) */
+  language?: "km" | "en";
 };
 
 const FRAME = "/templates/signature-package-01/frame.png";
@@ -54,7 +56,9 @@ export default function SignaturePackageCover({
   closing,
   positionMode = "fixed",
   accentColor,
+  language = "km",
 }: Props) {
+  const isEn = language === "en";
   // Premium 4-stop gradient anchored on the event accent — bright top
   // highlight + mid body + slightly deeper bottom for a metallic shine.
   const accent = accentColor && accentColor.trim() ? accentColor.trim() : "#a87614";
@@ -240,14 +244,14 @@ export default function SignaturePackageCover({
         {/* Bottom invite block */}
         <div className="w-full flex flex-col items-center gap-3 pointer-events-auto">
           <p
-            className="font-khmer-moul text-center"
+            className={`text-center ${isEn ? "font-serif tracking-widest uppercase font-semibold text-sm sm:text-base" : "font-khmer-moul"}`}
             style={{
-              fontSize: "clamp(1.1rem, 4vw, 1.5rem)",
+              fontSize: isEn ? undefined : "clamp(1.1rem, 4vw, 1.5rem)",
               color: "#fff8dc",
               textShadow: "0 2px 6px rgba(0,0,0,0.6), 0 0 10px rgba(245,215,110,0.5)",
             }}
           >
-            សូមគោរពអញ្ជើញ
+            {isEn ? "Cordially Invites You" : "សូមគោរពអញ្ជើញ"}
           </p>
 
           {/* Gold name ribbon */}
@@ -287,14 +291,14 @@ export default function SignaturePackageCover({
 
           {/* Open label */}
           <p
-            className="font-khmer-moul mt-3"
+            className={`mt-3 ${isEn ? "font-serif font-bold tracking-wider text-sm sm:text-base" : "font-khmer-moul"}`}
             style={{
-              fontSize: "clamp(0.95rem, 3.4vw, 1.15rem)",
+              fontSize: isEn ? undefined : "clamp(0.95rem, 3.4vw, 1.15rem)",
               color: "#fff8dc",
               textShadow: "0 2px 4px rgba(0,0,0,0.6)",
             }}
           >
-            បើកសំបុត្រ
+            {isEn ? "Open Invitation" : "បើកសំបុត្រ"}
           </p>
 
           {/* Premium gold play button */}

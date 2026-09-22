@@ -1,12 +1,14 @@
 import { useEffect, useRef, useState } from "react";
-import { Smartphone, Tablet, Monitor, ExternalLink, RefreshCw, Music } from "lucide-react";
+import { Smartphone, Tablet, Monitor, ExternalLink, RefreshCw, Music, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { InvitationTemplate, type TemplateData } from "@/components/templates/InvitationTemplate";
 import RsvpCard from "@/components/templates/RsvpCard";
 import SignaturePackageCover from "@/components/templates/SignaturePackageCover";
 import KhmerTraditionalCover from "@/components/templates/KhmerTraditionalCover";
 import FloatingMusicPlayer from "@/components/templates/FloatingMusicPlayer";
+import FloatingLanguageSwitch from "@/components/templates/FloatingLanguageSwitch";
 import CollapsibleSection from "@/components/admin/CollapsibleSection";
+import { getDualLanguageConfig, LanguageCode } from "@/lib/dualLanguage";
 
 type Device = "mobile" | "tablet" | "desktop";
 
@@ -112,6 +114,19 @@ export default function PreviewPanel({
     !!musicUrl &&
     !!musicUrl.trim();
 
+  // Dual language configuration & active preview language
+  const dualCfg = getDualLanguageConfig(
+    (event as any).dual_language_config ??
+    (event as any).section_visibility?.dual_language ??
+    (event as any).section_visibility,
+    event
+  );
+  const [language, setLanguage] = useState<LanguageCode>(dualCfg.default_language ?? "km");
+
+  useEffect(() => {
+    setLanguage(dualCfg.default_language ?? "km");
+  }, [dualCfg.default_language, bump]);
+
   const body = (
     <div className="pt-2 space-y-4">
       {/* Device toolbar */}
@@ -186,6 +201,31 @@ export default function PreviewPanel({
                 <span className="hidden sm:inline">Music</span>
               </span>
             )}
+            {dualCfg.enabled && (
+              <div className="inline-flex items-center gap-1 bg-background/90 border border-gold/40 rounded-full px-1.5 py-0.5 text-[10px] shrink-0 shadow-2xs">
+                <Globe className="h-2.5 w-2.5 text-gold" />
+                <button
+                  type="button"
+                  onClick={() => setLanguage("km")}
+                  className={`px-1.5 py-0.5 rounded-full font-bold transition-all ${
+                    language === "km" ? "bg-gold text-primary-foreground shadow-2xs" : "text-muted-foreground hover:text-foreground"
+                  }`}
+                  title="Preview Khmer version"
+                >
+                  KM
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setLanguage("en")}
+                  className={`px-1.5 py-0.5 rounded-full font-bold transition-all ${
+                    language === "en" ? "bg-gold text-primary-foreground shadow-2xs" : "text-muted-foreground hover:text-foreground"
+                  }`}
+                  title="Preview English version"
+                >
+                  EN
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Scaled viewport — true device pixels, transformed to fit. The
@@ -233,6 +273,9 @@ export default function PreviewPanel({
                 hideBackground
                 hideFloatingContact
                 hideFloatingMusic
+                hideFloatingLanguageSwitch
+                language={language}
+                onLanguageChange={setLanguage}
                 eventVisibility={(event as any).section_visibility}
                 templateVisibility={(event as any).template_section_visibility}
               >
@@ -270,6 +313,7 @@ export default function PreviewPanel({
                     frameUrl={(event as any).frame_url ?? null}
                     frameType={((event as any).frame_type ?? "image") as "image" | "video"}
                     accentColor={(event as any).text_color_accent ?? null}
+                    language={language}
                     onOpen={() => setOpened(true)}
                     closing={opened}
                     positionMode="absolute"
@@ -298,23 +342,40 @@ export default function PreviewPanel({
                   title={(event as any).title ?? ""}
                   backgroundUrl={(event as any).cover_background_url ?? null}
                   accentColor={(event as any).text_color_accent ?? null}
+                  language={language}
                   onOpen={() => setView("invitation")}
                 />
               </div>
             )}
 
-            {/* Floating background music button in preview.
-                Pins cleanly to the bottom-right of the simulated device screen
-                so the user can preview the music note widget and test-play audio. */}
-            {isMusicVisible && (!isSignature || opened) && (
-              <FloatingMusicPlayer
-                key={`preview-music-${bump}-${musicUrl}`}
-                musicUrl={musicUrl}
-                accentColor={(event as any).text_color_accent ?? "#db9b0f"}
-                position="bottom-right"
-                positionMode="absolute"
-                disableAutoPlay
-              />
+            {/* Floating controls in preview: Music note on top, Language Switch directly below it */}
+            {((isMusicVisible && (!isSignature || opened)) || dualCfg.enabled) && (
+              <div
+                className="absolute bottom-4 right-4 z-40 flex flex-col items-center gap-2 pointer-events-none select-none"
+              >
+                {isMusicVisible && (!isSignature || opened) && (
+                  <div className="pointer-events-auto">
+                    <FloatingMusicPlayer
+                      key={`preview-music-${bump}-${musicUrl}`}
+                      musicUrl={musicUrl}
+                      accentColor={(event as any).text_color_accent ?? "#db9b0f"}
+                      position="bottom-right"
+                      positionMode="inline"
+                      disableAutoPlay
+                    />
+                  </div>
+                )}
+                {dualCfg.enabled && (
+                  <div className="pointer-events-auto">
+                    <FloatingLanguageSwitch
+                      language={language}
+                      onLanguageChange={setLanguage}
+                      accentColor={(event as any).text_color_accent ?? "#db9b0f"}
+                      positionMode="inline"
+                    />
+                  </div>
+                )}
+              </div>
             )}
           </div>
         </div>

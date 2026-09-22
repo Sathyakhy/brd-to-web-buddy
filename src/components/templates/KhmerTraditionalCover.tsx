@@ -34,6 +34,8 @@ type Props = {
   /** Event accent color used for the guest-name gradient. Defaults to the
    *  template's traditional gold when not provided. */
   accentColor?: string | null;
+  /** Language version: "km" (Khmer) or "en" (English) */
+  language?: "km" | "en";
   onOpen: () => void;
 };
 
@@ -54,8 +56,10 @@ export default function KhmerTraditionalCover({
   backgroundUrl,
   nameGraphicUrl,
   accentColor,
+  language = "km",
   onOpen,
 }: Props) {
+  const isEn = language === "en";
   const plateRef = useRef<HTMLDivElement | null>(null);
   const nameRef = useRef<HTMLSpanElement | null>(null);
   const [scale, setScale] = useState(1);
@@ -190,15 +194,17 @@ export default function KhmerTraditionalCover({
         />
       </div>
 
-      {/* "សូមគោរពអញ្ជើញ" */}
+      {/* "សូមគោរពអញ្ជើញ" / "Cordially Invites You" */}
       <p
-        className="relative z-10 font-khmer-koulen text-xl sm:text-2xl mt-0 mb-3 sm:mb-4 underline underline-offset-[6px] decoration-2"
+        className={`relative z-10 text-xl sm:text-2xl mt-0 mb-3 sm:mb-4 underline underline-offset-[6px] decoration-2 ${
+          isEn ? "font-serif tracking-widest uppercase font-semibold text-sm sm:text-base" : "font-khmer-koulen"
+        }`}
         style={{
           color: "#1a1a1a",
           textDecorationColor: "#1a1a1a",
         }}
       >
-        សូមគោរពអញ្ជើញ
+        {isEn ? "Cordially Invites You" : "សូមគោរពអញ្ជើញ"}
       </p>
 
       {/* Name plate using the gold plate graphic */}
@@ -269,10 +275,10 @@ export default function KhmerTraditionalCover({
           }}
         >
           <span
-            className="font-khmer-moul text-lg sm:text-xl"
+            className={`text-lg sm:text-xl ${isEn ? "font-serif font-bold tracking-wider" : "font-khmer-moul"}`}
             style={{ color: "#fff", textShadow: "0 1px 2px rgba(0,0,0,0.25)" }}
           >
-            បើកធៀប
+            {isEn ? "Open Invitation" : "បើកធៀប"}
           </span>
           {/* Pulse ring */}
           <span

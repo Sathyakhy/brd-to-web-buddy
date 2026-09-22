@@ -7,11 +7,14 @@ import { InvitationTemplate, type TemplateData } from "@/components/templates/In
 import KhmerTraditionalCover from "@/components/templates/KhmerTraditionalCover";
 import SignaturePackageCover from "@/components/templates/SignaturePackageCover";
 import RsvpCard from "@/components/templates/RsvpCard";
+import FloatingLanguageSwitch from "@/components/templates/FloatingLanguageSwitch";
+import { LanguageCode, getDualLanguageConfig } from "@/lib/dualLanguage";
 
 type Event = TemplateData & {
   id: string; slug: string; template: string;
   access_starts_at?: string | null;
   access_ends_at?: string | null;
+  dual_language_config?: unknown;
 };
 
 type Guest = {
@@ -36,6 +39,7 @@ export default function InvitePage() {
   const [partySize, setPartySize] = useState(1);
   const [message, setMessage] = useState("");
   const [opened, setOpened] = useState(isPreview);
+  const [language, setLanguage] = useState<LanguageCode>("km");
 
   useEffect(() => {
     if (!slug || !token) { setLoading(false); return; }
@@ -46,6 +50,15 @@ export default function InvitePage() {
       const ev = Array.isArray(evRows) ? evRows[0] : evRows;
       if (!ev) { setLoading(false); return; }
       setEvent(ev as Event);
+      const dualCfg = getDualLanguageConfig(
+        (ev as any).dual_language_config ??
+        (ev as any).section_visibility?.dual_language ??
+        (ev as any).section_visibility,
+        ev
+      );
+      if (dualCfg.default_language) {
+        setLanguage(dualCfg.default_language);
+      }
       // Pull the template's default section visibility so the merge in
       // <InvitationTemplate> can fall through to it when the event hasn't
       // overridden a given key.
@@ -160,6 +173,13 @@ export default function InvitePage() {
     );
   }
 
+  const dualCfg = getDualLanguageConfig(
+    (event as any).dual_language_config ??
+    (event as any).section_visibility?.dual_language ??
+    (event as any).section_visibility,
+    event
+  );
+
   const rsvpForm = (
     <RsvpCard
       guestName={guest.name}
@@ -169,6 +189,7 @@ export default function InvitePage() {
       submitting={submitting}
       accentColor={(event as any).text_color_accent ?? undefined}
       primaryColor={(event as any).text_color_primary ?? undefined}
+      language={language}
       onSubmit={(s, p, m) => {
         setPartySize(p);
         setMessage(m);
@@ -180,14 +201,23 @@ export default function InvitePage() {
   // Essentials package template uses a full cover screen first (separate page).
   if ((event.template === "essentials-package-01" || event.template === "essentials-package" || event.template === "khmer-traditional") && !opened) {
     return (
-      <div className="invitation-surface h-[100dvh] min-h-screen w-full overflow-hidden">
+      <div className="invitation-surface h-[100dvh] min-h-screen w-full overflow-hidden relative">
         <KhmerTraditionalCover
           guestName={guest.name}
           title={event.title}
           backgroundUrl={(event as any).cover_background_url ?? null}
           accentColor={(event as any).text_color_accent ?? null}
+          language={language}
           onOpen={() => setOpened(true)}
         />
+        {dualCfg.enabled && (
+          <FloatingLanguageSwitch
+            language={language}
+            onLanguageChange={setLanguage}
+            accentColor={(event as any).text_color_accent ?? undefined}
+            positionMode="fixed"
+          />
+        )}
       </div>
     );
   }
@@ -206,6 +236,8 @@ export default function InvitePage() {
         eventVisibility={(event as any).section_visibility}
         templateVisibility={templateVisibility}
         templateDefaults={templateDefaults}
+        language={language}
+        onLanguageChange={setLanguage}
         hideFloatingMusic={isSignature && !opened && !isPreview}
       >
         {rsvpForm}
@@ -220,6 +252,7 @@ export default function InvitePage() {
           frameUrl={(event as any).frame_url ?? templateDefaults.frame_url ?? null}
           frameType={((event as any).frame_type ?? templateDefaults.frame_type ?? "image") as "image" | "video"}
           accentColor={(event as any).text_color_accent ?? null}
+          language={language}
           onOpen={() => setOpened(true)}
           closing={opened}
         />

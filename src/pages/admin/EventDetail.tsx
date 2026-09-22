@@ -53,7 +53,9 @@ import PreviewPanel from "@/components/admin/PreviewPanel";
 import EventBillingTab from "@/components/admin/EventBillingTab";
 import SortableGalleryItem from "@/components/admin/SortableGalleryItem";
 import SectionVisibilityEditor from "@/components/admin/SectionVisibilityEditor";
+import DualLanguageEditor from "@/components/admin/DualLanguageEditor";
 import { normalizeVisibility, SectionVisibility } from "@/lib/sectionVisibility";
+import { getDualLanguageConfig, type DualLanguageConfig } from "@/lib/dualLanguage";
 import { thumbUrl } from "@/lib/imageUrl";
 
 type Event = {
@@ -83,6 +85,7 @@ type Event = {
   paid_amount: number | null;
   payment_status: string | null;
   section_visibility: SectionVisibility;
+  dual_language_config?: DualLanguageConfig;
   qr_code_url: string | null;
   qr_code_message: string | null;
   qr_account_name: string | null;
@@ -166,7 +169,11 @@ export default function EventDetail() {
       const contactsList = normalizeContacts(raw.contacts);
       const contacts = contactsList.length ? contactsList : buildLegacyContacts(raw.contact_phone);
       const section_visibility = normalizeVisibility(raw.section_visibility);
-      setEvent({ ...raw, agenda_days: days, agenda_view_style: view, gallery_layout: galleryLayout, contacts, section_visibility } as Event);
+      const dual_language_config = getDualLanguageConfig(
+        raw.dual_language_config ?? (raw.section_visibility as any)?.dual_language ?? raw.section_visibility,
+        raw
+      );
+      setEvent({ ...raw, agenda_days: days, agenda_view_style: view, gallery_layout: galleryLayout, contacts, section_visibility, dual_language_config } as Event);
     } else {
       setEvent(null);
     }
@@ -185,6 +192,10 @@ export default function EventDetail() {
   const handleSave = async () => {
     if (!event) return;
     setSaving(true);
+    const updatedVisibility = {
+      ...(event.section_visibility as any),
+      dual_language: event.dual_language_config,
+    };
     const { error } = await supabase.from("events").update({
       title: event.title,
       internal_title: event.internal_title,
@@ -215,7 +226,7 @@ export default function EventDetail() {
       text_color_accent: event.text_color_accent,
       access_starts_at: event.access_starts_at,
       access_ends_at: event.access_ends_at,
-      section_visibility: event.section_visibility as any,
+      section_visibility: updatedVisibility as any,
       qr_code_url: event.qr_code_url,
       qr_code_message: event.qr_code_message,
       qr_account_name: event.qr_account_name,
@@ -791,6 +802,11 @@ export default function EventDetail() {
                 ...event,
                 template_section_visibility: templateVisibilityBySlug[event.template] ?? {},
                 template_cover_music_url: templateDefaultsBySlug[event.template]?.cover_music_url,
+                dual_language_config: event.dual_language_config,
+                section_visibility: {
+                  ...(event.section_visibility as any),
+                  dual_language: event.dual_language_config,
+                },
               } as any}
               publicHref={`/${event.slug}`}
               bare
@@ -1088,6 +1104,22 @@ export default function EventDetail() {
               value={event.section_visibility}
               templateDefaults={templateVisibilityBySlug[event.template] ?? {}}
               onChange={(next) => setEvent({ ...event, section_visibility: next })}
+            />
+          </div>
+        </CollapsibleSection>
+
+        {/* Dual language toggle and bilingual content configuration */}
+        <CollapsibleSection
+          title="Dual language (ភាសាខ្មែរ / English)"
+          description="Enable bilingual toggle for guests. Allows switching seamlessly between Khmer and English versions with identical design and assets."
+          defaultOpen={event.dual_language_config?.enabled ?? false}
+          rightSlot={sectionSave}
+        >
+          <div className="pt-2">
+            <DualLanguageEditor
+              config={event.dual_language_config ?? { enabled: false, default_language: "km", km: {}, en: {} }}
+              baseEvent={event}
+              onChange={(nextCfg) => setEvent({ ...event, dual_language_config: nextCfg })}
             />
           </div>
         </CollapsibleSection>
