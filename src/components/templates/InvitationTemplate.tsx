@@ -2,6 +2,7 @@ import { Heart, Sparkles, MapPin, LayoutList, LayoutGrid, Facebook, Instagram, S
 import { useEffect, useMemo, useState } from "react";
 import KhmerGallery from "./KhmerGallery";
 import KhmerFloatingContact from "./KhmerFloatingContact";
+import FloatingMusicPlayer from "./FloatingMusicPlayer";
 import FitText from "./FitText";
 import FitParagraph from "./FitParagraph";
 import {
@@ -72,6 +73,8 @@ export type TemplateData = {
   frame_type?: "image" | "video";
   /** Optional Khmer body-font override (Google Fonts family name). */
   body_font?: string | null;
+  /** Optional background music URL (MP3/audio stream). */
+  cover_music_url?: string | null;
 };
 
 /** Convert "#rrggbb" + opacity (0–100) to an rgba() string. Returns the
@@ -103,6 +106,8 @@ export type TemplateProps = {
       the admin preview where `position: fixed` doesn't behave naturally
       because of the scaled/transformed wrapper. */
   hideFloatingContact?: boolean;
+  /** When true, the floating background music widget is not rendered. */
+  hideFloatingMusic?: boolean;
   /** Resolved per-section visibility map. When omitted every section
       renders (built-in default). The dispatcher merges template +
       event-level overrides before passing it down. */
@@ -1522,7 +1527,8 @@ export function InvitationTemplate({
   templateDefaults?: Partial<Pick<TemplateData,
     "qr_code_url" | "qr_code_message" | "qr_account_name" |
     "apologies_message" | "thank_you_message" |
-    "letter_bg_color" | "letter_bg_opacity" | "frame_url" | "frame_type"
+    "letter_bg_color" | "letter_bg_opacity" | "frame_url" | "frame_type" |
+    "cover_music_url"
   >>;
 }) {
   const visibility = mergeVisibility(templateVisibility, eventVisibility);
@@ -1549,23 +1555,51 @@ export function InvitationTemplate({
         letter_bg_opacity: fallback("letter_bg_opacity") as any,
         frame_url: fallback("frame_url") as any,
         frame_type: fallback("frame_type") as any,
+        cover_music_url: fallback("cover_music_url") as any,
       }
     : ev;
   const merged = { ...props, event: mergedEvent, visibility };
+
+  const musicUrl = mergedEvent.cover_music_url;
+  const showFloatingMusic =
+    visibility.background_music !== false &&
+    !props.hideFloatingMusic &&
+    !!musicUrl &&
+    !!musicUrl.trim();
+  const accentColor = (mergedEvent.text_color_accent && mergedEvent.text_color_accent.trim()) || "#db9b0f";
+
+  let content: React.ReactNode;
   switch (template) {
     case "signature-package-01":
-      return <SignaturePackageTemplate {...merged} />;
+      content = <SignaturePackageTemplate {...merged} />;
+      break;
     case "modern-luxury":
     case "modern-minimal":
-      return <ModernLuxuryTemplate {...merged} />;
+      content = <ModernLuxuryTemplate {...merged} />;
+      break;
     case "floral-romantic":
-      return <FloralRomanticTemplate {...merged} />;
+      content = <FloralRomanticTemplate {...merged} />;
+      break;
     case "essentials-package-01":
     case "essentials-package":
     case "khmer-traditional":
     default:
-      return <KhmerTraditionalTemplate {...merged} />;
+      content = <KhmerTraditionalTemplate {...merged} />;
+      break;
   }
+
+  return (
+    <>
+      {content}
+      {showFloatingMusic && (
+        <FloatingMusicPlayer
+          musicUrl={musicUrl}
+          accentColor={accentColor}
+          position="top-right"
+        />
+      )}
+    </>
+  );
 }
 
 export const TEMPLATES = [

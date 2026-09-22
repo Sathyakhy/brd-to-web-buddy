@@ -206,6 +206,7 @@ export default function InvitePage() {
         eventVisibility={(event as any).section_visibility}
         templateVisibility={templateVisibility}
         templateDefaults={templateDefaults}
+        hideFloatingMusic={isSignature && !opened && !isPreview}
       >
         {rsvpForm}
       </InvitationTemplate>

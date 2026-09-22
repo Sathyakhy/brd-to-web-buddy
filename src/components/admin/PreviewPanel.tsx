@@ -211,6 +211,7 @@ export default function PreviewPanel({
                 guestName={guestName}
                 hideBackground
                 hideFloatingContact
+                hideFloatingMusic
                 eventVisibility={(event as any).section_visibility}
                 templateVisibility={(event as any).template_section_visibility}
               >

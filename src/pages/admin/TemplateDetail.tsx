@@ -14,6 +14,7 @@ import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import CollapsibleSection from "@/components/admin/CollapsibleSection";
 import LetterCardStyleEditor from "@/components/admin/LetterCardStyleEditor";
+import MusicEditor from "@/components/admin/MusicEditor";
 import PreviewPanel from "@/components/admin/PreviewPanel";
 import FrameLibraryPicker from "@/components/admin/FrameLibraryPicker";
 import ParentsEditor from "@/components/admin/ParentsEditor";
@@ -652,45 +653,26 @@ export default function TemplateDetail() {
               </CollapsibleSection>
             )}
 
-            {/* Cover music — Signature Package only. Plays on the gate
-                screen with a toggle button. Per-event override lives on
-                the event row. */}
-            {draft?.base_renderer === "signature-package-01" && (
-              <CollapsibleSection
-                title="Cover music"
-                description="Optional background track played on the cover screen. Guests see a toggle to mute/unmute. Individual events can override this default."
-                defaultOpen={false}
-                rightSlot={sectionSave}
-              >
-                <div className="flex flex-col md:flex-row gap-4 items-start pt-2">
-                  <div className="w-full md:w-64 aspect-[4/3] rounded-lg overflow-hidden bg-secondary border border-border flex flex-col items-center justify-center gap-3 p-4">
-                    <Music className="h-10 w-10 text-gold/70" />
-                    {draftConfig.cover_music_url ? (
-                      <audio src={draftConfig.cover_music_url} controls className="w-full" />
-                    ) : (
-                      <p className="text-xs text-muted-foreground text-center">No track uploaded — cover will be silent.</p>
-                    )}
-                  </div>
-                  <div className="flex-1 space-y-3">
-                    <Label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 rounded-md border border-gold/30 bg-gold/5 text-gold hover:bg-gold/10 transition-smooth">
-                      <Upload className="h-4 w-4" />
-                      {uploadProgress["audio"] !== undefined ? "Uploading…" : "Upload music (MP3/M4A/OGG)"}
-                      <input type="file" accept="audio/*" className="hidden" disabled={uploadProgress["audio"] !== undefined}
-                        onChange={(e) => { const f = e.target.files?.[0]; if (f) handleUploadMusic(f); e.currentTarget.value = ""; }} />
-                    </Label>
-                    {uploadBar("audio")}
-                    {draftConfig.cover_music_url && (
-                      <Button variant="ghost" size="sm" onClick={() => patchConfig({ cover_music_url: null })}>
-                        <Trash2 className="h-4 w-4 mr-2" /> Remove music
-                      </Button>
-                    )}
-                    <p className="text-xs text-muted-foreground">
-                      Recommended: short looping instrumental, &lt; 8 MB. Browsers block autoplay with sound — guests tap the cover to start playback.
-                    </p>
-                  </div>
-                </div>
-              </CollapsibleSection>
-            )}
+            {/* Background music — default track for this template */}
+            <CollapsibleSection
+              title="Background music"
+              description="Default ambient soundtrack for invitations using this template. Events can override this. Supports MP3 upload, preset tracks, or custom audio links."
+              defaultOpen={false}
+              rightSlot={sectionSave}
+            >
+              <MusicEditor
+                musicUrl={draftConfig.cover_music_url}
+                onChange={(url) => patchConfig({ cover_music_url: url })}
+                onUpload={async (file) => {
+                  const url = await handleUploadMusic(file);
+                  if (url) {
+                    patchConfig({ cover_music_url: url });
+                    toast.success("Background music updated");
+                  }
+                }}
+                uploading={uploadProgress["audio"] !== undefined}
+              />
+            </CollapsibleSection>
 
             {/* Text colours — only TWO colours drive the entire invitation:
                 body (primary) and accent. All headings, icons, borders,

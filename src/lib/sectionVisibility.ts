@@ -31,6 +31,7 @@ export type SectionKey =
   | "location"
   | "rsvp"
   | "floating_contact"
+  | "background_music"
   | "footer";
 
 export type SectionVisibility = Partial<Record<SectionKey, boolean>>;
@@ -52,6 +53,7 @@ export const SECTION_DEFINITIONS: { key: SectionKey; label: string; description:
   { key: "location",         label: "Location & map",       description: "Embedded Google Map." },
   { key: "rsvp",             label: "RSVP form",            description: "Guest reply card." },
   { key: "floating_contact", label: "Floating contact",     description: "Bottom-right contact widget." },
+  { key: "background_music", label: "Background music",     description: "Floating music disc controller." },
   { key: "footer",           label: "Footer",               description: "Logo + footer text + social links." },
 ];
 
