@@ -227,6 +227,7 @@ export default function InvitePage() {
             guestName={guest.name}
             title={event.title}
             backgroundUrl={(event as any).cover_background_url ?? null}
+            nameGraphicUrl={(event as any).cover_image_url ?? templateDefaults.cover_image_url ?? null}
             accentColor={(event as any).text_color_accent ?? null}
             language={language}
             onOpen={() => setOpened(true)}

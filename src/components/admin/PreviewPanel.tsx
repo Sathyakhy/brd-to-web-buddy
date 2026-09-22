@@ -341,6 +341,7 @@ export default function PreviewPanel({
                   guestName={guestName}
                   title={(event as any).title ?? ""}
                   backgroundUrl={(event as any).cover_background_url ?? null}
+                  nameGraphicUrl={(event as any).cover_image_url ?? (event as any).templateDefaults?.cover_image_url ?? null}
                   accentColor={(event as any).text_color_accent ?? null}
                   language={language}
                   onOpen={() => setView("invitation")}

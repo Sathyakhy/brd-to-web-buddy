@@ -869,30 +869,39 @@ export default function TemplateDetail() {
             {/* Background images / colors. Editing image URLs directly keeps the
                 template editor lightweight; admins typically reuse the same
                 background across many events so a URL field is enough. */}
-            {/* Cover image — upload UI matching the event editor. */}
-            <CollapsibleSection title="Cover image" defaultOpen={false} rightSlot={sectionSave}>
-              <div className="flex flex-col md:flex-row gap-4 items-start pt-2">
-                <div className="w-full md:w-64 aspect-[4/3] rounded-lg overflow-hidden bg-secondary border border-border flex items-center justify-center">
-                  {draftConfig.cover_image_url ? (
-                    <img src={draftConfig.cover_image_url} alt="Cover" className="h-full w-full object-cover" />
-                  ) : (
-                    <ImageIcon className="h-10 w-10 text-muted-foreground opacity-40" />
-                  )}
-                </div>
-                <div className="flex-1 space-y-3">
-                  <Label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 rounded-md border border-gold/30 bg-gold/5 text-gold hover:bg-gold/10 transition-smooth">
-                    <Upload className="h-4 w-4" />
-                    {uploadProgress["cover"] !== undefined ? "Uploading…" : "Upload image"}
-                    <input type="file" accept="image/*" className="hidden" disabled={uploadProgress["cover"] !== undefined}
-                      onChange={(e) => { const f = e.target.files?.[0]; if (f) handleUploadCover(f); e.currentTarget.value = ""; }} />
-                  </Label>
-                  {uploadBar("cover")}
-                  {draftConfig.cover_image_url && (
-                    <Button variant="ghost" size="sm" onClick={() => patchConfig({ cover_image_url: null })}>
-                      <Trash2 className="h-4 w-4 mr-2" /> Remove
-                    </Button>
-                  )}
-                  <p className="text-xs text-muted-foreground">Recommended: 1600×1200, JPG/PNG, &lt; 2MB.</p>
+            {/* Groom & Bride Logo / Monogram (Cover & Invitation) */}
+            <CollapsibleSection title="Groom & Bride Logo / Monogram (Cover & Invitation)" defaultOpen={false} rightSlot={sectionSave}>
+              <div className="pt-1 pb-2">
+                <p className="text-xs text-muted-foreground mb-4">
+                  Default wedding logo or couple's monogram emblem for this template (transparent PNG or gold crest recommended).
+                  Appears on the <strong>Cover Screen</strong> and above the couple's names on the <strong>Invitation Page</strong>.
+                </p>
+                <div className="flex flex-col md:flex-row gap-4 items-start">
+                  <div className="w-full md:w-64 aspect-[4/3] rounded-lg overflow-hidden bg-secondary/60 border border-dashed border-border flex items-center justify-center p-4">
+                    {draftConfig.cover_image_url ? (
+                      <img src={draftConfig.cover_image_url} alt="Logo / Monogram" className="max-h-full max-w-full object-contain drop-shadow" />
+                    ) : (
+                      <div className="flex flex-col items-center gap-1.5 text-muted-foreground opacity-50">
+                        <ImageIcon className="h-9 w-9" />
+                        <span className="text-[11px]">No logo / monogram set</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex-1 space-y-3">
+                    <Label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 rounded-md border border-gold/30 bg-gold/5 text-gold hover:bg-gold/10 transition-smooth">
+                      <Upload className="h-4 w-4" />
+                      {uploadProgress["cover"] !== undefined ? "Uploading…" : "Upload logo / monogram"}
+                      <input type="file" accept="image/*" className="hidden" disabled={uploadProgress["cover"] !== undefined}
+                        onChange={(e) => { const f = e.target.files?.[0]; if (f) handleUploadCover(f); e.currentTarget.value = ""; }} />
+                    </Label>
+                    {uploadBar("cover")}
+                    {draftConfig.cover_image_url && (
+                      <Button variant="ghost" size="sm" onClick={() => patchConfig({ cover_image_url: null })}>
+                        <Trash2 className="h-4 w-4 mr-2" /> Remove logo
+                      </Button>
+                    )}
+                    <p className="text-xs text-muted-foreground">Recommended: Transparent PNG, SVG, or high-res JPG (&lt; 2MB).</p>
+                  </div>
                 </div>
               </div>
             </CollapsibleSection>
