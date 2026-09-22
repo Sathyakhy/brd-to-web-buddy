@@ -1,7 +1,7 @@
 import {
   Crown, Gift, Sparkle, Sparkles, Scissors, BookOpen, Wine, Utensils,
   Users, Heart, Music, Camera, Cake, Flower2, Bell, Sun, Moon, Star,
-  MapPin, Clock, Gem, HeartHandshake, PartyPopper, Flame, Coffee, Award,
+  MapPin, Clock,
 } from "lucide-react";
 
 export type AgendaItem = {
@@ -36,34 +36,14 @@ export type AgendaViewStyle = "list" | "card";
 export const AGENDA_ICONS = {
   Sparkle, Sparkles, Crown, Gift, Scissors, BookOpen, Wine, Utensils,
   Users, Heart, Music, Camera, Cake, Flower2, Bell, Sun, Moon, Star,
-  MapPin, Clock, Gem, HeartHandshake, PartyPopper, Flame, Coffee, Award,
+  MapPin, Clock,
 } as const;
 
 export type AgendaIconKey = keyof typeof AGENDA_ICONS;
 
 export const AGENDA_ICON_KEYS = Object.keys(AGENDA_ICONS) as AgendaIconKey[];
 
-export function getAgendaIcon(key: string, label?: string) {
-  if (key && (AGENDA_ICONS as Record<string, typeof Sparkle>)[key]) {
-    if (key !== "Sparkle") {
-      return (AGENDA_ICONS as Record<string, typeof Sparkle>)[key];
-    }
-  }
-  if (label) {
-    const l = label.toLowerCase();
-    if (l.includes("សូត្រមន្ត") || l.includes("ព្រះសង្ឃ") || l.includes("blessing") || l.includes("monk")) return Flame;
-    if (l.includes("អាហារ") || l.includes("ភោជន") || l.includes("ញ៉ាំ") || l.includes("dinner") || l.includes("lunch") || l.includes("feast")) return Utensils;
-    if (l.includes("កាត់សក់") || l.includes("hair")) return Scissors;
-    if (l.includes("ជំនូន") || l.includes("ផ្លែឈើ") || l.includes("gift")) return Gift;
-    if (l.includes("ផ្ទឹម") || l.includes("ចងដៃ") || l.includes("ring") || l.includes("wedding") || l.includes("ceremony")) return Gem;
-    if (l.includes("ស្រា") || l.includes("ជប់លៀង") || l.includes("party") || l.includes("wine") || l.includes("cheers")) return Wine;
-    if (l.includes("តន្ត្រី") || l.includes("រាំ") || l.includes("music") || l.includes("dance")) return Music;
-    if (l.includes("ថតរូប") || l.includes("photo")) return Camera;
-    if (l.includes("នំ") || l.includes("cake")) return Cake;
-    if (l.includes("ផ្កា") || l.includes("flower")) return Flower2;
-    if (l.includes("ក្រុងពាលី") || l.includes("ពលា")) return Crown;
-    if (l.includes("កាហ្វេ") || l.includes("coffee") || l.includes("tea")) return Coffee;
-  }
+export function getAgendaIcon(key: string) {
   return (AGENDA_ICONS as Record<string, typeof Sparkle>)[key] ?? Sparkle;
 }
 

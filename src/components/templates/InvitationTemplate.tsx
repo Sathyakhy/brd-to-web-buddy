@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Heart, Sparkles, Sparkle, MapPin, Facebook, Instagram, Send } from "lucide-react";
+import { Heart, Sparkles, MapPin, LayoutList, LayoutGrid, Facebook, Instagram, Send } from "lucide-react";
 import KhmerGallery from "./KhmerGallery";
 import KhmerFloatingContact from "./KhmerFloatingContact";
 import FloatingMusicPlayer from "./FloatingMusicPlayer";
@@ -257,7 +257,10 @@ export function KhmerTraditionalTemplate({ event, guestName, children, hideBackg
     });
   }, [event.agenda_days, event.ceremony_time, event.reception_time]);
 
+  const initialView: AgendaViewStyle = event.agenda_view_style === "card" ? "card" : "list";
+  const [agendaView, setAgendaView] = useState<AgendaViewStyle>(initialView);
   const [activeDay, setActiveDay] = useState(0);
+  useEffect(() => { setAgendaView(initialView); }, [initialView]);
   useEffect(() => { if (activeDay >= agendaDays.length) setActiveDay(0); }, [agendaDays.length, activeDay]);
 
   // Map image lightbox state — when true, the uploaded map image is shown
@@ -640,131 +643,98 @@ export function KhmerTraditionalTemplate({ event, guestName, children, hideBackg
           </div>
         )}
 
-        {/* Agenda — Clean, balanced, elegant layout with modern icons and soft gold tones */}
+        {/* Agenda (editable, multi-day, list/card) — uses the same soft
+            card background as the apology / thank-you letters so the three
+            sections feel visually unified. */}
         {isVisible("agenda") && agendaDays.length > 0 && (() => {
-          const fallbackBg = hexWithOpacity("#fff8e7", 75);
+          const fallbackBg = hexWithOpacity("#fff8e7", 70);
           const cardBg =
-            hexWithOpacity(event.letter_bg_color, event.letter_bg_opacity ?? 75) ?? fallbackBg;
+            hexWithOpacity(event.letter_bg_color, event.letter_bg_opacity ?? 70) ?? fallbackBg;
           const agendaCardStyle: React.CSSProperties = {
             background: cardBg ?? undefined,
-            border: `1px solid ${colorAccent}35`,
-            borderRadius: 16,
-            backdropFilter: "blur(4px)",
-            boxShadow: `0 4px 20px -2px ${colorAccent}15`,
+            border: `1px solid ${colorAccent}33`,
+            borderRadius: 12,
+            backdropFilter: "blur(2px)",
           };
-          const currentDay = agendaDays[activeDay] ?? agendaDays[0];
-          const hasMultipleDays = agendaDays.length > 1;
-
           return (
-            <section className="p-4 sm:p-6 my-8 w-full" style={agendaCardStyle}>
-              {/* Header Title */}
-              <div className="text-center mb-4">
-                <h3
-                  className={`text-2xl sm:text-3xl ${isEn ? "font-serif font-bold" : "kt-title"}`}
-                  style={{ color: colorAccent }}
-                >
-                  {isEn ? "Wedding Program" : "កម្មវិធីមង្គលការ"}
-                </h3>
-                <div
-                  aria-hidden="true"
-                  className="mx-auto mt-2 mb-3"
-                  style={{
-                    height: 2,
-                    width: "45%",
-                    maxWidth: 140,
-                    background: `linear-gradient(to right, transparent, ${colorAccent}, transparent)`,
-                  }}
-                />
-              </div>
-
-              {/* Day tabs (when multiple days) */}
-              {hasMultipleDays && (
-                <div className="flex flex-wrap justify-center gap-2 mb-5">
-                  {agendaDays.map((d, i) => {
-                    const isSelected = i === activeDay;
-                    return (
-                      <button
-                        key={d.id}
-                        type="button"
-                        onClick={() => setActiveDay(i)}
-                        className="px-4 py-1.5 rounded-full text-xs sm:text-sm font-khmer-koulen transition-all duration-200"
-                        style={
-                          isSelected
-                            ? {
-                                background: `linear-gradient(135deg, ${colorAccent}, ${colorAccent}dd)`,
-                                color: "#ffffff",
-                                border: `1px solid ${colorAccent}`,
-                                boxShadow: `0 2px 8px ${colorAccent}40`,
-                              }
-                            : {
-                                background: "rgba(255, 255, 255, 0.7)",
-                                color: colorPrimary,
-                                fontFamily: bodyFont,
-                                border: `1px solid ${colorAccent}40`,
-                              }
-                        }
-                      >
-                        {d.title || (isEn ? `Day ${i + 1}` : `ថ្ងៃទី${toKhmerNumber(i + 1)}`)}
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-
-              {/* Single day title / date banner (if unique and not a generic repeat) */}
-              {!hasMultipleDays && currentDay?.title &&
-                currentDay.title.trim() !== "កម្មវិធី" &&
-                currentDay.title.trim() !== "កម្មវិធីមង្គលការ" &&
-                currentDay.title.trim() !== "Wedding Program" && (
-                <div className="text-center mb-4 -mt-1">
-                  <span
-                    className="inline-block px-3.5 py-1 rounded-full text-xs sm:text-sm font-khmer-siemreap font-medium"
-                    style={{
-                      background: "rgba(255, 255, 255, 0.65)",
-                      color: colorPrimary,
-                      border: `1px solid ${colorAccent}35`,
-                      fontFamily: bodyFont,
-                    }}
+          <section className="p-5 sm:p-6 my-8 w-full" style={agendaCardStyle}>
+            {/* Day tabs (only when more than one day) */}
+            {agendaDays.length > 1 && (
+              <div className="flex flex-wrap justify-center gap-2 mb-4">
+                {agendaDays.map((d, i) => (
+                  <button
+                    key={d.id}
+                    type="button"
+                    onClick={() => setActiveDay(i)}
+                    className="px-3 py-1.5 rounded-full text-xs sm:text-sm font-khmer-koulen transition-colors"
+                    style={
+                      i === activeDay
+                        ? { background: colorAccent, color: "#fff", border: `1px solid ${colorAccent}` }
+                        : { background: "rgba(255,255,255,0.5)", color: colorPrimary, fontFamily: bodyFont, border: `1px solid ${colorAccent}73` }
+                    }
                   >
-                    {currentDay.title}
-                  </span>
-                </div>
-              )}
+                    {d.title || `Day ${i + 1}`}
+                  </button>
+                ))}
+              </div>
+            )}
 
-              {/* Agenda items in balanced elegant layout */}
-              <div className="w-full flex flex-col items-stretch gap-2.5 sm:gap-3">
-                {currentDay?.items.map((item) => (
+            {/* View style switcher */}
+            <div className="flex items-center justify-between gap-3 mb-2">
+              <h3 className={`text-2xl sm:text-3xl ${isEn ? "font-serif font-bold" : "kt-title"}`} style={{ color: colorAccent }}>
+                {agendaDays[activeDay]?.title || (isEn ? "Wedding Program" : "កម្មវិធី")}
+              </h3>
+              <div className="inline-flex rounded-full p-1" style={{ background: "rgba(255,255,255,0.55)", border: `1px solid ${colorAccent}66` }}>
+                <button
+                  type="button"
+                  onClick={() => setAgendaView("list")}
+                  className="px-2.5 py-1 rounded-full inline-flex items-center gap-1 text-xs"
+                  style={agendaView === "list"
+                    ? { background: colorAccent, color: "#fff" }
+                    : { color: colorPrimary, fontFamily: bodyFont }}
+                  aria-label="List view"
+                >
+                  <LayoutList className="h-3.5 w-3.5" /> List
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAgendaView("card")}
+                  className="px-2.5 py-1 rounded-full inline-flex items-center gap-1 text-xs"
+                  style={agendaView === "card"
+                    ? { background: colorAccent, color: "#fff" }
+                    : { color: colorPrimary, fontFamily: bodyFont }}
+                  aria-label="Card view"
+                >
+                  <LayoutGrid className="h-3.5 w-3.5" /> Cards
+                </button>
+              </div>
+            </div>
+
+            {agendaView === "list" ? (
+              <div className="w-full flex flex-col items-stretch gap-3">
+                {agendaDays[activeDay]?.items.map((item) => (
                   <div key={item.id} className="flex flex-col">
                     {item.subHeader && (
-                      <div className="flex items-center justify-center gap-3 my-3.5 sm:my-4 first:mt-1">
-                        <div
-                          className="h-px flex-1"
-                          style={{
-                            background: `linear-gradient(to right, transparent, ${colorAccent}60, transparent)`,
-                          }}
+                      <div
+                        className="font-khmer-koulen text-base sm:text-lg mt-1 mb-1 px-2 flex items-center gap-2"
+                        style={{ color: colorAccent }}
+                      >
+                        <span
+                          aria-hidden="true"
+                          className="inline-block h-px flex-1"
+                          style={{ background: `linear-gradient(to right, transparent, ${colorAccent}, transparent)` }}
                         />
-                        <div
-                          className="px-3.5 py-0.5 rounded-full text-xs sm:text-sm font-khmer-koulen flex items-center gap-1.5 shadow-2xs"
-                          style={{
-                            background: "rgba(255, 255, 255, 0.8)",
-                            color: colorAccent,
-                            border: `1px solid ${colorAccent}45`,
-                          }}
-                        >
-                          <Sparkles className="w-3.5 h-3.5" style={{ color: colorAccent }} />
-                          <span>{item.subHeader}</span>
-                        </div>
-                        <div
-                          className="h-px flex-1"
-                          style={{
-                            background: `linear-gradient(to right, transparent, ${colorAccent}60, transparent)`,
-                          }}
+                        <span>{item.subHeader}</span>
+                        <span
+                          aria-hidden="true"
+                          className="inline-block h-px flex-1"
+                          style={{ background: `linear-gradient(to right, transparent, ${colorAccent}, transparent)` }}
                         />
                       </div>
                     )}
                     <AgendaRow
                       time={item.time}
-                      icon={getAgendaIcon(item.icon, item.label)}
+                      icon={getAgendaIcon(item.icon)}
                       iconImageUrl={item.iconImageUrl ?? null}
                       label={item.label}
                       description={item.description}
@@ -776,7 +746,74 @@ export function KhmerTraditionalTemplate({ event, guestName, children, hideBackg
                   </div>
                 ))}
               </div>
-            </section>
+            ) : (
+              <div className="w-full flex flex-col gap-3">
+                {(() => {
+                  // Group items by subHeader so the divider sits cleanly above
+                  // its group (matching list-view spacing) instead of being a
+                  // stretched row inside the cards grid.
+                  const items = agendaDays[activeDay]?.items ?? [];
+                  const groups: { subHeader: string | null; items: typeof items }[] = [];
+                  items.forEach((it) => {
+                    if (it.subHeader || groups.length === 0) {
+                      groups.push({ subHeader: it.subHeader ?? null, items: [it] });
+                    } else {
+                      groups[groups.length - 1].items.push(it);
+                    }
+                  });
+                  return groups.map((g, gi) => (
+                    <div key={gi} className="flex flex-col">
+                      {g.subHeader && (
+                        <div
+                          className="font-khmer-koulen text-base sm:text-lg mt-1 mb-1 px-2 flex items-center gap-2"
+                          style={{ color: colorAccent }}
+                        >
+                          <span
+                            aria-hidden="true"
+                            className="inline-block h-px flex-1"
+                            style={{ background: `linear-gradient(to right, transparent, ${colorAccent}, transparent)` }}
+                          />
+                          <span>{g.subHeader}</span>
+                          <span
+                            aria-hidden="true"
+                            className="inline-block h-px flex-1"
+                            style={{ background: `linear-gradient(to right, transparent, ${colorAccent}, transparent)` }}
+                          />
+                        </div>
+                      )}
+                      <div className="grid grid-cols-2 auto-rows-fr gap-2 items-stretch">
+                        {g.items.map((item) => {
+                          const Icon = getAgendaIcon(item.icon);
+                          return (
+                            <div
+                              key={item.id}
+                              className="rounded-lg p-2 flex flex-col items-center text-center w-full h-full"
+                              style={{ background: "rgba(255,255,255,0.55)", border: `1px solid ${colorAccent}66` }}
+                            >
+                              {item.iconImageUrl ? (
+                                <img src={item.iconImageUrl} alt="" className="h-6 w-6 sm:h-8 sm:w-8 object-contain shrink-0" />
+                              ) : (
+                                <Icon className="h-6 w-6 sm:h-8 sm:w-8 shrink-0" style={{ color: colorAccent }} />
+                              )}
+                              <div className="font-khmer-siemreap text-base mt-0.5" style={{ color: colorPrimary, fontFamily: bodyFont }}>
+                                {isEn ? item.time : toKhmerTime(item.time)}
+                              </div>
+                              <div className="font-khmer-siemreap text-base leading-snug mt-0.5" style={{ color: colorPrimary, fontFamily: bodyFont }}>{item.label}</div>
+                              {item.description && (
+                                <div className="font-khmer-siemreap text-sm leading-snug mt-0.5 opacity-90" style={{ color: colorPrimary, fontFamily: bodyFont }}>
+                                  {item.description}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ));
+                })()}
+              </div>
+            )}
+          </section>
           );
         })()}
 
@@ -1161,7 +1198,7 @@ export function KhmerTraditionalTemplate({ event, guestName, children, hideBackg
   );
 }
 
-/* Agenda row helper — Balanced layout with modern icons and soft gold tones */
+/* Agenda row helper */
 function AgendaRow({
   time, icon: Icon, iconImageUrl, label, description,
   accentColor = "#db9b0f", primaryColor = "#3a2a00", bodyFont,
@@ -1177,82 +1214,36 @@ function AgendaRow({
   bodyFont?: string;
   language?: LanguageCode;
 }) {
-  const isEn = language === "en";
-  const displayTime = isEn ? time : toKhmerDigits(time);
-
   return (
-    <div
-      className="relative flex items-center gap-2.5 sm:gap-3.5 p-3 sm:p-3.5 rounded-xl sm:rounded-2xl transition-all duration-200"
-      style={{
-        background: "rgba(255, 255, 255, 0.65)",
-        border: `1px solid ${accentColor}2c`,
-        boxShadow: "0 2px 8px -2px rgba(219, 155, 15, 0.08)",
-        backdropFilter: "blur(4px)",
-      }}
-    >
-      {/* Time Badge in soft gold */}
+    <div className="flex items-center gap-2 py-1.5 px-1 w-full">
       <div
-        className="shrink-0 flex items-center justify-center px-2.5 sm:px-3 py-1.5 rounded-lg text-center"
-        style={{
-          background: `linear-gradient(135deg, ${accentColor}12, ${accentColor}24)`,
-          border: `1px solid ${accentColor}38`,
-          minWidth: "4rem",
-        }}
+        className="font-khmer-siemreap text-base shrink-0 text-left tabular-nums"
+        style={{ color: primaryColor, fontFamily: language === "en" ? undefined : bodyFont }}
       >
-        <span
-          className="font-khmer-siemreap font-bold text-xs sm:text-sm tabular-nums tracking-wide"
-          style={{
-            color: accentColor,
-            fontFamily: isEn ? undefined : bodyFont,
-          }}
-        >
-          {displayTime}
-        </span>
+        {language === "en" ? time : toKhmerDigits(time)}
       </div>
-
-      {/* Modern Icon Medallion */}
       <div
-        className="shrink-0 w-10 h-10 sm:w-11 sm:h-11 rounded-full flex items-center justify-center relative overflow-hidden"
+        aria-hidden="true"
+        className="shrink-0 rounded-full"
         style={{
-          background: `linear-gradient(145deg, #ffffff 0%, #fffdf8 55%, ${accentColor}18 100%)`,
-          border: `1.5px solid ${accentColor}48`,
-          boxShadow: `0 2px 6px ${accentColor}20`,
+          width: 2,
+          height: 22,
+          background: `linear-gradient(to bottom, transparent, ${accentColor}, transparent)`,
         }}
-      >
+      />
+      <div className="shrink-0 flex items-center justify-center">
         {iconImageUrl ? (
-          <img
-            src={iconImageUrl}
-            alt=""
-            className="w-6 h-6 sm:w-6.5 sm:h-6.5 object-contain drop-shadow-2xs"
-          />
+          <img src={iconImageUrl} alt="" className="h-6 w-6 sm:h-7 sm:w-7 object-contain" />
         ) : (
-          <Icon
-            className="w-5 h-5 sm:w-5.5 sm:h-5.5"
-            style={{ color: accentColor }}
-            strokeWidth={1.75}
-          />
+          <Icon className="h-6 w-6 sm:h-7 sm:w-7" style={{ color: accentColor }} />
         )}
       </div>
-
-      {/* Label and optional description */}
-      <div className="flex-1 min-w-0 text-left">
-        <h4
-          className="font-khmer-siemreap font-bold text-sm sm:text-base leading-snug break-words"
-          style={{
-            color: primaryColor,
-            fontFamily: bodyFont,
-          }}
-        >
+      <div className="flex-1 min-w-0">
+        <p className="font-khmer-siemreap text-base leading-snug" style={{ color: primaryColor, fontFamily: bodyFont }}>
           {label}
-        </h4>
+        </p>
         {description && (
-          <p
-            className="font-khmer-siemreap text-xs sm:text-sm leading-relaxed mt-0.5 opacity-85 break-words"
-            style={{
-              color: primaryColor,
-              fontFamily: bodyFont,
-            }}
-          >
+          <p className="font-khmer-siemreap text-sm leading-snug mt-0.5 opacity-90" style={{ color: primaryColor, fontFamily: bodyFont }}>
             {description}
           </p>
         )}

@@ -7,7 +7,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import {
-  Plus, Trash2, GripVertical, Library, Save, Upload, Pencil, X,
+  Plus, Trash2, GripVertical, LayoutList, LayoutGrid, Library, Save, Upload, Pencil, X,
 } from "lucide-react";
 import {
   DndContext,
@@ -43,13 +43,13 @@ type Preset = {
 
 type Props = {
   days: AgendaDay[];
-  viewStyle?: AgendaViewStyle;
+  viewStyle: AgendaViewStyle;
   isDual?: boolean;
   onChange: (days: AgendaDay[]) => void;
-  onChangeViewStyle?: (v: AgendaViewStyle) => void;
+  onChangeViewStyle: (v: AgendaViewStyle) => void;
 };
 
-export default function AgendaEditor({ days, isDual = false, onChange }: Props) {
+export default function AgendaEditor({ days, viewStyle, isDual = false, onChange, onChangeViewStyle }: Props) {
   const [openDay, setOpenDay] = useState<string | null>(days[0]?.id ?? null);
   const [presets, setPresets] = useState<Preset[]>([]);
   const [presetsOpen, setPresetsOpen] = useState(false);
@@ -171,6 +171,27 @@ export default function AgendaEditor({ days, isDual = false, onChange }: Props) 
             </DialogTrigger>
             <PresetManagerDialog presets={presets} onChanged={fetchPresets} />
           </Dialog>
+          <span className="text-xs text-muted-foreground">View style:</span>
+          <div className="inline-flex rounded-md border border-border bg-secondary/40 p-0.5">
+            <button
+              type="button"
+              onClick={() => onChangeViewStyle("list")}
+              className={`px-2.5 py-1 rounded inline-flex items-center gap-1 text-xs transition-colors ${
+                viewStyle === "list" ? "bg-gold/15 text-gold" : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <LayoutList className="h-3.5 w-3.5" /> List
+            </button>
+            <button
+              type="button"
+              onClick={() => onChangeViewStyle("card")}
+              className={`px-2.5 py-1 rounded inline-flex items-center gap-1 text-xs transition-colors ${
+                viewStyle === "card" ? "bg-gold/15 text-gold" : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <LayoutGrid className="h-3.5 w-3.5" /> Cards
+            </button>
+          </div>
         </div>
       </div>
 
