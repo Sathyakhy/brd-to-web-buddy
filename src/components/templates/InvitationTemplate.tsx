@@ -673,42 +673,59 @@ export function KhmerTraditionalTemplate({ event, guestName, children, hideBackg
                         : { background: "rgba(255,255,255,0.5)", color: colorPrimary, fontFamily: bodyFont, border: `1px solid ${colorAccent}73` }
                     }
                   >
-                    {d.title || `Day ${i + 1}`}
+                    {d.title || (isEn ? `Day ${i + 1}` : `ថ្ងៃទី${toKhmerNumber(i + 1)}`)}
                   </button>
                 ))}
               </div>
             )}
 
-            {/* View style switcher */}
-            <div className="flex items-center justify-between gap-3 mb-2">
-              <h3 className={`text-2xl sm:text-3xl ${isEn ? "font-serif font-bold" : "kt-title"}`} style={{ color: colorAccent }}>
-                {agendaDays[activeDay]?.title || (isEn ? "Wedding Program" : "កម្មវិធី")}
-              </h3>
-              <div className="inline-flex rounded-full p-1" style={{ background: "rgba(255,255,255,0.55)", border: `1px solid ${colorAccent}66` }}>
-                <button
-                  type="button"
-                  onClick={() => setAgendaView("list")}
-                  className="px-2.5 py-1 rounded-full inline-flex items-center gap-1 text-xs"
-                  style={agendaView === "list"
-                    ? { background: colorAccent, color: "#fff" }
-                    : { color: colorPrimary, fontFamily: bodyFont }}
-                  aria-label="List view"
-                >
-                  <LayoutList className="h-3.5 w-3.5" /> List
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setAgendaView("card")}
-                  className="px-2.5 py-1 rounded-full inline-flex items-center gap-1 text-xs"
-                  style={agendaView === "card"
-                    ? { background: colorAccent, color: "#fff" }
-                    : { color: colorPrimary, fontFamily: bodyFont }}
-                  aria-label="Card view"
-                >
-                  <LayoutGrid className="h-3.5 w-3.5" /> Cards
-                </button>
-              </div>
-            </div>
+            {/* View style switcher & Day header (reduced size, hidden if empty) */}
+            {(() => {
+              const dayTitle = agendaDays[activeDay]?.title?.trim();
+              return (
+                <div className={`flex items-center ${dayTitle ? "justify-between" : "justify-end"} gap-3 mb-2.5`}>
+                  {dayTitle ? (
+                    <h4
+                      className={`text-base sm:text-lg ${isEn ? "font-serif font-semibold" : "font-khmer-koulen"}`}
+                      style={{ color: colorAccent }}
+                    >
+                      {dayTitle}
+                    </h4>
+                  ) : null}
+                  <div
+                    className="inline-flex rounded-full p-1 shrink-0"
+                    style={{ background: "rgba(255,255,255,0.55)", border: `1px solid ${colorAccent}66` }}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => setAgendaView("list")}
+                      className="px-2.5 py-1 rounded-full inline-flex items-center gap-1 text-xs"
+                      style={
+                        agendaView === "list"
+                          ? { background: colorAccent, color: "#fff" }
+                          : { color: colorPrimary, fontFamily: bodyFont }
+                      }
+                      aria-label="List view"
+                    >
+                      <LayoutList className="h-3.5 w-3.5" /> List
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAgendaView("card")}
+                      className="px-2.5 py-1 rounded-full inline-flex items-center gap-1 text-xs"
+                      style={
+                        agendaView === "card"
+                          ? { background: colorAccent, color: "#fff" }
+                          : { color: colorPrimary, fontFamily: bodyFont }
+                      }
+                      aria-label="Card view"
+                    >
+                      <LayoutGrid className="h-3.5 w-3.5" /> Cards
+                    </button>
+                  </div>
+                </div>
+              );
+            })()}
 
             {agendaView === "list" ? (
               <div className="w-full flex flex-col items-stretch gap-3">

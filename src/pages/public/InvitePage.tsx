@@ -7,6 +7,7 @@ import { InvitationTemplate, type TemplateData } from "@/components/templates/In
 import KhmerTraditionalCover from "@/components/templates/KhmerTraditionalCover";
 import SignaturePackageCover from "@/components/templates/SignaturePackageCover";
 import RsvpCard from "@/components/templates/RsvpCard";
+import FloatingMusicPlayer from "@/components/templates/FloatingMusicPlayer";
 import FloatingLanguageSwitch from "@/components/templates/FloatingLanguageSwitch";
 import { LanguageCode, getDualLanguageConfig } from "@/lib/dualLanguage";
 
@@ -197,57 +198,62 @@ export default function InvitePage() {
     />
   );
 
-  // Essentials package template uses a full cover screen first (separate page).
-  if ((event.template === "essentials-package-01" || event.template === "essentials-package" || event.template === "khmer-traditional") && !opened) {
-    return (
-      <div className="invitation-surface h-[100dvh] min-h-screen w-full overflow-hidden relative">
-        <KhmerTraditionalCover
-          guestName={guest.name}
-          title={event.title}
-          backgroundUrl={(event as any).cover_background_url ?? null}
-          accentColor={(event as any).text_color_accent ?? null}
-          language={language}
-          onOpen={() => setOpened(true)}
-        />
-        {dualCfg.enabled && (
-          <FloatingLanguageSwitch
-            language={language}
-            onLanguageChange={setLanguage}
-            accentColor={(event as any).text_color_accent ?? undefined}
-            positionMode="fixed"
-          />
-        )}
-      </div>
-    );
-  }
+  const isEssentials =
+    event.template === "essentials-package-01" ||
+    event.template === "essentials-package" ||
+    event.template === "khmer-traditional";
 
-  // Signature Package — cover OVERLAYS the invitation and fades out on open
-  // (no route change). The invitation is mounted underneath so it's already
-  // ready when the cover dismisses.
   const isSignature = event.template === "signature-package-01";
 
+  const musicUrl = (event as any).cover_music_url ?? templateDefaults.cover_music_url ?? null;
+  const isMusicVisible =
+    (event as any).section_visibility?.background_music !== false &&
+    (templateVisibility as any)?.background_music !== false &&
+    !!musicUrl &&
+    !!musicUrl.trim();
+  const accentColor = (event as any).text_color_accent ?? "#db9b0f";
+  const contactList = (event as any).contacts ? (Array.isArray((event as any).contacts) ? (event as any).contacts : []) : [];
+  const hasBottomContact =
+    opened &&
+    (event as any).section_visibility?.floating_contact !== false &&
+    (templateVisibility as any)?.floating_contact !== false &&
+    (contactList.length > 0 || !!(event as any).contact_phone);
+
   return (
-    <div className="invitation-surface">
-      <InvitationTemplate
-        template={event.template}
-        event={event}
-        guestName={guest.name}
-        eventVisibility={(event as any).section_visibility}
-        templateVisibility={templateVisibility}
-        templateDefaults={templateDefaults}
-        language={language}
-        onLanguageChange={setLanguage}
-        hideFloatingMusic={isSignature && !opened && !isPreview}
-      >
-        {rsvpForm}
-      </InvitationTemplate>
+    <div className="invitation-surface min-h-screen relative">
+      {isEssentials && !opened ? (
+        <div className="h-[100dvh] min-h-screen w-full overflow-hidden relative">
+          <KhmerTraditionalCover
+            guestName={guest.name}
+            title={event.title}
+            backgroundUrl={(event as any).cover_background_url ?? null}
+            accentColor={(event as any).text_color_accent ?? null}
+            language={language}
+            onOpen={() => setOpened(true)}
+          />
+        </div>
+      ) : (
+        <InvitationTemplate
+          template={event.template}
+          event={event}
+          guestName={guest.name}
+          eventVisibility={(event as any).section_visibility}
+          templateVisibility={templateVisibility}
+          templateDefaults={templateDefaults}
+          language={language}
+          onLanguageChange={setLanguage}
+          hideFloatingMusic={true}
+          hideFloatingLanguageSwitch={true}
+        >
+          {rsvpForm}
+        </InvitationTemplate>
+      )}
 
       {isSignature && !isPreview && (
         <SignaturePackageCover
           guestName={guest.name}
           title={event.title}
           backgroundUrl={(event as any).cover_background_url ?? null}
-          musicUrl={(event as any).cover_music_url ?? templateDefaults.cover_music_url ?? null}
           frameUrl={(event as any).frame_url ?? templateDefaults.frame_url ?? null}
           frameType={((event as any).frame_type ?? templateDefaults.frame_type ?? "image") as "image" | "video"}
           accentColor={(event as any).text_color_accent ?? null}
@@ -255,6 +261,39 @@ export default function InvitePage() {
           onOpen={() => setOpened(true)}
           closing={opened}
         />
+      )}
+
+      {/* Floating Controls at bottom-right (Music on top, Language switch below):
+          Active on BOTH cover and invitation page so guests can hear/control music immediately! */}
+      {(isMusicVisible || dualCfg.enabled) && (
+        <div
+          className={`fixed ${
+            hasBottomContact
+              ? "bottom-24 right-5 sm:bottom-28 sm:right-6"
+              : "bottom-5 right-5 sm:bottom-6 sm:right-6"
+          } z-[9999] flex flex-col items-center gap-2 pointer-events-none select-none`}
+        >
+          {isMusicVisible && (
+            <div className="pointer-events-auto">
+              <FloatingMusicPlayer
+                musicUrl={musicUrl}
+                accentColor={accentColor}
+                position="bottom-right"
+                positionMode="inline"
+              />
+            </div>
+          )}
+          {dualCfg.enabled && (
+            <div className="pointer-events-auto">
+              <FloatingLanguageSwitch
+                language={language}
+                onLanguageChange={setLanguage}
+                accentColor={accentColor}
+                positionMode="inline"
+              />
+            </div>
+          )}
+        </div>
       )}
     </div>
   );

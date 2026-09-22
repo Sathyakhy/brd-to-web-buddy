@@ -538,8 +538,9 @@ function SortableItem({
         </div>
         {isDual ? (
           <>
-            <div className="sm:col-span-1 flex sm:justify-center items-end pb-0.5">
+            <div className="sm:col-span-6 flex sm:justify-end items-end gap-1 pb-0.5">
               <Button
+                type="button"
                 variant="ghost"
                 size="icon"
                 onClick={onSaveAsPreset}
@@ -547,6 +548,16 @@ function SortableItem({
                 className="h-9 w-9"
               >
                 <Save className="h-4 w-4 text-gold" />
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={onRemove}
+                title="Delete item"
+                className="h-9 w-9 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+              >
+                <Trash2 className="h-4 w-4" />
               </Button>
             </div>
             <div className="sm:col-span-12 space-y-1 pt-1">
@@ -662,7 +673,7 @@ function SortableItem({
           </>
         ) : (
           <>
-            <div className="sm:col-span-5 space-y-1 min-w-0">
+            <div className="sm:col-span-4 space-y-1 min-w-0">
               <div className="flex items-center justify-between h-4">
                 <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">Title</Label>
                 <Popover open={presetOpen} onOpenChange={setPresetOpen}>
@@ -715,8 +726,9 @@ function SortableItem({
                 className="h-9"
               />
             </div>
-            <div className="sm:col-span-1 flex sm:justify-center items-end pb-0.5">
+            <div className="sm:col-span-2 flex sm:justify-end items-end gap-1 pb-0.5">
               <Button
+                type="button"
                 variant="ghost"
                 size="icon"
                 onClick={onSaveAsPreset}
@@ -724,6 +736,16 @@ function SortableItem({
                 className="h-9 w-9"
               >
                 <Save className="h-4 w-4 text-gold" />
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={onRemove}
+                title="Delete item"
+                className="h-9 w-9 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+              >
+                <Trash2 className="h-4 w-4" />
               </Button>
             </div>
             <div className="sm:col-span-12 space-y-1">
