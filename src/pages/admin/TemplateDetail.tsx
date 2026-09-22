@@ -1,0 +1,1176 @@
+import { useEffect, useMemo, useState } from "react";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import AdminLayout from "@/components/admin/AdminLayout";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { ArrowLeft, Save, Sparkles, AlertCircle, Upload, Trash2, Image as ImageIcon, GripVertical, Check, Music } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
+import { toast } from "sonner";
+import CollapsibleSection from "@/components/admin/CollapsibleSection";
+import LetterCardStyleEditor from "@/components/admin/LetterCardStyleEditor";
+import MusicEditor from "@/components/admin/MusicEditor";
+import PreviewPanel from "@/components/admin/PreviewPanel";
+import FrameLibraryPicker from "@/components/admin/FrameLibraryPicker";
+import ParentsEditor from "@/components/admin/ParentsEditor";
+import AgendaEditor from "@/components/admin/AgendaEditor";
+import ContactsEditor from "@/components/admin/ContactsEditor";
+import SortableGalleryItem from "@/components/admin/SortableGalleryItem";
+import { useUnsavedChanges } from "@/hooks/useUnsavedChanges";
+import { AgendaDay, AgendaViewStyle, normalizeAgenda } from "@/lib/agenda";
+import { ContactItem, normalizeContacts } from "@/lib/contacts";
+import SectionVisibilityEditor from "@/components/admin/SectionVisibilityEditor";
+import { normalizeVisibility, SectionVisibility } from "@/lib/sectionVisibility";
+import {
+  DndContext, closestCenter, PointerSensor, KeyboardSensor, TouchSensor,
+  useSensor, useSensors, type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext, arrayMove, sortableKeyboardCoordinates, rectSortingStrategy,
+} from "@dnd-kit/sortable";
+
+// Configuration shape used by the preview / dummy data. Matches the subset of
+// the events table that affects rendering, plus a sample guest name for the
+// preview's gate screen.
+type TemplateConfig = {
+  title: string;
+  cover_message: string | null;
+  countdown_message: string | null;
+  description: string | null;
+  venue: string | null;
+  cover_image_url: string | null;
+  cover_background_url: string | null;
+  invite_background_url: string | null;
+  gallery_urls: string[];
+  gallery_layout: "grid" | "mosaic";
+  /** Date-only ISO string (YYYY-MM-DD) used for the live preview countdown. */
+  event_date: string | null;
+  dress_code: string | null;
+  contact_phone: string | null;
+  bride_name: string | null;
+  groom_name: string | null;
+  agenda_days: AgendaDay[];
+  agenda_view_style: AgendaViewStyle;
+  contacts: ContactItem[];
+  map_embed: string | null;
+  text_color_primary: string | null;
+  text_color_accent: string | null;
+  sample_guest_name: string;
+  /** Default section visibility — events can override per-event. */
+  section_visibility: SectionVisibility;
+  /** Optional uploaded QR code image (gift transfer). */
+  qr_code_url: string | null;
+  /** Default description shown above the QR. */
+  qr_code_message: string | null;
+  /** Default account holder name shown under the QR. */
+  qr_account_name: string | null;
+  /** Default apologies letter body. */
+  apologies_message: string | null;
+  /** Default thank-you letter body. */
+  thank_you_message: string | null;
+  /** Background color (hex) for the Apologies / Thank-you letter cards. */
+  letter_bg_color: string | null;
+  /** Opacity (0–100) for the letter card background. */
+  letter_bg_opacity: number | null;
+  /** Optional ornamental frame overlay (Signature Package). PNG/SVG with
+      transparent center, OR a video (MP4/WebM) — chosen from the Asset
+      Library and identified by URL. `frame_type` tells the renderer
+      whether to draw an `<img>` or `<video>`. */
+  frame_url: string | null;
+  frame_type: "image" | "video";
+  /** Optional default cover music track (Signature Package). Plays on the
+      cover/gate screen with a toggle; per-event override lives on the
+      event row. */
+  cover_music_url: string | null;
+};
+
+type TemplateRow = {
+  id: string;
+  slug: string;
+  label: string;
+  description: string | null;
+  base_renderer: string;
+  is_active: boolean;
+  position: number;
+  config: any;
+};
+
+const RENDERERS = [
+  { value: "essentials-package-01", label: "essentials-package-01" },
+  { value: "signature-package-01", label: "signature-package-01" },
+];
+
+const DEFAULT_CONFIG: TemplateConfig = {
+  title: "Wedding Reception",
+  cover_message: null,
+  countdown_message: null,
+  description: null,
+  venue: null,
+  cover_image_url: null,
+  cover_background_url: null,
+  invite_background_url: null,
+  gallery_urls: [],
+  gallery_layout: "grid",
+  event_date: null,
+  dress_code: null,
+  contact_phone: "+855 ",
+  bride_name: null,
+  groom_name: null,
+  agenda_days: [],
+  agenda_view_style: "list",
+  contacts: [],
+  map_embed: null,
+  text_color_primary: null,
+  text_color_accent: null,
+  sample_guest_name: "Honoured Guest",
+  section_visibility: {},
+  qr_code_url: null,
+  qr_code_message: null,
+  qr_account_name: null,
+  apologies_message: null,
+  thank_you_message: null,
+  letter_bg_color: null,
+  letter_bg_opacity: null,
+  frame_url: null,
+  frame_type: "image",
+  cover_music_url: null,
+};
+
+// Normalize whatever JSON we get back into a fully-typed TemplateConfig so the
+// editor never has to deal with partial/legacy shapes.
+function normalizeConfig(raw: any): TemplateConfig {
+  const r = raw ?? {};
+  return {
+    ...DEFAULT_CONFIG,
+    ...r,
+    gallery_urls: Array.isArray(r.gallery_urls) ? r.gallery_urls : [],
+    gallery_layout: r.gallery_layout === "mosaic" ? "mosaic" : "grid",
+    event_date: r.event_date ?? null,
+    agenda_days: normalizeAgenda(r.agenda_days),
+    agenda_view_style: r.agenda_view_style === "card" ? "card" : "list",
+    contacts: normalizeContacts(r.contacts),
+    sample_guest_name: r.sample_guest_name || "Honoured Guest",
+    contact_phone: r.contact_phone ?? "+855 ",
+    section_visibility: normalizeVisibility(r.section_visibility),
+  };
+}
+
+export default function TemplateDetail() {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+
+  // Server snapshot vs working draft — same pattern as the billing editor so
+  // edits are local until the user clicks Save.
+  const [server, setServer] = useState<TemplateRow | null>(null);
+  const [draft, setDraft] = useState<TemplateRow | null>(null);
+  const [draftConfig, setDraftConfig] = useState<TemplateConfig>(DEFAULT_CONFIG);
+  const [serverConfig, setServerConfig] = useState<TemplateConfig>(DEFAULT_CONFIG);
+
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  // Per-kind upload progress (0–100). When a key is present the UI shows the
+  // bar; absent means idle. We use XMLHttpRequest to get real progress events
+  // since the supabase-js storage client doesn't expose them.
+  const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({});
+  const uploading = Object.keys(uploadProgress).length > 0;
+
+  // Helper to patch the working config copy. Defined early so the upload
+  // handlers below can use it.
+  const patchConfig = (patch: Partial<TemplateConfig>) =>
+    setDraftConfig(prev => ({ ...prev, ...patch }));
+
+  /**
+   * Upload a single image to the shared `event-media` bucket under a
+   * `template/<templateId>/...` prefix. Reports progress via the supplied
+   * `onProgress` callback (0–100).
+   */
+  const uploadImage = async (
+    file: File,
+    kind: "cover" | "cover-bg" | "invite-bg" | "gallery" | "qr" | "frame" | "audio",
+    onProgress?: (pct: number) => void,
+  ): Promise<string | null> => {
+    if (!id) return null;
+    const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
+    const path = `template/${id}/${kind}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}.${ext}`;
+
+    // Use XHR against the storage REST endpoint so we can stream upload progress.
+    const { data: { session } } = await supabase.auth.getSession();
+    const url = `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/event-media/${path}`;
+    const ok = await new Promise<boolean>((resolve) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open("POST", url);
+      xhr.setRequestHeader("Authorization", `Bearer ${session?.access_token ?? ""}`);
+      xhr.setRequestHeader("apikey", import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY);
+      xhr.setRequestHeader("x-upsert", "false");
+      xhr.setRequestHeader("cache-control", "31536000");
+      if (file.type) xhr.setRequestHeader("content-type", file.type);
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable) onProgress?.(Math.round((e.loaded / e.total) * 100));
+      };
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) { onProgress?.(100); resolve(true); }
+        else { try { toast.error(JSON.parse(xhr.responseText).message ?? "Upload failed"); } catch { toast.error("Upload failed"); } resolve(false); }
+      };
+      xhr.onerror = () => { toast.error("Upload failed"); resolve(false); };
+      xhr.send(file);
+    });
+    if (!ok) return null;
+    const { data } = supabase.storage.from("event-media").getPublicUrl(path);
+    return data.publicUrl;
+  };
+
+  const runUpload = async (
+    key: string,
+    file: File,
+    kind: "cover" | "cover-bg" | "invite-bg" | "gallery" | "qr" | "frame" | "audio",
+  ) => {
+    setUploadProgress((p) => ({ ...p, [key]: 0 }));
+    const url = await uploadImage(file, kind, (pct) =>
+      setUploadProgress((p) => ({ ...p, [key]: pct })),
+    );
+    setUploadProgress((p) => { const n = { ...p }; delete n[key]; return n; });
+    return url;
+  };
+
+  const handleUploadQr = async (file: File) => {
+    const url = await runUpload("qr", file, "qr");
+    if (url) { patchConfig({ qr_code_url: url }); toast.success("QR code uploaded"); }
+  };
+
+  const handleUploadCover = async (file: File) => {
+    const url = await runUpload("cover", file, "cover");
+    if (url) { patchConfig({ cover_image_url: url }); toast.success("Cover image uploaded"); }
+  };
+
+  const handleUploadCoverBg = async (file: File) => {
+    const url = await runUpload("cover-bg", file, "cover-bg");
+    if (url) { patchConfig({ cover_background_url: url }); toast.success("Background uploaded"); }
+  };
+
+  const handleUploadInviteBg = async (file: File) => {
+    const url = await runUpload("invite-bg", file, "invite-bg");
+    if (url) { patchConfig({ invite_background_url: url }); toast.success("Invitation background uploaded"); }
+  };
+
+  // Note: ornamental frames are no longer uploaded directly here. Admins
+  // pick from the centralised Asset Library (`/admin/asset-library?tab=frames`).
+
+
+  const handleUploadMusic = async (file: File) => {
+    const MAX = 8 * 1024 * 1024;
+    if (file.size > MAX) { toast.error("Max 8 MB audio file"); return; }
+    const url = await runUpload("audio", file, "audio");
+    if (url) { patchConfig({ cover_music_url: url }); toast.success("Cover music uploaded"); }
+  };
+
+  const handleUploadGallery = async (files: FileList) => {
+    const MAX_BYTES = 5 * 1024 * 1024;
+    const current = draftConfig.gallery_urls ?? [];
+    const remaining = 24 - current.length;
+    if (remaining <= 0) { toast.error("Gallery is full (24 images max)"); return; }
+    const toUpload = Array.from(files).slice(0, remaining);
+    const uploaded: string[] = [];
+    for (let i = 0; i < toUpload.length; i++) {
+      const file = toUpload[i];
+      if (file.size > MAX_BYTES) { toast.error(`${file.name}: max 5 MB`); continue; }
+      const url = await runUpload(`gallery-${i}-${file.name}`, file, "gallery");
+      if (url) uploaded.push(url);
+    }
+    if (uploaded.length) {
+      patchConfig({ gallery_urls: [...current, ...uploaded] });
+      toast.success(`Uploaded ${uploaded.length} photo${uploaded.length > 1 ? "s" : ""}`);
+    }
+  };
+
+  const removeGalleryImage = (idx: number) => {
+    const next = (draftConfig.gallery_urls ?? []).filter((_, i) => i !== idx);
+    patchConfig({ gallery_urls: next });
+  };
+
+  const gallerySensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 180, tolerance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+
+  const onGalleryDragEnd = (e: DragEndEvent) => {
+    const { active, over } = e;
+    if (!over || active.id === over.id) return;
+    const urls = draftConfig.gallery_urls ?? [];
+    const ids = urls.map((_, i) => `g-${i}`);
+    const from = ids.indexOf(String(active.id));
+    const to = ids.indexOf(String(over.id));
+    if (from < 0 || to < 0) return;
+    patchConfig({ gallery_urls: arrayMove(urls, from, to) });
+  };
+
+  const load = async () => {
+    if (!id) return;
+    setLoading(true);
+    const { data, error } = await supabase
+      .from("templates")
+      .select("*")
+      .eq("id", id)
+      .maybeSingle();
+    if (error) toast.error(error.message);
+    if (!data) {
+      setServer(null);
+      setLoading(false);
+      return;
+    }
+    const row = data as TemplateRow;
+    const cfg = normalizeConfig(row.config);
+    setServer(row);
+    setDraft({ ...row });
+    setServerConfig(cfg);
+    setDraftConfig(cfg);
+    setLoading(false);
+  };
+
+  useEffect(() => { load(); }, [id]);
+
+  // Dirty when metadata or config differ from the loaded snapshot.
+  const dirty = useMemo(() => {
+    if (loading || !draft || !server) return false;
+    if (
+      draft.label !== server.label ||
+      (draft.description ?? "") !== (server.description ?? "") ||
+      draft.slug !== server.slug ||
+      draft.base_renderer !== server.base_renderer ||
+      draft.is_active !== server.is_active
+    ) return true;
+    // Cheap structural compare — JSON.stringify is fine for our shape.
+    return JSON.stringify(draftConfig) !== JSON.stringify(serverConfig);
+  }, [loading, draft, server, draftConfig, serverConfig]);
+
+  useUnsavedChanges(dirty);
+
+  /**
+   * Persist the current draft. We `select()` after the update so the response
+   * carries the canonical row — avoids a read-after-write replica race where a
+   * follow-up `select` could return the stale pre-update snapshot and make the
+   * editor look like the save didn't take effect.
+   */
+  const handleSave = async () => {
+    if (!draft || !dirty || saving) return;
+    setSaving(true);
+    const payload = {
+      label: draft.label.trim() || "Untitled template",
+      description: draft.description?.trim() || null,
+      slug: draft.slug.trim(),
+      base_renderer: draft.base_renderer,
+      is_active: draft.is_active,
+      config: draftConfig as any,
+    };
+    // Two-step: update without single(), then re-fetch the canonical row.
+    // Using .single() on the update can throw "Cannot coerce the result to a
+    // single JSON object" when PostgREST returns 0 rows (e.g. RLS filters the
+    // returned row even though the write succeeded). Splitting avoids that.
+    const { error: updateError } = await supabase
+      .from("templates")
+      .update(payload)
+      .eq("id", draft.id);
+    if (updateError) {
+      setSaving(false);
+      return toast.error(updateError.message);
+    }
+    const { data, error } = await supabase
+      .from("templates")
+      .select("*")
+      .eq("id", draft.id)
+      .maybeSingle();
+    setSaving(false);
+    if (error) return toast.error(error.message);
+    if (!data) return toast.error("Saved, but couldn't reload the template.");
+    const row = data as TemplateRow;
+    const cfg = normalizeConfig(row.config);
+    setServer(row);
+    setDraft(row);
+    setServerConfig(cfg);
+    setDraftConfig(cfg);
+    toast.success("Template saved");
+  };
+
+  const handleDiscard = () => {
+    if (!dirty || !server) return;
+    if (!window.confirm("Discard all unsaved template changes?")) return;
+    setDraft({ ...server });
+    setDraftConfig(serverConfig);
+  };
+
+  if (loading || !draft) {
+    return (
+      <AdminLayout>
+        <div className="text-center text-sm text-muted-foreground py-12">
+          {loading ? "Loading…" : (
+            <>
+              <p className="mb-4">Template not found.</p>
+              <Link to="/admin/templates"><Button variant="outline">Back to templates</Button></Link>
+            </>
+          )}
+        </div>
+      </AdminLayout>
+    );
+  }
+
+  // Reusable per-section save button shown in each CollapsibleSection's right
+  // slot. It triggers the same full-template save (the row is small enough
+  // that there's no benefit to a partial update) and reflects dirty/saving
+  // state so the user gets immediate feedback inline with the section.
+  const sectionSave = (
+    <Button
+      size="sm"
+      variant={dirty ? "default" : "ghost"}
+      onClick={(e) => { e.stopPropagation(); handleSave(); }}
+      disabled={!dirty || saving}
+      className={dirty ? "bg-gradient-gold text-primary-foreground hover:opacity-90" : ""}
+    >
+      {saving ? (
+        <>Saving…</>
+      ) : dirty ? (
+        <><Save className="h-3.5 w-3.5 mr-1" /> Save</>
+      ) : (
+        <><Check className="h-3.5 w-3.5 mr-1 text-emerald-500" /> Saved</>
+      )}
+    </Button>
+  );
+
+  /** Inline upload progress bar — shown while a file is in flight. */
+  const uploadBar = (key: string) =>
+    uploadProgress[key] !== undefined ? (
+      <div className="space-y-1">
+        <Progress value={uploadProgress[key]} className="h-2" />
+        <p className="text-[11px] text-muted-foreground">
+          Uploading… {uploadProgress[key]}%
+        </p>
+      </div>
+    ) : null;
+
+  // Build a synthetic "event" object that the PreviewPanel can render with —
+  // exactly the same shape the live preview uses on the event page. The
+  // event_date drives the countdown — falls back to a future date so the
+  // countdown still looks sensible when no date has been entered yet.
+  const previewEvent = {
+    ...draftConfig,
+    template: draft.base_renderer,
+    slug: draft.slug,
+    event_date: draftConfig.event_date
+      ? new Date(`${draftConfig.event_date}T00:00:00`).toISOString()
+      : new Date(Date.now() + 1000 * 60 * 60 * 24 * 60).toISOString(),
+    // Feed visibility into the preview the same way the live invite does.
+    template_section_visibility: draftConfig.section_visibility,
+    section_visibility: {},
+  };
+
+  return (
+    <AdminLayout>
+      <div className="space-y-8 animate-fade-up pb-24">
+        <div>
+          <Link to="/admin/templates" className="inline-flex items-center text-sm text-muted-foreground hover:text-gold transition-smooth mb-3">
+            <ArrowLeft className="h-4 w-4 mr-1" /> All templates
+          </Link>
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-gold/30 bg-gold/5 text-gold text-xs tracking-widest uppercase mb-3">
+                <Sparkles className="h-3 w-3" /> Template editor
+              </div>
+              <h1 className="font-serif text-2xl sm:text-4xl text-gradient-gold leading-[1.4] py-1 break-words">{draft.label || "Untitled template"}</h1>
+              <p className="text-sm text-muted-foreground mt-1">
+                Renderer: <span className="text-gold">{draft.base_renderer}</span>
+                <span className="mx-1.5">·</span>
+                slug: <span className="text-gold">{draft.slug}</span>
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <Tabs defaultValue="config" className="w-full">
+          <TabsList className="grid w-full max-w-md mx-auto grid-cols-2">
+            <TabsTrigger value="config">Configuration</TabsTrigger>
+            <TabsTrigger value="preview">Preview</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="preview" className="mt-6">
+            <PreviewPanel
+              event={previewEvent as any}
+              guestName={draftConfig.sample_guest_name}
+              bare
+            />
+          </TabsContent>
+
+          <TabsContent value="config" className="mt-6 space-y-8">
+            {/* Identity */}
+            <CollapsibleSection title="Name & description" defaultOpen={true} rightSlot={sectionSave}>
+              <div className="grid gap-4 md:grid-cols-2 pt-2">
+                <div className="space-y-2">
+                  <Label>Display name</Label>
+                  <Input
+                    value={draft.label}
+                    onChange={e => setDraft({ ...draft, label: e.target.value })}
+                    placeholder="essentials-package-01"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Slug</Label>
+                  <Input
+                    value={draft.slug}
+                    onChange={e => setDraft({ ...draft, slug: e.target.value.replace(/\s+/g, "-").toLowerCase() })}
+                    placeholder="essentials-package-01"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Stable identifier stored on each event. Avoid renaming once events are using this template.
+                  </p>
+                </div>
+                <div className="space-y-2 md:col-span-2">
+                  <Label>Description</Label>
+                  <Input
+                    value={draft.description ?? ""}
+                    onChange={e => setDraft({ ...draft, description: e.target.value })}
+                    placeholder="Deep red & gold, ornate"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Base renderer</Label>
+                  <Select value={draft.base_renderer} onValueChange={v => setDraft({ ...draft, base_renderer: v })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {RENDERERS.map(r => <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    The visual design used when this template is rendered. Custom templates pick one of the built-in designs.
+                  </p>
+                </div>
+                <div className="flex items-center gap-3 pt-7">
+                  <Switch checked={draft.is_active} onCheckedChange={v => setDraft({ ...draft, is_active: v })} />
+                  <span className="text-sm">Show in template picker</span>
+                </div>
+              </div>
+            </CollapsibleSection>
+
+            {/* ============== Styling (moved to top per request) ==============
+                Order: Front-page background → Invitation-page background → Text colours.
+                Only TWO colours drive the entire invitation: body + accent. */}
+
+            {/* Front-page background */}
+            <CollapsibleSection
+              title="Front-page background"
+              description="Used as the full-screen backdrop on the cover (gate) screen. Leave empty to use the default ornate template background."
+              defaultOpen={false}
+              rightSlot={sectionSave}
+            >
+              <div className="flex flex-col md:flex-row gap-4 items-start pt-2">
+                <div className="w-full md:w-64 aspect-[4/3] rounded-lg overflow-hidden bg-secondary border border-border flex items-center justify-center">
+                  {draftConfig.cover_background_url ? (
+                    <img src={draftConfig.cover_background_url} alt="Background" className="h-full w-full object-cover" />
+                  ) : (
+                    <img src="/templates/khmer-traditional/background.webp" alt="Default background" className="h-full w-full object-cover opacity-90" />
+                  )}
+                </div>
+                <div className="flex-1 space-y-3">
+                  <Label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 rounded-md border border-gold/30 bg-gold/5 text-gold hover:bg-gold/10 transition-smooth">
+                    <Upload className="h-4 w-4" />
+                    {uploadProgress["cover-bg"] !== undefined ? "Uploading…" : "Upload background"}
+                    <input type="file" accept="image/*" className="hidden" disabled={uploadProgress["cover-bg"] !== undefined}
+                      onChange={(e) => { const f = e.target.files?.[0]; if (f) handleUploadCoverBg(f); e.currentTarget.value = ""; }} />
+                  </Label>
+                  {uploadBar("cover-bg")}
+                  {draftConfig.cover_background_url && (
+                    <Button variant="ghost" size="sm" onClick={() => patchConfig({ cover_background_url: null })}>
+                      <Trash2 className="h-4 w-4 mr-2" /> Reset to default
+                    </Button>
+                  )}
+                  <p className="text-xs text-muted-foreground">Recommended: 1920×1200 landscape, WEBP/JPG, &lt; 600KB. Will be cropped to fill.</p>
+                </div>
+              </div>
+            </CollapsibleSection>
+
+            {/* Invitation page background */}
+            <CollapsibleSection
+              title="Invitation-page background"
+              description="Backdrop for the second (invitation) page. Leave empty to reuse the front-page background."
+              defaultOpen={false}
+              rightSlot={sectionSave}
+            >
+              <div className="flex flex-col md:flex-row gap-4 items-start pt-2">
+                <div className="w-full md:w-64 aspect-[4/3] rounded-lg overflow-hidden bg-secondary border border-border flex items-center justify-center">
+                  {draftConfig.invite_background_url ? (
+                    <img src={draftConfig.invite_background_url} alt="Invitation background" className="h-full w-full object-cover" />
+                  ) : draftConfig.cover_background_url ? (
+                    <img src={draftConfig.cover_background_url} alt="Inherited from cover" className="h-full w-full object-cover opacity-90" />
+                  ) : (
+                    <img src="/templates/khmer-traditional/background.webp" alt="Default background" className="h-full w-full object-cover opacity-90" />
+                  )}
+                </div>
+                <div className="flex-1 space-y-3">
+                  <Label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 rounded-md border border-gold/30 bg-gold/5 text-gold hover:bg-gold/10 transition-smooth">
+                    <Upload className="h-4 w-4" />
+                    {uploadProgress["invite-bg"] !== undefined ? "Uploading…" : "Upload background"}
+                    <input type="file" accept="image/*" className="hidden" disabled={uploadProgress["invite-bg"] !== undefined}
+                      onChange={(e) => { const f = e.target.files?.[0]; if (f) handleUploadInviteBg(f); e.currentTarget.value = ""; }} />
+                  </Label>
+                  {uploadBar("invite-bg")}
+                  {draftConfig.invite_background_url && (
+                    <Button variant="ghost" size="sm" onClick={() => patchConfig({ invite_background_url: null })}>
+                      <Trash2 className="h-4 w-4 mr-2" /> Reset to cover background
+                    </Button>
+                  )}
+                  <p className="text-xs text-muted-foreground">
+                    Currently: {draftConfig.invite_background_url ? "custom" : draftConfig.cover_background_url ? "inherited from cover" : "default template"}.
+                  </p>
+                </div>
+              </div>
+            </CollapsibleSection>
+
+            {/* Ornamental frame overlay — only meaningful for the
+                Signature Package renderer, but exposed for any renderer
+                so future templates can also use a custom frame. PNG with
+                transparent center recommended. */}
+            {draft?.base_renderer === "signature-package-01" && (
+              <CollapsibleSection
+                title="Ornamental frame"
+                description="Decorative overlay layered over the cover and invitation. Pick a frame from the Asset Library — supports PNG/SVG and short MP4/WebM videos. The centre must be transparent."
+                defaultOpen={false}
+                rightSlot={sectionSave}
+              >
+                <div className="pt-2">
+                  <FrameLibraryPicker
+                    value={draftConfig.frame_url}
+                    onChange={(next) => {
+                      if (!next) {
+                        patchConfig({ frame_url: null, frame_type: "image" });
+                      } else {
+                        patchConfig({ frame_url: next.media_url, frame_type: next.media_type });
+                      }
+                    }}
+                  />
+                </div>
+              </CollapsibleSection>
+            )}
+
+            {/* Background music — default track for this template */}
+            <CollapsibleSection
+              title="Background music"
+              description="Default ambient soundtrack for invitations using this template. Events can override this. Supports MP3 upload, preset tracks, or custom audio links."
+              defaultOpen={false}
+              rightSlot={sectionSave}
+            >
+              <MusicEditor
+                musicUrl={draftConfig.cover_music_url}
+                onChange={(url) => patchConfig({ cover_music_url: url })}
+                onUpload={async (file) => {
+                  const url = await handleUploadMusic(file);
+                  if (url) {
+                    patchConfig({ cover_music_url: url });
+                    toast.success("Background music updated");
+                  }
+                }}
+                uploading={uploadProgress["audio"] !== undefined}
+              />
+            </CollapsibleSection>
+
+            {/* Text colours — only TWO colours drive the entire invitation:
+                body (primary) and accent. All headings, icons, borders,
+                dividers and buttons inherit from these. */}
+            <CollapsibleSection
+              title="Text colours"
+              description="Only two colours drive the invitation: body text and accent. All headings, icons, borders, dividers and buttons inherit from these."
+              defaultOpen={false}
+              rightSlot={sectionSave}
+            >
+              <div className="grid gap-4 md:grid-cols-2 pt-2">
+                <div className="space-y-2">
+                  <Label>Body text colour</Label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="color"
+                      className="w-16 h-10 p-1"
+                      value={draftConfig.text_color_primary ?? "#3b1d12"}
+                      onChange={e => patchConfig({ text_color_primary: e.target.value })}
+                    />
+                    <Input
+                      value={draftConfig.text_color_primary ?? ""}
+                      onChange={e => patchConfig({ text_color_primary: e.target.value || null })}
+                      placeholder="#3b1d12"
+                    />
+                    {draftConfig.text_color_primary && (
+                      <Button variant="ghost" size="sm" onClick={() => patchConfig({ text_color_primary: null })}>Reset</Button>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground">Used for parents' names, honorifics, date, venue, agenda items &amp; body text.</p>
+                </div>
+                <div className="space-y-2">
+                  <Label>Accent colour</Label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="color"
+                      className="w-16 h-10 p-1"
+                      value={draftConfig.text_color_accent ?? "#c89b3c"}
+                      onChange={e => patchConfig({ text_color_accent: e.target.value })}
+                    />
+                    <Input
+                      value={draftConfig.text_color_accent ?? ""}
+                      onChange={e => patchConfig({ text_color_accent: e.target.value || null })}
+                      placeholder="#c89b3c"
+                    />
+                    {draftConfig.text_color_accent && (
+                      <Button variant="ghost" size="sm" onClick={() => patchConfig({ text_color_accent: null })}>Reset</Button>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground">Used for titles, couple's names, dress code, dividers, icons, borders, buttons &amp; map link.</p>
+                </div>
+              </div>
+            </CollapsibleSection>
+
+            {/* ============== End styling ============== */}
+
+            {/* Sample data — same fields as the event editor. */}
+            {/* Default per-section visibility for events using this template. */}
+            <CollapsibleSection
+              title="Default section visibility"
+              description="Decide which sections are shown by default on events that pick this template. Each event can override per-event."
+              defaultOpen={false}
+              rightSlot={sectionSave}
+            >
+              <div className="pt-2">
+                <SectionVisibilityEditor
+                  value={draftConfig.section_visibility}
+                  onChange={(next) => patchConfig({ section_visibility: next })}
+                />
+              </div>
+            </CollapsibleSection>
+
+            <CollapsibleSection title="Sample event details" description="These values drive the live preview." defaultOpen={true} rightSlot={sectionSave}>
+              <div className="grid gap-4 md:grid-cols-2 pt-2">
+                <div className="space-y-2">
+                  <Label>Event title</Label>
+                  <Input value={draftConfig.title} onChange={e => patchConfig({ title: e.target.value })} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Sample guest name</Label>
+                  <Input
+                    value={draftConfig.sample_guest_name}
+                    onChange={e => patchConfig({ sample_guest_name: e.target.value })}
+                    placeholder="Honoured Guest"
+                  />
+                </div>
+                <div className="space-y-2 md:col-span-2">
+                  <ParentsEditor
+                    groomName={draftConfig.groom_name}
+                    brideName={draftConfig.bride_name}
+                    onChange={({ groom_name, bride_name }) => patchConfig({ groom_name, bride_name })}
+                  />
+                </div>
+                <div className="space-y-2 md:col-span-2">
+                  <Label>Event date</Label>
+                  <Input
+                    type="date"
+                    value={draftConfig.event_date ?? ""}
+                    onChange={e => patchConfig({ event_date: e.target.value || null })}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Drives the countdown in the preview. Stored as a date only — no time of day.
+                  </p>
+                </div>
+                <div className="space-y-2 md:col-span-2">
+                  <Label>Venue name</Label>
+                  <Input
+                    value={(draftConfig.venue ?? "").split("|")[0]}
+                    onChange={(e) => {
+                      const link = (draftConfig.venue ?? "").split("|").slice(1).join("|");
+                      const next = link ? `${e.target.value}|${link}` : e.target.value;
+                      patchConfig({ venue: next || null });
+                    }}
+                    placeholder="Sofitel Phokeethra, Phnom Penh"
+                  />
+                </div>
+                <div className="space-y-2 md:col-span-2">
+                  <Label>Venue link (Google Maps URL)</Label>
+                  <Input
+                    value={(draftConfig.venue ?? "").split("|").slice(1).join("|")}
+                    onChange={(e) => {
+                      const name = (draftConfig.venue ?? "").split("|")[0] ?? "";
+                      const next = e.target.value ? `${name}|${e.target.value}` : name;
+                      patchConfig({ venue: next || null });
+                    }}
+                    placeholder="https://maps.app.goo.gl/…"
+                  />
+                </div>
+                <div className="space-y-2 md:col-span-2">
+                  <Label>Custom Google Maps embed (iframe or URL)</Label>
+                  <Textarea
+                    rows={3}
+                    value={draftConfig.map_embed ?? ""}
+                    onChange={e => patchConfig({ map_embed: e.target.value || null })}
+                    placeholder={'<iframe src="https://www.google.com/maps/embed?…" …></iframe>'}
+                    className="font-mono text-xs"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Dress code</Label>
+                  <Input
+                    value={draftConfig.dress_code ?? ""}
+                    onChange={e => patchConfig({ dress_code: e.target.value })}
+                    placeholder="Formal"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Contact phone</Label>
+                  <Input
+                    value={draftConfig.contact_phone ?? "+855 "}
+                    onChange={e => {
+                      // Always keep the +855 country prefix — re-inject it if the
+                      // admin clears the field or deletes part of the prefix.
+                      const next = e.target.value;
+                      patchConfig({ contact_phone: next.startsWith("+855") ? next : `+855 ${next.replace(/^\+?855\s*/, "")}` });
+                    }}
+                    placeholder="+855 12 345 678"
+                  />
+                </div>
+                <div className="space-y-2 md:col-span-2">
+                  <Label>Honorific invitation lines (max 4)</Label>
+                  <Textarea
+                    rows={4}
+                    value={draftConfig.cover_message ?? ""}
+                    onChange={e => {
+                      const lines = e.target.value.split(/\r?\n/);
+                      patchConfig({ cover_message: lines.slice(0, 4).join("\n") });
+                    }}
+                    className="text-center"
+                  />
+                </div>
+                <div className="space-y-2 md:col-span-2">
+                  <Label>Countdown headline</Label>
+                  <Input
+                    value={draftConfig.countdown_message ?? "អ្នកត្រូវបានអញ្ជើញមកចូលរួមក្នុងពិធីអាពាហ៍ពិពាហ៍របស់យើង​ខ្ញុំ!"}
+                    onChange={e => patchConfig({ countdown_message: e.target.value.replace(/[\r\n]+/g, " ") })}
+                    className="text-center"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Auto-populated with the default Khmer headline — clear or edit to customise.
+                  </p>
+                </div>
+                <div className="space-y-2 md:col-span-2">
+                  <Label>Description</Label>
+                  <Textarea
+                    rows={3}
+                    value={draftConfig.description ?? ""}
+                    onChange={e => patchConfig({ description: e.target.value })}
+                  />
+                </div>
+              </div>
+            </CollapsibleSection>
+
+            {/* Background images / colors. Editing image URLs directly keeps the
+                template editor lightweight; admins typically reuse the same
+                background across many events so a URL field is enough. */}
+            {/* Cover image — upload UI matching the event editor. */}
+            <CollapsibleSection title="Cover image" defaultOpen={false} rightSlot={sectionSave}>
+              <div className="flex flex-col md:flex-row gap-4 items-start pt-2">
+                <div className="w-full md:w-64 aspect-[4/3] rounded-lg overflow-hidden bg-secondary border border-border flex items-center justify-center">
+                  {draftConfig.cover_image_url ? (
+                    <img src={draftConfig.cover_image_url} alt="Cover" className="h-full w-full object-cover" />
+                  ) : (
+                    <ImageIcon className="h-10 w-10 text-muted-foreground opacity-40" />
+                  )}
+                </div>
+                <div className="flex-1 space-y-3">
+                  <Label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 rounded-md border border-gold/30 bg-gold/5 text-gold hover:bg-gold/10 transition-smooth">
+                    <Upload className="h-4 w-4" />
+                    {uploadProgress["cover"] !== undefined ? "Uploading…" : "Upload image"}
+                    <input type="file" accept="image/*" className="hidden" disabled={uploadProgress["cover"] !== undefined}
+                      onChange={(e) => { const f = e.target.files?.[0]; if (f) handleUploadCover(f); e.currentTarget.value = ""; }} />
+                  </Label>
+                  {uploadBar("cover")}
+                  {draftConfig.cover_image_url && (
+                    <Button variant="ghost" size="sm" onClick={() => patchConfig({ cover_image_url: null })}>
+                      <Trash2 className="h-4 w-4 mr-2" /> Remove
+                    </Button>
+                  )}
+                  <p className="text-xs text-muted-foreground">Recommended: 1600×1200, JPG/PNG, &lt; 2MB.</p>
+                </div>
+              </div>
+            </CollapsibleSection>
+
+            {/* Gallery layout — kept here near the gallery itself.
+                Other styling (backgrounds + text colours) has moved to the
+                top of the config tab so it's the first thing admins see. */}
+            <CollapsibleSection title="Gallery layout" defaultOpen={false} rightSlot={sectionSave}>
+              <div className="grid gap-4 md:grid-cols-2 pt-2">
+                <div className="space-y-2">
+                  <Label>Gallery layout</Label>
+                  <Select value={draftConfig.gallery_layout} onValueChange={(v: "grid" | "mosaic") => patchConfig({ gallery_layout: v })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="grid">Grid</SelectItem>
+                      <SelectItem value="mosaic">Mosaic</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </CollapsibleSection>
+
+            {/* Photo gallery — upload + drag to reorder, mosaic preview. Same UX as the event editor. */}
+            <CollapsibleSection
+              title="Photo gallery"
+              description={<>Up to 24 photos. Each file may be up to <span className="text-gold">5 MB</span>. Drag the <GripVertical className="inline h-3 w-3 align-[-2px]" /> handle to reorder.</>}
+              rightSlot={<div className="flex items-center gap-2"><span className="text-xs text-muted-foreground whitespace-nowrap">{(draftConfig.gallery_urls?.length ?? 0)} / 24</span>{sectionSave}</div>}
+              defaultOpen={false}
+            >
+              <div className="pt-2 space-y-4">
+                <p className="text-[11px] text-muted-foreground">
+                  Mosaic layout: 1 portrait + 2 landscape per group of 3. Extra photos that don't complete a group are hidden on the invitation.
+                </p>
+
+                {draftConfig.gallery_urls && draftConfig.gallery_urls.length > 0 && (
+                  <DndContext sensors={gallerySensors} collisionDetection={closestCenter} onDragEnd={onGalleryDragEnd}>
+                    <SortableContext
+                      items={draftConfig.gallery_urls.map((_, i) => `g-${i}`)}
+                      strategy={rectSortingStrategy}
+                    >
+                      {(() => {
+                        const urls = draftConfig.gallery_urls;
+                        const fullCount = Math.floor(urls.length / 3) * 3;
+                        const groups = Array.from({ length: fullCount / 3 }, (_, gi) => urls.slice(gi * 3, gi * 3 + 3));
+                        const leftover = urls.slice(fullCount);
+                        return (
+                          <div className="space-y-3 mb-4">
+                            {groups.map((group, gi) => {
+                              const base = gi * 3;
+                              const portraitLeft = gi % 2 === 0;
+                              const slots = portraitLeft
+                                ? [
+                                    { url: group[0], i: base, cls: "row-span-2 col-start-1" },
+                                    { url: group[1], i: base + 1, cls: "col-start-2 row-start-1" },
+                                    { url: group[2], i: base + 2, cls: "col-start-2 row-start-2" },
+                                  ]
+                                : [
+                                    { url: group[0], i: base, cls: "col-start-1 row-start-1" },
+                                    { url: group[1], i: base + 1, cls: "col-start-1 row-start-2" },
+                                    { url: group[2], i: base + 2, cls: "row-span-2 col-start-2" },
+                                  ];
+                              return (
+                                <div
+                                  key={`mg-${gi}`}
+                                  className="grid grid-cols-2 grid-rows-2 gap-2"
+                                  style={{ aspectRatio: "3 / 2" }}
+                                >
+                                  {slots.map((s) => (
+                                    <SortableGalleryItem
+                                      key={`g-${s.i}-${s.url}`}
+                                      id={`g-${s.i}`}
+                                      url={s.url}
+                                      index={s.i}
+                                      onRemove={() => removeGalleryImage(s.i)}
+                                      className={`${s.cls} h-full w-full`}
+                                    />
+                                  ))}
+                                </div>
+                              );
+                            })}
+                            {leftover.length > 0 && (
+                              <div>
+                                <div className="text-[11px] text-muted-foreground mb-2">
+                                  Hidden on the invitation (incomplete group of 3):
+                                </div>
+                                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2 opacity-60">
+                                  {leftover.map((url, idx) => (
+                                    <SortableGalleryItem
+                                      key={`g-${fullCount + idx}-${url}`}
+                                      id={`g-${fullCount + idx}`}
+                                      url={url}
+                                      index={fullCount + idx}
+                                      onRemove={() => removeGalleryImage(fullCount + idx)}
+                                    />
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
+                    </SortableContext>
+                  </DndContext>
+                )}
+
+                <Label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 rounded-md border border-gold/30 bg-gold/5 text-gold hover:bg-gold/10 transition-smooth">
+                  <Upload className="h-4 w-4" />
+                  {uploading ? "Uploading…" : "Add photos"}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    className="hidden"
+                    disabled={uploading || (draftConfig.gallery_urls?.length ?? 0) >= 24}
+                    onChange={(e) => { const f = e.target.files; if (f && f.length) handleUploadGallery(f); e.currentTarget.value = ""; }}
+                  />
+                </Label>
+                {/* Per-file gallery upload progress — multiple bars stack while a batch is in flight. */}
+                {Object.entries(uploadProgress)
+                  .filter(([k]) => k.startsWith("gallery-"))
+                  .map(([k, pct]) => (
+                    <div key={k} className="space-y-1">
+                      <div className="flex justify-between text-[11px] text-muted-foreground">
+                        <span className="truncate">{k.replace(/^gallery-\d+-/, "")}</span>
+                        <span>{pct}%</span>
+                      </div>
+                      <Progress value={pct} className="h-2" />
+                    </div>
+                  ))}
+              </div>
+            </CollapsibleSection>
+
+            {/* QR code (gift transfer) — uploaded image + editable message + account name. */}
+            <CollapsibleSection title="QR code for gift transfer" defaultOpen={false} rightSlot={sectionSave}>
+              <div className="grid md:grid-cols-2 gap-4 pt-2">
+                <div className="space-y-2">
+                  <Label>QR code image</Label>
+                  <div className="flex flex-col sm:flex-row sm:items-start gap-3">
+                    {draftConfig.qr_code_url ? (
+                      <img src={draftConfig.qr_code_url} alt="QR" className="h-24 w-24 object-contain rounded-md border bg-white p-1 shrink-0" />
+                    ) : (
+                      <div className="h-24 w-24 rounded-md border border-dashed flex items-center justify-center text-xs text-muted-foreground shrink-0">
+                        No QR
+                      </div>
+                    )}
+                    <div className="flex flex-col gap-2 min-w-0 flex-1">
+                      <Label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 rounded-md border border-gold/30 bg-gold/5 text-gold hover:bg-gold/10 transition-smooth self-start">
+                        <Upload className="h-4 w-4" />
+                        {uploadProgress["qr"] !== undefined ? "Uploading…" : "Upload QR"}
+                        <input type="file" accept="image/*" className="hidden" disabled={uploadProgress["qr"] !== undefined}
+                          onChange={(e) => { const f = e.target.files?.[0]; if (f) handleUploadQr(f); e.currentTarget.value = ""; }} />
+                      </Label>
+                      {uploadBar("qr")}
+                      {draftConfig.qr_code_url && (
+                        <Button variant="ghost" size="sm" className="self-start" onClick={() => patchConfig({ qr_code_url: null })}>
+                          <Trash2 className="h-4 w-4 mr-1.5" /> Remove
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground">Square PNG/JPG, recommended ≥ 600 × 600 px.</p>
+                </div>
+                <div className="space-y-2">
+                  <Label>Account holder name</Label>
+                  <Input
+                    value={draftConfig.qr_account_name ?? ""}
+                    onChange={(e) => patchConfig({ qr_account_name: e.target.value || null })}
+                  />
+                  <p className="text-xs text-muted-foreground">Shown under the QR. Leave blank to hide.</p>
+                </div>
+                <div className="space-y-2 md:col-span-2">
+                  <Label>QR description message</Label>
+                  <Textarea
+                    rows={3}
+                    value={draftConfig.qr_code_message ?? ""}
+                    onChange={(e) => patchConfig({ qr_code_message: e.target.value || null })}
+                    placeholder={"លោកអ្នកក៏អាចផ្ញើចំណងដៃតាមរយៈគណនី QR code របស់ពួកយើង រឺចុចប៊ូតុងខាងក្រោម។"}
+                    className="text-center font-khmer-siemreap"
+                  />
+                  <p className="text-xs text-muted-foreground">Leave blank to use the default Khmer text.</p>
+                </div>
+              </div>
+            </CollapsibleSection>
+
+            <CollapsibleSection title="Apologies letter" defaultOpen={false} rightSlot={sectionSave}>
+              <div className="pt-2 space-y-4">
+                <div className="space-y-2">
+                  <Label>Apologies message</Label>
+                  <Textarea
+                    rows={8}
+                    value={draftConfig.apologies_message ?? ""}
+                    onChange={(e) => patchConfig({ apologies_message: e.target.value || null })}
+                    placeholder={"យើងខ្ញុំជាមាតាបិតា​ កូនប្រុស កូនស្រី សូមអភ័យទោស..."}
+                    className="font-khmer-siemreap"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    The heading is fixed. Edit only the body. Leave blank to use the traditional default.
+                  </p>
+                </div>
+                <LetterCardStyleEditor
+                  color={draftConfig.letter_bg_color}
+                  opacity={draftConfig.letter_bg_opacity}
+                  onChange={(patch) => patchConfig(patch)}
+                />
+              </div>
+            </CollapsibleSection>
+
+            <CollapsibleSection title="Thank-you letter" defaultOpen={false} rightSlot={sectionSave}>
+              <div className="pt-2 space-y-4">
+                <div className="space-y-2">
+                  <Label>Thank-you message</Label>
+                  <Textarea
+                    rows={8}
+                    value={draftConfig.thank_you_message ?? ""}
+                    onChange={(e) => patchConfig({ thank_you_message: e.target.value || null })}
+                    placeholder={"យើងខ្ញុំជាមាតាបិតា កូនប្រុស កូនស្រី សូមថ្លែងអំណរគុណ..."}
+                    className="font-khmer-siemreap"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    The heading is fixed. Edit only the body. Leave blank to use the default Khmer letter.
+                  </p>
+                </div>
+                <LetterCardStyleEditor
+                  color={draftConfig.letter_bg_color}
+                  opacity={draftConfig.letter_bg_opacity}
+                  onChange={(patch) => patchConfig(patch)}
+                />
+              </div>
+            </CollapsibleSection>
+
+            <CollapsibleSection title="Sample agenda" defaultOpen={false} rightSlot={sectionSave}>
+              <div className="pt-2">
+                <AgendaEditor
+                  days={draftConfig.agenda_days}
+                  viewStyle={draftConfig.agenda_view_style}
+                  onChange={(days) => patchConfig({ agenda_days: days })}
+                  onChangeViewStyle={(v) => patchConfig({ agenda_view_style: v })}
+                />
+              </div>
+            </CollapsibleSection>
+
+            <CollapsibleSection title="Sample contacts" defaultOpen={false} rightSlot={sectionSave}>
+              <div className="pt-2">
+                <ContactsEditor
+                  contacts={draftConfig.contacts}
+                  onChange={(contacts) => patchConfig({ contacts })}
+                />
+              </div>
+            </CollapsibleSection>
+          </TabsContent>
+        </Tabs>
+
+        {/* Sticky save bar — same pattern as the billing editor. */}
+        <div className="sticky bottom-4 z-30 flex justify-end">
+          <div
+            className={`flex items-center gap-3 rounded-full border bg-card/95 backdrop-blur px-4 py-2 shadow-lg transition-all ${
+              dirty ? "border-gold/50" : "border-border opacity-80"
+            }`}
+          >
+            {dirty && (
+              <span className="flex items-center gap-1.5 text-xs text-gold">
+                <AlertCircle className="h-3.5 w-3.5" /> Unsaved changes
+              </span>
+            )}
+            <Button variant="ghost" size="sm" onClick={handleDiscard} disabled={!dirty || saving}>
+              Discard
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleSave}
+              disabled={!dirty || saving}
+              className="bg-gradient-gold text-primary-foreground hover:opacity-90"
+            >
+              <Save className="h-4 w-4 mr-1.5" /> {saving ? "Saving…" : "Save template"}
+            </Button>
+          </div>
+        </div>
+      </div>
+    </AdminLayout>
+  );
+}

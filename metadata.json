@@ -1,0 +1,6 @@
+{
+  "name": "21Invite.Online",
+  "description": "Create elegant, personalized digital invitations with RSVP tracking. Built for Khmer traditional weddings and modern events.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
