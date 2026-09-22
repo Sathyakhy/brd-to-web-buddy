@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from "react";
-import { Smartphone, Tablet, Monitor, ExternalLink, RefreshCw } from "lucide-react";
+import { Smartphone, Tablet, Monitor, ExternalLink, RefreshCw, Music } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { InvitationTemplate, type TemplateData } from "@/components/templates/InvitationTemplate";
 import RsvpCard from "@/components/templates/RsvpCard";
 import SignaturePackageCover from "@/components/templates/SignaturePackageCover";
 import KhmerTraditionalCover from "@/components/templates/KhmerTraditionalCover";
+import FloatingMusicPlayer from "@/components/templates/FloatingMusicPlayer";
 import CollapsibleSection from "@/components/admin/CollapsibleSection";
 
 type Device = "mobile" | "tablet" | "desktop";
@@ -100,6 +101,17 @@ export default function PreviewPanel({
     (event as any).cover_background_url ||
     DEFAULT_KT_BG;
 
+  // Resolve background music track (event-level override or template fallback)
+  const musicUrl =
+    (event as any).cover_music_url ??
+    (event as any).template_cover_music_url ??
+    (event as any).templateDefaults?.cover_music_url ??
+    null;
+  const isMusicVisible =
+    (event as any).section_visibility?.background_music !== false &&
+    !!musicUrl &&
+    !!musicUrl.trim();
+
   const body = (
     <div className="pt-2 space-y-4">
       {/* Device toolbar */}
@@ -165,6 +177,15 @@ export default function PreviewPanel({
             <div className="flex-1 mx-2 h-6 rounded-full bg-background border border-border flex items-center px-3 text-[11px] text-muted-foreground truncate">
               {url}
             </div>
+            {isMusicVisible && (
+              <span
+                title="Background music configured for this invitation"
+                className="inline-flex items-center gap-1 text-[10px] text-gold font-medium px-2 py-0.5 rounded-full bg-gold/10 border border-gold/30 shrink-0"
+              >
+                <Music className="h-2.5 w-2.5" />
+                <span className="hidden sm:inline">Music</span>
+              </span>
+            )}
           </div>
 
           {/* Scaled viewport — true device pixels, transformed to fit. The
@@ -245,7 +266,7 @@ export default function PreviewPanel({
                     guestName={guestName}
                     title={(event as any).title ?? ""}
                     backgroundUrl={(event as any).cover_background_url ?? null}
-                    musicUrl={(event as any).cover_music_url ?? null}
+                    musicUrl={musicUrl}
                     frameUrl={(event as any).frame_url ?? null}
                     frameType={((event as any).frame_type ?? "image") as "image" | "video"}
                     accentColor={(event as any).text_color_accent ?? null}
@@ -280,6 +301,20 @@ export default function PreviewPanel({
                   onOpen={() => setView("invitation")}
                 />
               </div>
+            )}
+
+            {/* Floating background music disc in preview.
+                Pins cleanly to the top-right of the simulated device screen
+                so the user can preview the vinyl disc widget and test-play audio. */}
+            {isMusicVisible && (!isSignature || opened) && (
+              <FloatingMusicPlayer
+                key={`preview-music-${bump}-${musicUrl}`}
+                musicUrl={musicUrl}
+                accentColor={(event as any).text_color_accent ?? "#db9b0f"}
+                position="top-right"
+                positionMode="absolute"
+                disableAutoPlay
+              />
             )}
           </div>
         </div>

@@ -111,6 +111,7 @@ export default function EventDetail() {
   const { templates: TEMPLATES } = useTemplates();
   /** Map of template slug → its `config.section_visibility` defaults. */
   const [templateVisibilityBySlug, setTemplateVisibilityBySlug] = useState<Record<string, SectionVisibility>>({});
+  const [templateDefaultsBySlug, setTemplateDefaultsBySlug] = useState<Record<string, any>>({});
   const [event, setEvent] = useState<Event | null>(null);
   const [guests, setGuests] = useState<Guest[]>([]);
   const [loading, setLoading] = useState(true);
@@ -145,12 +146,15 @@ export default function EventDetail() {
       supabase.from("templates").select("slug, config"),
     ]);
     if (evRes.error) toast.error(evRes.error.message);
-    // Build the template-slug → section_visibility map for default inheritance.
+    // Build the template-slug → section_visibility and default config map.
     const tplMap: Record<string, SectionVisibility> = {};
+    const tplDefMap: Record<string, any> = {};
     for (const t of (tplRes.data ?? []) as any[]) {
       tplMap[t.slug] = normalizeVisibility((t.config ?? {}).section_visibility);
+      tplDefMap[t.slug] = t.config ?? {};
     }
     setTemplateVisibilityBySlug(tplMap);
+    setTemplateDefaultsBySlug(tplDefMap);
     const raw = evRes.data as any;
     if (raw) {
       const normalized = normalizeAgenda(raw.agenda_days);
@@ -786,6 +790,7 @@ export default function EventDetail() {
               event={{
                 ...event,
                 template_section_visibility: templateVisibilityBySlug[event.template] ?? {},
+                template_cover_music_url: templateDefaultsBySlug[event.template]?.cover_music_url,
               } as any}
               publicHref={`/${event.slug}`}
               bare

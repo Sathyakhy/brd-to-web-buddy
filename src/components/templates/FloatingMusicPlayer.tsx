@@ -9,6 +9,8 @@ type Props = {
   position?: "top-right" | "bottom-left";
   /** Optional container positioning mode. Defaults to "fixed". */
   positionMode?: "fixed" | "absolute";
+  /** If true, do not attempt automatic playback on mount; wait for explicit click. */
+  disableAutoPlay?: boolean;
 };
 
 export default function FloatingMusicPlayer({
@@ -16,6 +18,7 @@ export default function FloatingMusicPlayer({
   accentColor = "#db9b0f",
   position = "top-right",
   positionMode = "fixed",
+  disableAutoPlay = false,
 }: Props) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -29,6 +32,12 @@ export default function FloatingMusicPlayer({
 
     userPausedRef.current = false;
     audio.volume = 0.55;
+
+    if (disableAutoPlay) {
+      return () => {
+        audio.pause();
+      };
+    }
 
     // Try initiating playback. Browsers may reject without prior user interaction.
     const startPlay = () => {
@@ -71,7 +80,7 @@ export default function FloatingMusicPlayer({
       cleanupListeners();
       audio.pause();
     };
-  }, [musicUrl]);
+  }, [musicUrl, disableAutoPlay]);
 
   if (!musicUrl || !musicUrl.trim()) return null;
 
@@ -101,8 +110,8 @@ export default function FloatingMusicPlayer({
   const posClass =
     positionMode === "absolute"
       ? position === "top-right"
-        ? "absolute top-3 right-3 z-30"
-        : "absolute bottom-3 left-3 z-30"
+        ? "absolute top-3 right-3 z-40"
+        : "absolute bottom-3 left-3 z-40"
       : position === "top-right"
       ? "fixed top-4 right-4 z-40 sm:top-6 sm:right-6"
       : "fixed bottom-5 left-5 z-40 sm:bottom-6 sm:left-6";
