@@ -1,24 +1,27 @@
 import { useEffect, useRef, useState } from "react";
-import { Music, Volume2, VolumeX, Disc3 } from "lucide-react";
+import { Music } from "lucide-react";
 
 type Props = {
   musicUrl?: string | null;
-  /** Accent colour used for borders, glow, and equalizer bars (defaults to gold #db9b0f). */
+  /** Accent colour used for borders, glow, and icon (defaults to gold #db9b0f). */
   accentColor?: string;
-  /** Position on screen: top-right (default) or bottom-left (to balance with floating contact on bottom-right). */
-  position?: "top-right" | "bottom-left";
+  /** Position on screen: bottom-right (default), top-right, or bottom-left. */
+  position?: "bottom-right" | "top-right" | "bottom-left";
   /** Optional container positioning mode. Defaults to "fixed". */
   positionMode?: "fixed" | "absolute";
   /** If true, do not attempt automatic playback on mount; wait for explicit click. */
   disableAutoPlay?: boolean;
+  /** If a bottom-right floating contact widget is active, offset this player so they stack neatly without overlap. */
+  hasBottomContact?: boolean;
 };
 
 export default function FloatingMusicPlayer({
   musicUrl,
   accentColor = "#db9b0f",
-  position = "top-right",
+  position = "bottom-right",
   positionMode = "fixed",
   disableAutoPlay = false,
+  hasBottomContact = false,
 }: Props) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -107,14 +110,26 @@ export default function FloatingMusicPlayer({
     }
   };
 
-  const posClass =
-    positionMode === "absolute"
-      ? position === "top-right"
-        ? "absolute top-3 right-3 z-40"
-        : "absolute bottom-3 left-3 z-40"
-      : position === "top-right"
-      ? "fixed top-4 right-4 z-40 sm:top-6 sm:right-6"
-      : "fixed bottom-5 left-5 z-40 sm:bottom-6 sm:left-6";
+  let posClass: string;
+  if (positionMode === "absolute") {
+    if (position === "bottom-right") {
+      posClass = "absolute bottom-4 right-4 z-40";
+    } else if (position === "top-right") {
+      posClass = "absolute top-3 right-3 z-40";
+    } else {
+      posClass = "absolute bottom-4 left-4 z-40";
+    }
+  } else {
+    if (position === "bottom-right") {
+      posClass = hasBottomContact
+        ? "fixed bottom-24 right-5 z-[9999] sm:bottom-28 sm:right-6"
+        : "fixed bottom-5 right-5 z-[9999] sm:bottom-6 sm:right-6";
+    } else if (position === "top-right") {
+      posClass = "fixed top-4 right-4 z-40 sm:top-6 sm:right-6";
+    } else {
+      posClass = "fixed bottom-5 left-5 z-40 sm:bottom-6 sm:left-6";
+    }
+  }
 
   return (
     <div className={posClass}>
@@ -140,7 +155,7 @@ export default function FloatingMusicPlayer({
             : "radial-gradient(circle at 35% 35%, rgba(20, 20, 20, 0.85), rgba(5, 5, 5, 0.95))",
           border: `1.5px solid ${isPlaying ? accentColor : "rgba(255, 255, 255, 0.2)"}`,
           boxShadow: isPlaying
-            ? `0 0 16px ${accentColor}40, 0 4px 12px rgba(0, 0, 0, 0.6)`
+            ? `0 0 16px ${accentColor}50, 0 4px 12px rgba(0, 0, 0, 0.6)`
             : "0 4px 10px rgba(0, 0, 0, 0.4)",
         }}
       >
@@ -155,29 +170,29 @@ export default function FloatingMusicPlayer({
           }}
         />
 
-        {/* Center icon / animated equalizer */}
+        {/* Music note icon */}
         <div className="relative z-10 flex items-center justify-center">
-          {isPlaying ? (
-            <div className="flex items-end justify-center gap-[2.5px] h-4 w-4">
-              <span
-                className="w-[2.5px] rounded-full animate-[musicBar1_1s_ease-in-out_infinite]"
-                style={{ background: accentColor, height: "100%" }}
-              />
-              <span
-                className="w-[2.5px] rounded-full animate-[musicBar2_1s_ease-in-out_0.2s_infinite]"
-                style={{ background: accentColor, height: "70%" }}
-              />
-              <span
-                className="w-[2.5px] rounded-full animate-[musicBar3_1s_ease-in-out_0.4s_infinite]"
-                style={{ background: accentColor, height: "85%" }}
-              />
-            </div>
-          ) : (
-            <VolumeX className="h-4 w-4 text-white/60 group-hover:text-white transition-colors" />
+          <Music
+            className={`h-5 w-5 transition-all duration-300 ${
+              isPlaying
+                ? "animate-[musicPulse_2s_ease-in-out_infinite]"
+                : "text-white/60 group-hover:text-white"
+            }`}
+            style={{
+              color: isPlaying ? accentColor : undefined,
+              filter: isPlaying ? `drop-shadow(0 0 6px ${accentColor}90)` : undefined,
+            }}
+          />
+          {/* Subtle slash line when paused to indicate mute/off state */}
+          {!isPlaying && (
+            <span
+              className="absolute w-[20px] h-[1.8px] bg-white/70 rotate-45 rounded-full pointer-events-none shadow-sm"
+              style={{ top: "45%" }}
+            />
           )}
         </div>
 
-        {/* Floating audio ripple badge */}
+        {/* Floating audio ripple badge when playing */}
         {isPlaying && (
           <span
             className="absolute -top-1 -right-1 flex h-3 w-3"
@@ -197,17 +212,13 @@ export default function FloatingMusicPlayer({
 
       {/* Embedded CSS for keyframes */}
       <style>{`
-        @keyframes musicBar1 {
-          0%, 100% { height: 30%; }
-          50% { height: 100%; }
-        }
-        @keyframes musicBar2 {
-          0%, 100% { height: 90%; }
-          50% { height: 25%; }
-        }
-        @keyframes musicBar3 {
-          0%, 100% { height: 45%; }
-          50% { height: 85%; }
+        @keyframes musicPulse {
+          0%, 100% {
+            transform: scale(1) rotate(0deg);
+          }
+          50% {
+            transform: scale(1.12) rotate(6deg);
+          }
         }
       `}</style>
     </div>

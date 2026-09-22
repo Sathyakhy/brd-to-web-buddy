@@ -1567,6 +1567,10 @@ export function InvitationTemplate({
     !!musicUrl &&
     !!musicUrl.trim();
   const accentColor = (mergedEvent.text_color_accent && mergedEvent.text_color_accent.trim()) || "#db9b0f";
+  const hasBottomContact =
+    visibility.floating_contact !== false &&
+    !props.hideFloatingContact &&
+    (normalizeContacts(mergedEvent.contacts).length > 0 || !!(mergedEvent as any).contact_phone);
 
   let content: React.ReactNode;
   switch (template) {
@@ -1595,7 +1599,8 @@ export function InvitationTemplate({
         <FloatingMusicPlayer
           musicUrl={musicUrl}
           accentColor={accentColor}
-          position="top-right"
+          position="bottom-right"
+          hasBottomContact={hasBottomContact}
         />
       )}
     </>

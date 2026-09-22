@@ -303,15 +303,15 @@ export default function PreviewPanel({
               </div>
             )}
 
-            {/* Floating background music disc in preview.
-                Pins cleanly to the top-right of the simulated device screen
-                so the user can preview the vinyl disc widget and test-play audio. */}
+            {/* Floating background music button in preview.
+                Pins cleanly to the bottom-right of the simulated device screen
+                so the user can preview the music note widget and test-play audio. */}
             {isMusicVisible && (!isSignature || opened) && (
               <FloatingMusicPlayer
                 key={`preview-music-${bump}-${musicUrl}`}
                 musicUrl={musicUrl}
                 accentColor={(event as any).text_color_accent ?? "#db9b0f"}
-                position="top-right"
+                position="bottom-right"
                 positionMode="absolute"
                 disableAutoPlay
               />
