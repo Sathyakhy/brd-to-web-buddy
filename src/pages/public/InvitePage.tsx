@@ -10,6 +10,7 @@ import RsvpCard from "@/components/templates/RsvpCard";
 import FloatingMusicPlayer from "@/components/templates/FloatingMusicPlayer";
 import FloatingLanguageSwitch from "@/components/templates/FloatingLanguageSwitch";
 import { LanguageCode, getDualLanguageConfig } from "@/lib/dualLanguage";
+import { normalizeMusicSettings } from "@/lib/musicSettings";
 
 type Event = TemplateData & {
   id: string; slug: string; template: string;
@@ -40,6 +41,7 @@ export default function InvitePage() {
   const [partySize, setPartySize] = useState(1);
   const [message, setMessage] = useState("");
   const [opened, setOpened] = useState(isPreview);
+  const [musicPlayTrigger, setMusicPlayTrigger] = useState(0);
   const [language, setLanguage] = useState<LanguageCode>("km");
 
   useEffect(() => {
@@ -96,6 +98,9 @@ export default function InvitePage() {
         frame_type: (cfg.frame_type as "image" | "video") ?? "image",
         cover_music_url: cfg.cover_music_url ?? null,
         text_effect_config: cfg.text_effect_config ?? null,
+        music_autoplay_cover: cfg.music_autoplay_cover ?? cfg.section_visibility?.music_autoplay_cover ?? true,
+        music_autoplay_invitation: cfg.music_autoplay_invitation ?? cfg.section_visibility?.music_autoplay_invitation ?? true,
+        music_autoplay_mode: cfg.music_autoplay_mode ?? cfg.section_visibility?.music_autoplay_mode ?? null,
       });
       if (isPreview) {
         // Synthetic guest used purely for the public preview — no name,
@@ -220,6 +225,37 @@ export default function InvitePage() {
 
   const isSignature = event.template === "signature-package-01";
 
+  const isCoverActive = !opened && (isEssentials || (isSignature && !isPreview));
+
+  const musicSettings = normalizeMusicSettings({
+    autoPlayCover:
+      (event as any).music_autoplay_cover ??
+      (event as any).section_visibility?.music_autoplay_cover ??
+      templateDefaults.music_autoplay_cover ??
+      (templateVisibility as any)?.music_autoplay_cover,
+    autoPlayInvitation:
+      (event as any).music_autoplay_invitation ??
+      (event as any).section_visibility?.music_autoplay_invitation ??
+      templateDefaults.music_autoplay_invitation ??
+      (templateVisibility as any)?.music_autoplay_invitation,
+    music_autoplay_mode:
+      (event as any).music_autoplay_mode ??
+      (event as any).section_visibility?.music_autoplay_mode ??
+      templateDefaults.music_autoplay_mode ??
+      (templateVisibility as any)?.music_autoplay_mode,
+  });
+
+  const shouldDisableAutoPlay = isCoverActive
+    ? !musicSettings.autoPlayCover
+    : !musicSettings.autoPlayInvitation;
+
+  const handleOpenInvitation = () => {
+    setOpened(true);
+    if (musicSettings.autoPlayInvitation) {
+      setMusicPlayTrigger((n) => n + 1);
+    }
+  };
+
   const musicUrl = (event as any).cover_music_url ?? templateDefaults.cover_music_url ?? null;
   const isMusicVisible =
     (event as any).section_visibility?.background_music !== false &&
@@ -247,7 +283,7 @@ export default function InvitePage() {
             openButtonColor={(event as any).open_button_color ?? null}
             language={language}
             monogramEffectConfig={(event as any).text_effect_config ?? (event as any).section_visibility?.text_effects ?? templateDefaults.text_effect_config ?? null}
-            onOpen={() => setOpened(true)}
+            onOpen={handleOpenInvitation}
           />
         </div>
       ) : (
@@ -277,7 +313,7 @@ export default function InvitePage() {
           accentColor={(event as any).text_color_accent ?? null}
           openButtonColor={(event as any).open_button_color ?? null}
           language={language}
-          onOpen={() => setOpened(true)}
+          onOpen={handleOpenInvitation}
           closing={opened}
         />
       )}
@@ -299,6 +335,8 @@ export default function InvitePage() {
                 accentColor={accentColor}
                 position="bottom-right"
                 positionMode="inline"
+                disableAutoPlay={shouldDisableAutoPlay}
+                playTrigger={musicPlayTrigger}
               />
             </div>
           )}

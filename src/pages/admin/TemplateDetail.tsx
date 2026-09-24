@@ -38,6 +38,7 @@ import {
   normalizeTextEffectConfig,
   type TextEffectConfig,
 } from "@/lib/textEffects";
+import { normalizeMusicSettings } from "@/lib/musicSettings";
 import {
   DndContext, closestCenter, PointerSensor, KeyboardSensor, TouchSensor,
   useSensor, useSensors, type DragEndEvent,
@@ -109,6 +110,12 @@ type TemplateConfig = {
       cover/gate screen with a toggle; per-event override lives on the
       event row. */
   cover_music_url: string | null;
+  /** Whether music should auto-play on the cover screen by default */
+  music_autoplay_cover?: boolean;
+  /** Whether music should auto-play on the invitation page by default */
+  music_autoplay_invitation?: boolean;
+  /** Music autoplay mode string: "cover" | "invitation" | "both" | "none" */
+  music_autoplay_mode?: string;
 };
 
 type TemplateRow = {
@@ -166,15 +173,26 @@ const DEFAULT_CONFIG: TemplateConfig = {
   frame_type: "image",
   side_frame_config: normalizeSideFrameConfig(null),
   cover_music_url: null,
+  music_autoplay_cover: true,
+  music_autoplay_invitation: true,
+  music_autoplay_mode: "both",
 };
 
 // Normalize whatever JSON we get back into a fully-typed TemplateConfig so the
 // editor never has to deal with partial/legacy shapes.
 function normalizeConfig(raw: any): TemplateConfig {
   const r = raw ?? {};
+  const musicSettings = normalizeMusicSettings({
+    autoPlayCover: r.music_autoplay_cover ?? r.section_visibility?.music_autoplay_cover,
+    autoPlayInvitation: r.music_autoplay_invitation ?? r.section_visibility?.music_autoplay_invitation,
+    music_autoplay_mode: r.music_autoplay_mode ?? r.section_visibility?.music_autoplay_mode,
+  });
   return {
     ...DEFAULT_CONFIG,
     ...r,
+    music_autoplay_cover: musicSettings.autoPlayCover,
+    music_autoplay_invitation: musicSettings.autoPlayInvitation,
+    music_autoplay_mode: r.music_autoplay_mode ?? (musicSettings.autoPlayCover && musicSettings.autoPlayInvitation ? "both" : musicSettings.autoPlayCover ? "cover" : musicSettings.autoPlayInvitation ? "invitation" : "none"),
     gallery_urls: Array.isArray(r.gallery_urls) ? r.gallery_urls : [],
     gallery_layout: r.gallery_layout === "mosaic" ? "mosaic" : "grid",
     event_date: r.event_date ?? null,
@@ -701,6 +719,31 @@ export default function TemplateDetail() {
                   }
                 }}
                 uploading={uploadProgress["audio"] !== undefined}
+                autoPlayCover={draftConfig.music_autoplay_cover ?? true}
+                autoPlayInvitation={draftConfig.music_autoplay_invitation ?? true}
+                onAutoPlayChange={(settings) => {
+                  const currentVis = (draftConfig.section_visibility as any) ?? {};
+                  const updatedVis = {
+                    ...currentVis,
+                    music_autoplay_cover: settings.autoPlayCover,
+                    music_autoplay_invitation: settings.autoPlayInvitation,
+                    music_autoplay_mode:
+                      settings.autoPlayCover && settings.autoPlayInvitation
+                        ? "both"
+                        : settings.autoPlayCover
+                        ? "cover"
+                        : settings.autoPlayInvitation
+                        ? "invitation"
+                        : "none",
+                  };
+                  patchConfig({
+                    music_autoplay_cover: settings.autoPlayCover,
+                    music_autoplay_invitation: settings.autoPlayInvitation,
+                    music_autoplay_mode: updatedVis.music_autoplay_mode,
+                    section_visibility: updatedVis,
+                  });
+                  toast.success("Template default autoplay settings updated");
+                }}
               />
             </CollapsibleSection>
 

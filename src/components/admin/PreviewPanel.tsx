@@ -11,6 +11,7 @@ import OrnamentalSideFrame from "@/components/templates/OrnamentalSideFrame";
 import { normalizeSideFrameConfig } from "@/lib/sideFrame";
 import CollapsibleSection from "@/components/admin/CollapsibleSection";
 import { getDualLanguageConfig, LanguageCode } from "@/lib/dualLanguage";
+import { normalizeMusicSettings } from "@/lib/musicSettings";
 
 type Device = "mobile" | "tablet" | "desktop";
 
@@ -116,6 +117,21 @@ export default function PreviewPanel({
     !!musicUrl &&
     !!musicUrl.trim();
 
+  const musicSettings = normalizeMusicSettings({
+    autoPlayCover:
+      (event as any).music_autoplay_cover ??
+      (event as any).section_visibility?.music_autoplay_cover ??
+      (event as any).template_section_visibility?.music_autoplay_cover,
+    autoPlayInvitation:
+      (event as any).music_autoplay_invitation ??
+      (event as any).section_visibility?.music_autoplay_invitation ??
+      (event as any).template_section_visibility?.music_autoplay_invitation,
+    music_autoplay_mode:
+      (event as any).music_autoplay_mode ??
+      (event as any).section_visibility?.music_autoplay_mode ??
+      (event as any).template_section_visibility?.music_autoplay_mode,
+  });
+
   // Dual language configuration & active preview language
   const dualCfg = getDualLanguageConfig(
     (event as any).dual_language_config ??
@@ -202,11 +218,27 @@ export default function PreviewPanel({
             </div>
             {isMusicVisible && (
               <span
-                title="Background music configured for this invitation"
+                title={`Background music: ${
+                  musicSettings.autoPlayCover && musicSettings.autoPlayInvitation
+                    ? "Autoplay on cover and invitation"
+                    : musicSettings.autoPlayCover
+                    ? "Autoplay on cover only"
+                    : musicSettings.autoPlayInvitation
+                    ? "Autoplay on invitation only"
+                    : "Autoplay disabled (manual tap only)"
+                }`}
                 className="inline-flex items-center gap-1 text-[10px] text-gold font-medium px-2 py-0.5 rounded-full bg-gold/10 border border-gold/30 shrink-0"
               >
                 <Music className="h-2.5 w-2.5" />
-                <span className="hidden sm:inline">Music</span>
+                <span className="hidden sm:inline">
+                  {musicSettings.autoPlayCover && musicSettings.autoPlayInvitation
+                    ? "Music (Cover & Invite)"
+                    : musicSettings.autoPlayCover
+                    ? "Music (Cover Only)"
+                    : musicSettings.autoPlayInvitation
+                    ? "Music (Invite Only)"
+                    : "Music (Manual)"}
+                </span>
               </span>
             )}
             {dualCfg.enabled && (

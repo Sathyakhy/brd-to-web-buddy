@@ -70,6 +70,7 @@ import {
   normalizeTextEffectConfig,
   type TextEffectConfig,
 } from "@/lib/textEffects";
+import { normalizeMusicSettings } from "@/lib/musicSettings";
 
 type Event = {
   id: string; slug: string; title: string; internal_title: string | null; template: string;
@@ -259,6 +260,9 @@ export default function EventDetail() {
       open_button_color: event.open_button_color,
       text_effects: event.text_effect_config,
       side_frame_config: event.side_frame_config,
+      music_autoplay_cover: (event as any).music_autoplay_cover ?? (event.section_visibility as any)?.music_autoplay_cover ?? true,
+      music_autoplay_invitation: (event as any).music_autoplay_invitation ?? (event.section_visibility as any)?.music_autoplay_invitation ?? true,
+      music_autoplay_mode: (event as any).music_autoplay_mode ?? (event.section_visibility as any)?.music_autoplay_mode ?? "both",
       agenda_style: {
         bg_color: event.agenda_bg_color ?? null,
         bg_opacity: event.agenda_bg_opacity ?? null,
@@ -2056,6 +2060,47 @@ export default function EventDetail() {
             }}
             onUpload={handleUploadCoverMusic}
             uploading={uploading}
+            autoPlayCover={
+              normalizeMusicSettings({
+                autoPlayCover: (event as any).music_autoplay_cover ?? (event as any).section_visibility?.music_autoplay_cover,
+                autoPlayInvitation: (event as any).music_autoplay_invitation ?? (event as any).section_visibility?.music_autoplay_invitation,
+                music_autoplay_mode: (event as any).music_autoplay_mode ?? (event as any).section_visibility?.music_autoplay_mode,
+              }).autoPlayCover
+            }
+            autoPlayInvitation={
+              normalizeMusicSettings({
+                autoPlayCover: (event as any).music_autoplay_cover ?? (event as any).section_visibility?.music_autoplay_cover,
+                autoPlayInvitation: (event as any).music_autoplay_invitation ?? (event as any).section_visibility?.music_autoplay_invitation,
+                music_autoplay_mode: (event as any).music_autoplay_mode ?? (event as any).section_visibility?.music_autoplay_mode,
+              }).autoPlayInvitation
+            }
+            onAutoPlayChange={async (settings) => {
+              const currentVis = (event.section_visibility as any) ?? {};
+              const updatedVis = {
+                ...currentVis,
+                music_autoplay_cover: settings.autoPlayCover,
+                music_autoplay_invitation: settings.autoPlayInvitation,
+                music_autoplay_mode:
+                  settings.autoPlayCover && settings.autoPlayInvitation
+                    ? "both"
+                    : settings.autoPlayCover
+                    ? "cover"
+                    : settings.autoPlayInvitation
+                    ? "invitation"
+                    : "none",
+              };
+              setEvent({
+                ...event,
+                music_autoplay_cover: settings.autoPlayCover,
+                music_autoplay_invitation: settings.autoPlayInvitation,
+                music_autoplay_mode: updatedVis.music_autoplay_mode,
+                section_visibility: updatedVis,
+              } as any);
+              await supabase.from("events").update({
+                section_visibility: updatedVis as any,
+              }).eq("id", event.id);
+              toast.success("Music autoplay settings updated");
+            }}
           />
         </CollapsibleSection>
           </TabsContent>

@@ -11,6 +11,8 @@ type Props = {
   positionMode?: "fixed" | "absolute" | "inline";
   /** If true, do not attempt automatic playback on mount; wait for explicit click. */
   disableAutoPlay?: boolean;
+  /** Imperative trigger (e.g. timestamp or incrementing counter) to immediately start playback, e.g. when opening invitation. */
+  playTrigger?: number | boolean;
   /** If a bottom-right floating contact widget is active, offset this player so they stack neatly without overlap. */
   hasBottomContact?: boolean;
 };
@@ -21,6 +23,7 @@ export default function FloatingMusicPlayer({
   position = "bottom-right",
   positionMode = "fixed",
   disableAutoPlay = false,
+  playTrigger,
   hasBottomContact = false,
 }: Props) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -28,19 +31,33 @@ export default function FloatingMusicPlayer({
   const [hasInteracted, setHasInteracted] = useState(false);
   const userPausedRef = useRef(false);
 
+  // Imperative play trigger (e.g. user tapped "Open Invitation")
+  useEffect(() => {
+    if (!playTrigger || !musicUrl) return;
+    const audio = audioRef.current;
+    if (!audio) return;
+    userPausedRef.current = false;
+    audio.volume = 0.55;
+    audio
+      .play()
+      .then(() => setIsPlaying(true))
+      .catch((err) => {
+        console.warn("Autoplay trigger blocked by browser policy:", err);
+      });
+  }, [playTrigger, musicUrl]);
+
   useEffect(() => {
     if (!musicUrl) return;
     const audio = audioRef.current;
     if (!audio) return;
 
-    userPausedRef.current = false;
     audio.volume = 0.55;
 
     if (disableAutoPlay) {
-      return () => {
-        audio.pause();
-      };
+      return;
     }
+
+    userPausedRef.current = false;
 
     // Try initiating playback. Browsers may reject without prior user interaction.
     const startPlay = () => {
@@ -81,9 +98,16 @@ export default function FloatingMusicPlayer({
 
     return () => {
       cleanupListeners();
-      audio.pause();
     };
   }, [musicUrl, disableAutoPlay]);
+
+  // Pause audio when unmounting
+  useEffect(() => {
+    const audio = audioRef.current;
+    return () => {
+      audio?.pause();
+    };
+  }, []);
 
   if (!musicUrl || !musicUrl.trim()) return null;
 
