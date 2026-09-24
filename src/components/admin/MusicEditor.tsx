@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Music, Upload, Trash2, Play, Pause, ExternalLink, Link2, Sparkles, Check, Disc3, Info, Volume2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -46,6 +46,12 @@ export default function MusicEditor({
       setCustomUrlInput("");
     }
   }, [musicUrl]);
+
+  useEffect(() => {
+    return () => {
+      presetAudioRef.current?.pause();
+    };
+  }, []);
 
   const handleApplyCustomUrl = () => {
     const trimmed = customUrlInput.trim();

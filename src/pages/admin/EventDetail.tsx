@@ -310,7 +310,6 @@ export default function EventDetail() {
       max_guests: event.max_guests,
       text_color_primary: event.text_color_primary,
       text_color_accent: event.text_color_accent,
-      open_button_color: event.open_button_color,
       text_effect_config: event.text_effect_config as any,
       access_starts_at: event.access_starts_at,
       access_ends_at: event.access_ends_at,
