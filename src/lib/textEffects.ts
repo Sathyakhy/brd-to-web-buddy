@@ -481,14 +481,14 @@ export function computeTextShadow(
 export function computeMonogramFilter(
   config: TextEffectConfig | MonogramShadowSettings | null | undefined
 ): string {
-  if (!config) {
+  if (!config || typeof config !== "object") {
     // Default fallback to the traditional dual glow
     return "drop-shadow(0 2px 4px rgba(255,255,255,0.8)) drop-shadow(0 0 10px rgba(255,196,70,0.63))";
   }
 
   let s: MonogramShadowSettings;
-  if ("monogram" in config && config.monogram) {
-    s = config.monogram;
+  if ("monogram" in config && config.monogram && typeof config.monogram === "object") {
+    s = config.monogram as MonogramShadowSettings;
   } else if ("color" in config && "enabled" in config) {
     s = config as MonogramShadowSettings;
   } else {

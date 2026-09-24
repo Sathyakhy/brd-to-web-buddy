@@ -11,6 +11,7 @@ import FloatingMusicPlayer from "@/components/templates/FloatingMusicPlayer";
 import FloatingLanguageSwitch from "@/components/templates/FloatingLanguageSwitch";
 import { LanguageCode, getDualLanguageConfig } from "@/lib/dualLanguage";
 import { normalizeMusicSettings } from "@/lib/musicSettings";
+import ErrorBoundary from "@/components/common/ErrorBoundary";
 
 type Event = TemplateData & {
   id: string; slug: string; template: string;
@@ -261,6 +262,7 @@ export default function InvitePage() {
     (event as any).section_visibility?.background_music !== false &&
     (templateVisibility as any)?.background_music !== false &&
     !!musicUrl &&
+    typeof musicUrl === "string" &&
     !!musicUrl.trim();
   const accentColor = (event as any).text_color_accent ?? "#db9b0f";
   const contactList = (event as any).contacts ? (Array.isArray((event as any).contacts) ? (event as any).contacts : []) : [];
@@ -271,88 +273,90 @@ export default function InvitePage() {
     (contactList.length > 0 || !!(event as any).contact_phone);
 
   return (
-    <div className="invitation-surface min-h-screen relative">
-      {isEssentials && !opened ? (
-        <div className="h-[100dvh] min-h-screen w-full overflow-hidden relative">
-          <KhmerTraditionalCover
+    <ErrorBoundary fallbackTitle="Unable to load invitation">
+      <div className="invitation-surface min-h-screen relative">
+        {isEssentials && !opened ? (
+          <div className="h-[100dvh] min-h-screen w-full overflow-hidden relative">
+            <KhmerTraditionalCover
+              guestName={guest.name}
+              title={event.title}
+              backgroundUrl={(event as any).cover_background_url ?? null}
+              nameGraphicUrl={(event as any).cover_image_url ?? templateDefaults.cover_image_url ?? null}
+              accentColor={(event as any).text_color_accent ?? null}
+              openButtonColor={(event as any).open_button_color ?? (event as any).section_visibility?.open_button_color ?? (templateDefaults as any)?.open_button_color ?? null}
+              language={language}
+              monogramEffectConfig={(event as any).text_effect_config ?? (event as any).section_visibility?.text_effects ?? templateDefaults.text_effect_config ?? null}
+              onOpen={handleOpenInvitation}
+            />
+          </div>
+        ) : (
+          <InvitationTemplate
+            template={event.template}
+            event={event}
+            guestName={guest.name}
+            eventVisibility={(event as any).section_visibility}
+            templateVisibility={templateVisibility}
+            templateDefaults={templateDefaults}
+            language={language}
+            onLanguageChange={setLanguage}
+            hideFloatingMusic={true}
+            hideFloatingLanguageSwitch={true}
+          >
+            {rsvpForm}
+          </InvitationTemplate>
+        )}
+
+        {isSignature && !isPreview && (
+          <SignaturePackageCover
             guestName={guest.name}
             title={event.title}
             backgroundUrl={(event as any).cover_background_url ?? null}
-            nameGraphicUrl={(event as any).cover_image_url ?? templateDefaults.cover_image_url ?? null}
+            frameUrl={(event as any).frame_url ?? templateDefaults.frame_url ?? null}
+            frameType={((event as any).frame_type ?? templateDefaults.frame_type ?? "image") as "image" | "video"}
             accentColor={(event as any).text_color_accent ?? null}
             openButtonColor={(event as any).open_button_color ?? (event as any).section_visibility?.open_button_color ?? (templateDefaults as any)?.open_button_color ?? null}
             language={language}
             monogramEffectConfig={(event as any).text_effect_config ?? (event as any).section_visibility?.text_effects ?? templateDefaults.text_effect_config ?? null}
             onOpen={handleOpenInvitation}
+            closing={opened}
           />
-        </div>
-      ) : (
-        <InvitationTemplate
-          template={event.template}
-          event={event}
-          guestName={guest.name}
-          eventVisibility={(event as any).section_visibility}
-          templateVisibility={templateVisibility}
-          templateDefaults={templateDefaults}
-          language={language}
-          onLanguageChange={setLanguage}
-          hideFloatingMusic={true}
-          hideFloatingLanguageSwitch={true}
-        >
-          {rsvpForm}
-        </InvitationTemplate>
-      )}
+        )}
 
-      {isSignature && !isPreview && (
-        <SignaturePackageCover
-          guestName={guest.name}
-          title={event.title}
-          backgroundUrl={(event as any).cover_background_url ?? null}
-          frameUrl={(event as any).frame_url ?? templateDefaults.frame_url ?? null}
-          frameType={((event as any).frame_type ?? templateDefaults.frame_type ?? "image") as "image" | "video"}
-          accentColor={(event as any).text_color_accent ?? null}
-          openButtonColor={(event as any).open_button_color ?? (event as any).section_visibility?.open_button_color ?? (templateDefaults as any)?.open_button_color ?? null}
-          language={language}
-          monogramEffectConfig={(event as any).text_effect_config ?? (event as any).section_visibility?.text_effects ?? templateDefaults.text_effect_config ?? null}
-          onOpen={handleOpenInvitation}
-          closing={opened}
-        />
-      )}
-
-      {/* Floating Controls at bottom-right (Music on top, Language switch below):
-          Active on BOTH cover and invitation page so guests can hear/control music immediately! */}
-      {(isMusicVisible || dualCfg.enabled) && (
-        <div
-          className={`fixed ${
-            hasBottomContact
-              ? "bottom-24 right-5 sm:bottom-28 sm:right-6"
-              : "bottom-5 right-5 sm:bottom-6 sm:right-6"
-          } z-[9999] flex flex-col items-center gap-2 pointer-events-none select-none`}
-        >
-          {isMusicVisible && (
-            <div className="pointer-events-auto">
-              <FloatingMusicPlayer
-                musicUrl={musicUrl}
-                accentColor={accentColor}
-                position="bottom-right"
-                positionMode="inline"
-                disableAutoPlay={shouldDisableAutoPlay}
-                playTrigger={musicPlayTrigger}
-              />
-            </div>
-          )}
-          {dualCfg.enabled && (
-            <div className="pointer-events-auto">
-              <FloatingLanguageSwitch
-                language={language}
-                onLanguageChange={setLanguage}
-                accentColor={accentColor}
-                positionMode="inline"
-              />
-            </div>
-          )}
-        </div>
-      )}
-    </div>
+        {/* Floating Controls at bottom-right (Music on top, Language switch below):
+            Active on BOTH cover and invitation page so guests can hear/control music immediately! */}
+        {(isMusicVisible || dualCfg.enabled) && (
+          <div
+            className={`fixed ${
+              hasBottomContact
+                ? "bottom-24 right-5 sm:bottom-28 sm:right-6"
+                : "bottom-5 right-5 sm:bottom-6 sm:right-6"
+            } z-[9999] flex flex-col items-center gap-2 pointer-events-none select-none`}
+          >
+            {isMusicVisible && (
+              <div className="pointer-events-auto">
+                <FloatingMusicPlayer
+                  musicUrl={musicUrl}
+                  accentColor={accentColor}
+                  position="bottom-right"
+                  positionMode="inline"
+                  disableAutoPlay={shouldDisableAutoPlay}
+                  playTrigger={musicPlayTrigger}
+                />
+              </div>
+            )}
+            {dualCfg.enabled && (
+              <div className="pointer-events-auto">
+                <FloatingLanguageSwitch
+                  language={language}
+                  onLanguageChange={setLanguage}
+                  accentColor={accentColor}
+                  positionMode="inline"
+                />
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </ErrorBoundary>
   );
 }

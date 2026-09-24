@@ -258,8 +258,8 @@ export function KhmerTraditionalTemplate({ event, guestName, children, hideBackg
     (event as any).header_font ||
     (event as any).heading_font ||
     (event as any).section_visibility?.header_font ||
-    (templateDefaults as any)?.header_font ||
-    (templateVisibility as any)?.header_font;
+    (event as any).template_section_visibility?.header_font ||
+    (event as any).templateDefaults?.header_font;
   const headerFont = resolveHeaderFont(rawHeaderFont, isEn);
 
   const rawBodyFont = (event as any).body_font;
@@ -1799,7 +1799,7 @@ export function InvitationTemplate({
   const showFloatingMusic =
     visibility.background_music !== false &&
     !props.hideFloatingMusic &&
-    !!musicUrl &&
+    typeof musicUrl === "string" &&
     !!musicUrl.trim();
   const showFloatingLanguageSwitch =
     dualConfig.enabled &&

@@ -12,6 +12,8 @@ import { normalizeSideFrameConfig } from "@/lib/sideFrame";
 import CollapsibleSection from "@/components/admin/CollapsibleSection";
 import { getDualLanguageConfig, LanguageCode } from "@/lib/dualLanguage";
 import { normalizeMusicSettings } from "@/lib/musicSettings";
+import { normalizeTextEffectConfig } from "@/lib/textEffects";
+import ErrorBoundary from "@/components/common/ErrorBoundary";
 
 type Device = "mobile" | "tablet" | "desktop";
 
@@ -115,6 +117,7 @@ export default function PreviewPanel({
   const isMusicVisible =
     (event as any).section_visibility?.background_music !== false &&
     !!musicUrl &&
+    typeof musicUrl === "string" &&
     !!musicUrl.trim();
 
   const musicSettings = normalizeMusicSettings({
@@ -375,7 +378,11 @@ export default function PreviewPanel({
                     accentColor={(event as any).text_color_accent ?? null}
                     openButtonColor={(event as any).open_button_color ?? (event as any).section_visibility?.open_button_color ?? null}
                     language={language}
-                    monogramEffectConfig={(event as any).text_effect_config ?? (event as any).section_visibility?.text_effects ?? null}
+                    monogramEffectConfig={
+                      normalizeTextEffectConfig(
+                        (event as any).text_effect_config ?? (event as any).section_visibility?.text_effects
+                      ).monogram
+                    }
                     onOpen={() => setOpened(true)}
                     closing={opened}
                     positionMode="absolute"
@@ -407,7 +414,11 @@ export default function PreviewPanel({
                   accentColor={(event as any).text_color_accent ?? null}
                   openButtonColor={(event as any).open_button_color ?? (event as any).section_visibility?.open_button_color ?? null}
                   language={language}
-                  monogramEffectConfig={(event as any).text_effect_config ?? (event as any).section_visibility?.text_effects ?? null}
+                  monogramEffectConfig={
+                    normalizeTextEffectConfig(
+                      (event as any).text_effect_config ?? (event as any).section_visibility?.text_effects
+                    ).monogram
+                  }
                   onOpen={() => setView("invitation")}
                 />
               </div>
@@ -482,7 +493,9 @@ export default function PreviewPanel({
             )}
           </div>
         </div>
-        {body}
+        <ErrorBoundary onReset={() => setBump((n) => n + 1)} fallbackTitle="Preview encountered an issue">
+          {body}
+        </ErrorBoundary>
       </div>
     );
   }
@@ -513,7 +526,9 @@ export default function PreviewPanel({
         </div>
       }
     >
-      {body}
+      <ErrorBoundary onReset={() => setBump((n) => n + 1)} fallbackTitle="Preview encountered an issue">
+        {body}
+      </ErrorBoundary>
     </CollapsibleSection>
   );
 }
