@@ -231,6 +231,7 @@ export type Database = {
           map_embed: string | null
           map_image_url: string | null
           max_guests: number | null
+          open_button_color: string | null
           owner_id: string | null
           paid_amount: number
           payment_status: string
@@ -246,6 +247,8 @@ export type Database = {
           template: string
           text_color_accent: string | null
           text_color_primary: string | null
+          text_effect_config: Json
+          text_shadow_enabled: boolean | null
           thank_you_message: string | null
           title: string
           updated_at: string
@@ -284,6 +287,7 @@ export type Database = {
           map_embed?: string | null
           map_image_url?: string | null
           max_guests?: number | null
+          open_button_color?: string | null
           owner_id?: string | null
           paid_amount?: number
           payment_status?: string
@@ -299,6 +303,8 @@ export type Database = {
           template?: string
           text_color_accent?: string | null
           text_color_primary?: string | null
+          text_effect_config?: Json
+          text_shadow_enabled?: boolean | null
           thank_you_message?: string | null
           title: string
           updated_at?: string
@@ -337,6 +343,7 @@ export type Database = {
           map_embed?: string | null
           map_image_url?: string | null
           max_guests?: number | null
+          open_button_color?: string | null
           owner_id?: string | null
           paid_amount?: number
           payment_status?: string
@@ -352,6 +359,8 @@ export type Database = {
           template?: string
           text_color_accent?: string | null
           text_color_primary?: string | null
+          text_effect_config?: Json
+          text_shadow_enabled?: boolean | null
           thank_you_message?: string | null
           title?: string
           updated_at?: string

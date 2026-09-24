@@ -7,6 +7,8 @@ import SignaturePackageCover from "@/components/templates/SignaturePackageCover"
 import KhmerTraditionalCover from "@/components/templates/KhmerTraditionalCover";
 import FloatingMusicPlayer from "@/components/templates/FloatingMusicPlayer";
 import FloatingLanguageSwitch from "@/components/templates/FloatingLanguageSwitch";
+import OrnamentalSideFrame from "@/components/templates/OrnamentalSideFrame";
+import { normalizeSideFrameConfig } from "@/lib/sideFrame";
 import CollapsibleSection from "@/components/admin/CollapsibleSection";
 import { getDualLanguageConfig, LanguageCode } from "@/lib/dualLanguage";
 
@@ -120,6 +122,12 @@ export default function PreviewPanel({
     (event as any).section_visibility?.dual_language ??
     (event as any).section_visibility,
     event
+  );
+
+  const sideFrameCfg = normalizeSideFrameConfig(
+    (event as any).side_frame_config ??
+    (event as any).section_visibility?.side_frame_config ??
+    (event as any).section_visibility?.side_frame
   );
   const [language, setLanguage] = useState<LanguageCode>(dualCfg.default_language ?? "km");
 
@@ -288,6 +296,26 @@ export default function PreviewPanel({
               </InvitationTemplate>
             </div>
 
+            {/* Pinned Ornamental Side Frame — stays fixed to device frame while content scrolls */}
+            {sideFrameCfg.enabled && (
+              <div
+                className="absolute top-0 left-0 pointer-events-none"
+                style={{
+                  width: size.w,
+                  height: size.h,
+                  transform: `scale(${scale})`,
+                  transformOrigin: "top left",
+                  zIndex: 2,
+                }}
+              >
+                <OrnamentalSideFrame
+                  config={sideFrameCfg}
+                  accentColor={(event as any).text_color_accent}
+                  positionMode="absolute"
+                />
+              </div>
+            )}
+
             {/* Signature Package cover gate — overlays the device frame at
                 the same scaled size as the viewport. Tapping "Open" fades
                 it out and reveals the invitation underneath, matching the
@@ -313,6 +341,7 @@ export default function PreviewPanel({
                     frameUrl={(event as any).frame_url ?? null}
                     frameType={((event as any).frame_type ?? "image") as "image" | "video"}
                     accentColor={(event as any).text_color_accent ?? null}
+                    openButtonColor={(event as any).open_button_color ?? null}
                     language={language}
                     onOpen={() => setOpened(true)}
                     closing={opened}
@@ -343,6 +372,7 @@ export default function PreviewPanel({
                   backgroundUrl={(event as any).cover_background_url ?? null}
                   nameGraphicUrl={(event as any).cover_image_url ?? (event as any).templateDefaults?.cover_image_url ?? null}
                   accentColor={(event as any).text_color_accent ?? null}
+                  openButtonColor={(event as any).open_button_color ?? null}
                   language={language}
                   onOpen={() => setView("invitation")}
                 />

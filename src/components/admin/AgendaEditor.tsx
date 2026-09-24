@@ -7,7 +7,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import {
-  Plus, Trash2, GripVertical, LayoutList, LayoutGrid, Library, Save, Upload, Pencil, X,
+  Plus, Trash2, GripVertical, Library, Save, Upload, Pencil, X,
 } from "lucide-react";
 import {
   DndContext,
@@ -28,8 +28,10 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import {
-  AgendaDay, AgendaItem, AgendaViewStyle, AGENDA_ICON_KEYS, getAgendaIcon, uid,
+  AgendaDay, AgendaItem, AgendaViewStyle, uid, getAgendaIcon,
 } from "@/lib/agenda";
+import AgendaStyleEditor, { type AgendaStylePatch } from "./AgendaStyleEditor";
+import AgendaIconImage from "../templates/AgendaIconImage";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -45,11 +47,27 @@ type Props = {
   days: AgendaDay[];
   viewStyle: AgendaViewStyle;
   isDual?: boolean;
+  assetColor?: string | null;
+  bgColor?: string | null;
+  bgOpacity?: number | null;
   onChange: (days: AgendaDay[]) => void;
   onChangeViewStyle: (v: AgendaViewStyle) => void;
+  onChangeStyle?: (patch: AgendaStylePatch) => void;
+  showStyleEditor?: boolean;
 };
 
-export default function AgendaEditor({ days, viewStyle, isDual = false, onChange, onChangeViewStyle }: Props) {
+export default function AgendaEditor({
+  days,
+  viewStyle,
+  isDual = false,
+  assetColor,
+  bgColor,
+  bgOpacity,
+  onChange,
+  onChangeViewStyle,
+  onChangeStyle,
+  showStyleEditor = true,
+}: Props) {
   const [openDay, setOpenDay] = useState<string | null>(days[0]?.id ?? null);
   const [presets, setPresets] = useState<Preset[]>([]);
   const [presetsOpen, setPresetsOpen] = useState(false);
@@ -171,29 +189,24 @@ export default function AgendaEditor({ days, viewStyle, isDual = false, onChange
             </DialogTrigger>
             <PresetManagerDialog presets={presets} onChanged={fetchPresets} />
           </Dialog>
-          <span className="text-xs text-muted-foreground">View style:</span>
-          <div className="inline-flex rounded-md border border-border bg-secondary/40 p-0.5">
-            <button
-              type="button"
-              onClick={() => onChangeViewStyle("list")}
-              className={`px-2.5 py-1 rounded inline-flex items-center gap-1 text-xs transition-colors ${
-                viewStyle === "list" ? "bg-gold/15 text-gold" : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              <LayoutList className="h-3.5 w-3.5" /> List
-            </button>
-            <button
-              type="button"
-              onClick={() => onChangeViewStyle("card")}
-              className={`px-2.5 py-1 rounded inline-flex items-center gap-1 text-xs transition-colors ${
-                viewStyle === "card" ? "bg-gold/15 text-gold" : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              <LayoutGrid className="h-3.5 w-3.5" /> Cards
-            </button>
-          </div>
         </div>
       </div>
+
+      {showStyleEditor && onChangeStyle && (
+        <AgendaStyleEditor
+          assetColor={assetColor}
+          bgColor={bgColor}
+          bgOpacity={bgOpacity}
+          viewStyle={viewStyle}
+          onChange={(patch) => {
+            if (patch.agenda_view_style && onChangeViewStyle) {
+              onChangeViewStyle(patch.agenda_view_style);
+            }
+            onChangeStyle(patch);
+          }}
+          onChangeViewStyle={onChangeViewStyle}
+        />
+      )}
 
       {days.length === 0 && (
         <div className="rounded-lg border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
@@ -210,6 +223,7 @@ export default function AgendaEditor({ days, viewStyle, isDual = false, onChange
                 day={day}
                 index={di}
                 isDual={isDual}
+                assetColor={assetColor}
                 isOpen={openDay === day.id}
                 onToggle={() => setOpenDay(openDay === day.id ? null : day.id)}
                 onRemove={() => removeDay(day.id)}
@@ -236,13 +250,14 @@ export default function AgendaEditor({ days, viewStyle, isDual = false, onChange
 
 /* ───────────────── Sortable day card ───────────────── */
 function SortableDay({
-  day, index, isDual, isOpen, onToggle, onRemove, onUpdate,
+  day, index, isDual, assetColor, isOpen, onToggle, onRemove, onUpdate,
   sensors, onDragEndItems, onUpdateItem, onAddItem, onRemoveItem,
   presets, onSaveAsPreset,
 }: {
   day: AgendaDay;
   index: number;
   isDual?: boolean;
+  assetColor?: string | null;
   isOpen: boolean;
   onToggle: () => void;
   onRemove: () => void;
@@ -359,6 +374,7 @@ function SortableDay({
                     key={it.id}
                     item={it}
                     isDual={isDual}
+                    assetColor={assetColor}
                     onUpdate={(patch) => onUpdateItem(it.id, patch)}
                     onRemove={() => onRemoveItem(it.id)}
                     presets={presets}
@@ -380,10 +396,11 @@ function SortableDay({
 
 /* ───────────────── Sortable agenda item ───────────────── */
 function SortableItem({
-  item, isDual, onUpdate, onRemove, presets, onSaveAsPreset,
+  item, isDual, assetColor, onUpdate, onRemove, presets, onSaveAsPreset,
 }: {
   item: AgendaItem;
   isDual?: boolean;
+  assetColor?: string | null;
   onUpdate: (patch: Partial<AgendaItem>) => void;
   onRemove: () => void;
   presets: Preset[];
@@ -399,6 +416,7 @@ function SortableItem({
   const Icon = getAgendaIcon(item.icon);
   const [presetOpen, setPresetOpen] = useState(false);
   const [iconOpen, setIconOpen] = useState(false);
+  const effectiveAssetColor = assetColor || "#c89b3c";
 
   const applyPreset = (p: Preset) => {
     onUpdate({
@@ -457,82 +475,90 @@ function SortableItem({
                 className="w-full h-9 rounded-md border border-input bg-background px-2 text-sm flex items-center gap-2 hover:bg-secondary/40"
               >
                 {item.iconImageUrl ? (
-                  <img src={item.iconImageUrl} alt="" className="h-5 w-5 object-contain shrink-0" />
+                  <AgendaIconImage src={item.iconImageUrl} color={effectiveAssetColor} className="h-5 w-5" />
                 ) : (
-                  <Icon className="h-4 w-4 text-gold shrink-0" />
+                  <Upload className="h-4 w-4 text-muted-foreground shrink-0" />
                 )}
                 <span className="truncate text-xs text-muted-foreground">
-                  {item.iconImageUrl ? "Custom" : item.icon}
+                  {item.iconImageUrl ? "Custom icon" : "No icon"}
                 </span>
               </button>
             </PopoverTrigger>
-            <PopoverContent className="w-72 p-0" align="start">
-              <Command>
-                <CommandInput placeholder="Search icons…" />
-                <CommandList className="max-h-72">
-                  <CommandEmpty>No icons found.</CommandEmpty>
-                  <CommandGroup heading="Built-in">
-                    <div className="grid grid-cols-6 gap-1 p-2">
-                      {AGENDA_ICON_KEYS.map((k) => {
-                        const Ico = getAgendaIcon(k);
-                        const active = item.icon === k && !item.iconImageUrl;
-                        return (
-                          <button
-                            key={k}
-                            type="button"
-                            onClick={() => {
-                              const matching = presets.find(
-                                (p) => !p.icon_image_url && p.icon === k,
-                              );
-                              const patch: Partial<AgendaItem> = { icon: k, iconImageUrl: null };
-                              if (matching) {
-                                patch.label = matching.label;
-                                patch.description = matching.description ?? "";
-                              }
-                              onUpdate(patch);
-                              setIconOpen(false);
-                            }}
-                            title={k}
-                            className={`h-9 rounded-md flex items-center justify-center border transition-colors ${
-                              active ? "border-gold bg-gold/10 text-gold" : "border-border hover:bg-secondary/60"
-                            }`}
-                          >
-                            <Ico className="h-4 w-4" />
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </CommandGroup>
-                  {presets.some((p) => p.icon_image_url) && (
-                    <CommandGroup heading="Custom uploaded">
-                      <div className="grid grid-cols-6 gap-1 p-2">
-                        {presets
-                          .filter((p) => p.icon_image_url)
-                          .map((p) => (
-                            <button
-                              key={p.id}
-                              type="button"
-                              onClick={() => {
-                                const patch: Partial<AgendaItem> = {
-                                  iconImageUrl: p.icon_image_url,
-                                  icon: p.icon || "Sparkle",
-                                  label: p.label,
-                                  description: p.description ?? "",
-                                };
-                                onUpdate(patch);
-                                setIconOpen(false);
-                              }}
-                              title={p.label}
-                              className="h-9 rounded-md flex items-center justify-center border border-border hover:bg-secondary/60 p-1"
-                            >
-                              <img src={p.icon_image_url!} alt={p.label} className="h-6 w-6 object-contain" />
-                            </button>
-                          ))}
-                      </div>
-                    </CommandGroup>
-                  )}
-                </CommandList>
-              </Command>
+            <PopoverContent className="w-72 p-3 space-y-3" align="start">
+              <div className="text-xs font-semibold text-foreground">Agenda Icon</div>
+              {item.iconImageUrl && (
+                <div className="flex items-center justify-between p-2 rounded border border-border bg-secondary/20">
+                  <div className="flex items-center gap-2">
+                    <AgendaIconImage src={item.iconImageUrl} color={effectiveAssetColor} className="h-8 w-8" />
+                    <span className="text-xs text-muted-foreground">Active icon</span>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      onUpdate({ iconImageUrl: null });
+                      setIconOpen(false);
+                    }}
+                    className="text-xs text-destructive hover:text-destructive h-7 px-2"
+                  >
+                    Remove
+                  </Button>
+                </div>
+              )}
+              <div className="space-y-1.5">
+                <label className="w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-md border border-input bg-background text-xs font-medium cursor-pointer hover:bg-secondary/50">
+                  <Upload className="h-3.5 w-3.5" />
+                  {item.iconImageUrl ? "Upload replacement icon" : "Upload custom icon"}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={async (e) => {
+                      const f = e.target.files?.[0];
+                      if (!f) return;
+                      try {
+                        const ext = f.name.split(".").pop() || "png";
+                        const path = `agenda-icons/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+                        const { error: upErr } = await supabase.storage.from("event-media").upload(path, f, { upsert: true });
+                        if (upErr) throw upErr;
+                        const { data } = supabase.storage.from("event-media").getPublicUrl(path);
+                        onUpdate({ iconImageUrl: data.publicUrl });
+                        toast.success("Icon uploaded");
+                        setIconOpen(false);
+                      } catch (err: any) {
+                        toast.error(err.message || "Failed to upload icon");
+                      }
+                      e.target.value = "";
+                    }}
+                  />
+                </label>
+              </div>
+              {presets.some((p) => p.icon_image_url) && (
+                <div className="space-y-1.5 pt-1 border-t border-border">
+                  <div className="text-[11px] text-muted-foreground font-medium">Or choose from library:</div>
+                  <div className="grid grid-cols-5 gap-1.5 max-h-32 overflow-y-auto p-1">
+                    {presets
+                      .filter((p) => p.icon_image_url)
+                      .map((p) => (
+                        <button
+                          key={p.id}
+                          type="button"
+                          onClick={() => {
+                            onUpdate({ iconImageUrl: p.icon_image_url });
+                            setIconOpen(false);
+                          }}
+                          title={p.label}
+                          className={`h-9 rounded-md flex items-center justify-center border transition-colors p-1 ${
+                            item.iconImageUrl === p.icon_image_url ? "border-gold bg-gold/10" : "border-border hover:bg-secondary/60"
+                          }`}
+                        >
+                          <AgendaIconImage src={p.icon_image_url!} color={effectiveAssetColor} className="h-6 w-6" />
+                        </button>
+                      ))}
+                  </div>
+                </div>
+              )}
             </PopoverContent>
           </Popover>
         </div>
@@ -877,14 +903,13 @@ function PresetManagerDialog({ presets, onChanged }: { presets: Preset[]; onChan
               </div>
             )}
             {filtered.map((p) => {
-              const Ico = getAgendaIcon(p.icon);
               return (
                 <div key={p.id} className="flex items-start gap-3 p-3 rounded-md border border-border bg-card">
                   <div className="h-10 w-10 rounded-md border border-border flex items-center justify-center shrink-0">
                     {p.icon_image_url ? (
                       <img src={p.icon_image_url} alt="" className="h-7 w-7 object-contain" />
                     ) : (
-                      <Ico className="h-5 w-5 text-gold" />
+                      <span className="text-xs text-muted-foreground">—</span>
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
@@ -926,63 +951,38 @@ function PresetManagerDialog({ presets, onChanged }: { presets: Preset[]; onChan
             />
           </div>
 
-          <div className="grid sm:grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label className="text-xs">Built-in icon</Label>
-              <div className="grid grid-cols-6 gap-1 p-2 border border-border rounded-md max-h-40 overflow-y-auto">
-                {AGENDA_ICON_KEYS.map((k) => {
-                  const Ico = getAgendaIcon(k);
-                  const active = editing.icon === k && !editing.icon_image_url;
-                  return (
-                    <button
-                      key={k}
-                      type="button"
-                      onClick={() => setEditing({ ...editing, icon: k, icon_image_url: null })}
-                      title={k}
-                      className={`h-9 rounded-md flex items-center justify-center border transition-colors ${
-                        active ? "border-gold bg-gold/10 text-gold" : "border-border hover:bg-secondary/60"
-                      }`}
-                    >
-                      <Ico className="h-4 w-4" />
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <Label className="text-xs">Or upload custom icon</Label>
-              <div className="border border-dashed border-border rounded-md p-3 flex flex-col items-center gap-2">
-                {editing.icon_image_url ? (
-                  <div className="flex items-center gap-2">
-                    <img src={editing.icon_image_url} alt="" className="h-12 w-12 object-contain" />
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setEditing({ ...editing, icon_image_url: null })}
-                    >
-                      <X className="h-3 w-3 mr-1" /> Remove
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="text-xs text-muted-foreground">PNG/SVG recommended, square</div>
-                )}
-                <label className="inline-flex items-center justify-center gap-2 px-3 py-2 rounded-md border border-input bg-background text-sm cursor-pointer hover:bg-secondary/50">
-                  <Upload className="h-4 w-4" />
-                  {uploading ? "Uploading…" : "Upload icon"}
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    disabled={uploading}
-                    onChange={(e) => {
-                      const f = e.target.files?.[0];
-                      if (f) uploadIcon(f);
-                      e.target.value = "";
-                    }}
-                  />
-                </label>
-              </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs">Custom icon (optional)</Label>
+            <div className="border border-dashed border-border rounded-md p-4 flex flex-col items-center gap-2">
+              {editing.icon_image_url ? (
+                <div className="flex items-center gap-3">
+                  <img src={editing.icon_image_url} alt="" className="h-12 w-12 object-contain rounded border p-1" />
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setEditing({ ...editing, icon_image_url: null })}
+                  >
+                    <X className="h-3 w-3 mr-1" /> Remove
+                  </Button>
+                </div>
+              ) : (
+                <div className="text-xs text-muted-foreground">PNG/SVG recommended, square</div>
+              )}
+              <label className="inline-flex items-center justify-center gap-2 px-3 py-2 rounded-md border border-input bg-background text-sm cursor-pointer hover:bg-secondary/50">
+                <Upload className="h-4 w-4" />
+                {uploading ? "Uploading…" : "Upload icon"}
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  disabled={uploading}
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) uploadIcon(f);
+                    e.target.value = "";
+                  }}
+                />
+              </label>
             </div>
           </div>
 

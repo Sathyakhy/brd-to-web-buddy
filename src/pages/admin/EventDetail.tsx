@@ -58,6 +58,17 @@ import { normalizeVisibility, SectionVisibility } from "@/lib/sectionVisibility"
 import { getDualLanguageConfig, type DualLanguageConfig } from "@/lib/dualLanguage";
 import { BilingualInput, BilingualTextarea } from "@/components/admin/BilingualField";
 import { thumbUrl } from "@/lib/imageUrl";
+import TextEffectsEditor from "@/components/admin/TextEffectsEditor";
+import FontSelector from "@/components/admin/FontSelector";
+import SideFrameEditor from "@/components/admin/SideFrameEditor";
+import {
+  SideFrameConfig,
+  normalizeSideFrameConfig,
+} from "@/lib/sideFrame";
+import {
+  normalizeTextEffectConfig,
+  type TextEffectConfig,
+} from "@/lib/textEffects";
 
 type Event = {
   id: string; slug: string; title: string; internal_title: string | null; template: string;
@@ -79,6 +90,8 @@ type Event = {
   max_guests: number | null;
   text_color_primary: string | null;
   text_color_accent: string | null;
+  open_button_color: string | null;
+  text_effect_config: TextEffectConfig;
   access_starts_at: string | null;
   access_ends_at: string | null;
   price_total: number | null;
@@ -94,8 +107,13 @@ type Event = {
   thank_you_message: string | null;
   letter_bg_color: string | null;
   letter_bg_opacity: number | null;
+  agenda_bg_color?: string | null;
+  agenda_bg_opacity?: number | null;
+  agenda_asset_color?: string | null;
+  side_frame_config?: SideFrameConfig;
   cover_music_url: string | null;
   share_preview_index: number | null;
+  header_font?: string | null;
   body_font: string | null;
 };
 
@@ -174,7 +192,31 @@ export default function EventDetail() {
         raw.dual_language_config ?? (raw.section_visibility as any)?.dual_language ?? raw.section_visibility,
         raw
       );
-      setEvent({ ...raw, agenda_days: days, agenda_view_style: view, gallery_layout: galleryLayout, contacts, section_visibility, dual_language_config } as Event);
+      const open_button_color = raw.open_button_color ?? (raw.section_visibility as any)?.open_button_color ?? null;
+      const text_effect_config = normalizeTextEffectConfig(
+        raw.text_effect_config ?? (raw.section_visibility as any)?.text_effects ?? (raw.section_visibility as any)?.text_effect_config ?? raw
+      );
+      const agenda_bg_color = (raw as any).agenda_bg_color ?? (raw.section_visibility as any)?.agenda_style?.bg_color ?? (raw.section_visibility as any)?.agenda_bg_color ?? null;
+      const agenda_bg_opacity = (raw as any).agenda_bg_opacity ?? (raw.section_visibility as any)?.agenda_style?.bg_opacity ?? (raw.section_visibility as any)?.agenda_bg_opacity ?? null;
+      const agenda_asset_color = (raw as any).agenda_asset_color ?? (raw.section_visibility as any)?.agenda_style?.asset_color ?? (raw.section_visibility as any)?.agenda_asset_color ?? null;
+      const side_frame_config = normalizeSideFrameConfig(
+        raw.side_frame_config ?? (raw.section_visibility as any)?.side_frame_config ?? (raw.section_visibility as any)?.side_frame
+      );
+      setEvent({
+        ...raw,
+        agenda_days: days,
+        agenda_view_style: view,
+        agenda_bg_color,
+        agenda_bg_opacity,
+        agenda_asset_color,
+        side_frame_config,
+        gallery_layout: galleryLayout,
+        contacts,
+        section_visibility,
+        dual_language_config,
+        open_button_color,
+        text_effect_config,
+      } as Event);
     } else {
       setEvent(null);
     }
@@ -213,6 +255,14 @@ export default function EventDetail() {
     const updatedVisibility = {
       ...(event.section_visibility as any),
       dual_language: event.dual_language_config,
+      open_button_color: event.open_button_color,
+      text_effects: event.text_effect_config,
+      side_frame_config: event.side_frame_config,
+      agenda_style: {
+        bg_color: event.agenda_bg_color ?? null,
+        bg_opacity: event.agenda_bg_opacity ?? null,
+        asset_color: event.agenda_asset_color ?? null,
+      },
     };
     const { error } = await supabase.from("events").update({
       title: event.title,
@@ -242,6 +292,8 @@ export default function EventDetail() {
       max_guests: event.max_guests,
       text_color_primary: event.text_color_primary,
       text_color_accent: event.text_color_accent,
+      open_button_color: event.open_button_color,
+      text_effect_config: event.text_effect_config as any,
       access_starts_at: event.access_starts_at,
       access_ends_at: event.access_ends_at,
       section_visibility: updatedVisibility as any,
@@ -254,6 +306,7 @@ export default function EventDetail() {
       letter_bg_opacity: event.letter_bg_opacity,
       cover_music_url: event.cover_music_url,
       share_preview_index: event.share_preview_index,
+      header_font: event.header_font ?? null,
       body_font: event.body_font,
     }).eq("id", event.id);
     setSaving(false);
@@ -922,11 +975,10 @@ export default function EventDetail() {
           </div>
         </CollapsibleSection>
 
-        {/* Text colour overrides — only TWO colours drive the entire invitation:
-            body (primary) and accent. All text/borders/icons follow these. */}
+        {/* Text colour overrides & effects */}
         <CollapsibleSection
-          title="Text colours"
-          description="Only two colours drive the invitation: body text and accent. All headings, icons, borders, dividers and buttons inherit from these."
+          title="Colours, Typography & Effects"
+          description="Configure text colours, button branding, body typography, and drop shadow / glow text effects."
           defaultOpen={false}
           rightSlot={sectionSave}
         >
@@ -977,10 +1029,38 @@ export default function EventDetail() {
                   </Button>
                 )}
               </div>
-              <p className="text-xs text-muted-foreground">Used for titles, couple's names, dress code, dividers, icons, borders, buttons &amp; map link.</p>
+              <p className="text-xs text-muted-foreground">Used for titles, couple's names, dress code, dividers, icons &amp; borders.</p>
             </div>
           </div>
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4">
+            <div className="space-y-2">
+              <Label>Open invitation button colour</Label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="color"
+                  value={event.open_button_color || event.text_color_accent || "#db9b0f"}
+                  onChange={(e) => setEvent({ ...event, open_button_color: e.target.value })}
+                  className="h-10 w-14 rounded border border-border bg-background cursor-pointer"
+                  aria-label="Open invitation button colour"
+                />
+                <Input
+                  value={event.open_button_color ?? ""}
+                  placeholder={event.text_color_accent || "#db9b0f"}
+                  onChange={(e) => setEvent({ ...event, open_button_color: e.target.value || null })}
+                  className="flex-1"
+                />
+                {event.open_button_color && (
+                  <Button variant="ghost" size="sm" onClick={() => setEvent({ ...event, open_button_color: null })}>
+                    Reset
+                  </Button>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Dedicated colour for the "Open Invitation" (បើកលិខិត) button on cover screens. Defaults to accent colour if unset.
+              </p>
+            </div>
+
             <div className="space-y-2">
               <Label>Body font</Label>
               <Select
@@ -1009,6 +1089,42 @@ export default function EventDetail() {
               </Select>
               <p className="text-xs text-muted-foreground">Applies to the invitation's body / paragraph text. Heading fonts are unchanged.</p>
             </div>
+          </div>
+
+          <div className="pt-6 border-t border-border/50 mt-6">
+            <TextEffectsEditor
+              config={event.text_effect_config}
+              onChange={(text_effect_config) => setEvent({ ...event, text_effect_config })}
+            />
+          </div>
+        </CollapsibleSection>
+
+        {/* Ornamental side frame */}
+        <CollapsibleSection
+          title="Ornamental side frame"
+          description="Decorative ornate frame borders (Khmer vines, royal pillars, lotus garlands) flanking the sides of the screen."
+          defaultOpen={event.side_frame_config?.enabled ?? false}
+          rightSlot={
+            <div className="flex items-center gap-2">
+              {event.side_frame_config?.enabled ? (
+                <Badge variant="secondary" className="text-gold border-gold/40 bg-gold/10 text-[10px]">
+                  Enabled
+                </Badge>
+              ) : (
+                <Badge variant="outline" className="text-muted-foreground text-[10px]">
+                  Disabled
+                </Badge>
+              )}
+              {sectionSave}
+            </div>
+          }
+        >
+          <div className="pt-2">
+            <SideFrameEditor
+              config={event.side_frame_config}
+              accentColor={event.text_color_accent}
+              onChange={(side_frame_config) => setEvent({ ...event, side_frame_config })}
+            />
           </div>
         </CollapsibleSection>
 
@@ -1573,8 +1689,12 @@ export default function EventDetail() {
               days={event.agenda_days}
               viewStyle={event.agenda_view_style}
               isDual={isDual}
+              assetColor={event.agenda_asset_color}
+              bgColor={event.agenda_bg_color}
+              bgOpacity={event.agenda_bg_opacity}
               onChange={(days) => setEvent({ ...event, agenda_days: days })}
               onChangeViewStyle={(v) => setEvent({ ...event, agenda_view_style: v })}
+              onChangeStyle={(patch) => setEvent({ ...event, ...patch })}
             />
             <p className="text-xs text-muted-foreground mt-4">
               Tip: Save changes below to publish your agenda.
@@ -1770,6 +1890,125 @@ export default function EventDetail() {
                 <p className="text-xs text-muted-foreground">Recommended: Transparent PNG, SVG, or high-res JPG (&lt; 2MB).</p>
               </div>
             </div>
+          </div>
+        </CollapsibleSection>
+
+        {/* Colours, Typography & Text Effects */}
+        <CollapsibleSection
+          title="Colours, Typography &amp; Effects"
+          description="Customise typography fonts, font colours, open invitation button styling, and separate text drop shadows / glow effects."
+          defaultOpen={false}
+          rightSlot={sectionSave}
+        >
+          <div className="space-y-6 pt-2">
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label>Body text colour</Label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="color"
+                    className="w-16 h-10 p-1"
+                    value={event.text_color_primary ?? "#3b1d12"}
+                    onChange={e => setEvent({ ...event, text_color_primary: e.target.value })}
+                  />
+                  <Input
+                    value={event.text_color_primary ?? ""}
+                    onChange={e => setEvent({ ...event, text_color_primary: e.target.value || null })}
+                    placeholder="#3b1d12"
+                  />
+                  {event.text_color_primary && (
+                    <Button variant="ghost" size="sm" onClick={() => setEvent({ ...event, text_color_primary: null })}>Reset</Button>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground">Used for parents' names, honorifics, date, venue, agenda items &amp; body text.</p>
+              </div>
+              <div className="space-y-2">
+                <Label>Accent colour</Label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="color"
+                    className="w-16 h-10 p-1"
+                    value={event.text_color_accent ?? "#c89b3c"}
+                    onChange={e => setEvent({ ...event, text_color_accent: e.target.value })}
+                  />
+                  <Input
+                    value={event.text_color_accent ?? ""}
+                    onChange={e => setEvent({ ...event, text_color_accent: e.target.value || null })}
+                    placeholder="#c89b3c"
+                  />
+                  {event.text_color_accent && (
+                    <Button variant="ghost" size="sm" onClick={() => setEvent({ ...event, text_color_accent: null })}>Reset</Button>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground">Used for titles, couple's names, dress code, dividers, icons &amp; borders.</p>
+              </div>
+
+              <div className="space-y-2 md:col-span-2">
+                <Label>Open invitation button colour</Label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="color"
+                    className="w-16 h-10 p-1"
+                    value={event.open_button_color || event.text_color_accent || "#c89b3c"}
+                    onChange={e => setEvent({ ...event, open_button_color: e.target.value })}
+                  />
+                  <Input
+                    value={event.open_button_color ?? ""}
+                    onChange={e => setEvent({ ...event, open_button_color: e.target.value || null })}
+                    placeholder={event.text_color_accent || "#c89b3c"}
+                  />
+                  {event.open_button_color && (
+                    <Button variant="ghost" size="sm" onClick={() => setEvent({ ...event, open_button_color: null })}>Reset</Button>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground">Dedicated colour for the "Open Invitation" (បើកលិខិត) button on cover screens. Defaults to accent colour if unset.</p>
+              </div>
+            </div>
+
+            <div className="pt-4 border-t border-border/50 space-y-4">
+              <div className="grid gap-4 md:grid-cols-2">
+                <FontSelector
+                  type="header"
+                  label="Heading &amp; Title Font"
+                  value={event.header_font ?? null}
+                  onChange={(header_font) => setEvent({ ...event, header_font })}
+                  accentColor={event.text_color_accent}
+                  description="Applied to the main title, couple names, honorific headings, and section headers."
+                />
+                <FontSelector
+                  type="body"
+                  label="Body &amp; Paragraph Font"
+                  value={event.body_font ?? null}
+                  onChange={(body_font) => setEvent({ ...event, body_font })}
+                  accentColor={event.text_color_accent}
+                  description="Applied to letters of apology, gratitude, invitations, dates, and agenda descriptions."
+                />
+              </div>
+
+              <TextEffectsEditor
+                config={normalizeTextEffectConfig(event.text_effect_config)}
+                onChange={(text_effect_config) => setEvent({ ...event, text_effect_config })}
+                accentColor={event.text_color_accent}
+                primaryColor={event.text_color_primary}
+                headerFont={event.header_font}
+                bodyFont={event.body_font}
+              />
+            </div>
+          </div>
+        </CollapsibleSection>
+
+        {/* Ornamental side frame */}
+        <CollapsibleSection
+          title="Ornamental side frame"
+          description="Decorative ornate frame borders (Khmer vines, royal pillars, lotus garlands) flanking the sides of the screen."
+          defaultOpen={event.side_frame_config?.enabled ?? false}
+          rightSlot={sectionSave}
+        >
+          <div className="pt-2">
+            <SideFrameEditor
+              config={normalizeSideFrameConfig(event.side_frame_config)}
+              onChange={(side_frame_config) => setEvent({ ...event, side_frame_config })}
+            />
           </div>
         </CollapsibleSection>
 

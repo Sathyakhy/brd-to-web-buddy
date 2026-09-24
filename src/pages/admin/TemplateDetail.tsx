@@ -26,6 +26,17 @@ import { AgendaDay, AgendaViewStyle, normalizeAgenda } from "@/lib/agenda";
 import { ContactItem, normalizeContacts } from "@/lib/contacts";
 import SectionVisibilityEditor from "@/components/admin/SectionVisibilityEditor";
 import { normalizeVisibility, SectionVisibility } from "@/lib/sectionVisibility";
+import TextEffectsEditor from "@/components/admin/TextEffectsEditor";
+import FontSelector from "@/components/admin/FontSelector";
+import SideFrameEditor from "@/components/admin/SideFrameEditor";
+import {
+  SideFrameConfig,
+  normalizeSideFrameConfig,
+} from "@/lib/sideFrame";
+import {
+  normalizeTextEffectConfig,
+  type TextEffectConfig,
+} from "@/lib/textEffects";
 import {
   DndContext, closestCenter, PointerSensor, KeyboardSensor, TouchSensor,
   useSensor, useSensors, type DragEndEvent,
@@ -60,6 +71,8 @@ type TemplateConfig = {
   map_embed: string | null;
   text_color_primary: string | null;
   text_color_accent: string | null;
+  open_button_color: string | null;
+  text_effect_config?: TextEffectConfig;
   sample_guest_name: string;
   /** Default section visibility — events can override per-event. */
   section_visibility: SectionVisibility;
@@ -77,12 +90,20 @@ type TemplateConfig = {
   letter_bg_color: string | null;
   /** Opacity (0–100) for the letter card background. */
   letter_bg_opacity: number | null;
+  /** Background color (hex) for the Agenda card. */
+  agenda_bg_color?: string | null;
+  /** Opacity (0–100) for the agenda card background. */
+  agenda_bg_opacity?: number | null;
+  /** Custom asset color (hex) for agenda icons, dividers, day badges, and timeline accents. */
+  agenda_asset_color?: string | null;
   /** Optional ornamental frame overlay (Signature Package). PNG/SVG with
       transparent center, OR a video (MP4/WebM) — chosen from the Asset
       Library and identified by URL. `frame_type` tells the renderer
       whether to draw an `<img>` or `<video>`. */
   frame_url: string | null;
   frame_type: "image" | "video";
+  /** Ornamental frame on the side of the screen configuration. */
+  side_frame_config?: SideFrameConfig;
   /** Optional default cover music track (Signature Package). Plays on the
       cover/gate screen with a toggle; per-event override lives on the
       event row. */
@@ -119,14 +140,15 @@ const DEFAULT_CONFIG: TemplateConfig = {
   event_date: null,
   dress_code: null,
   contact_phone: "+855 ",
-  bride_name: null,
-  groom_name: null,
+  bride_name: "លោក|ជា|ស៊ីណា\nលោកស្រី|ស៊ឹម|សុខុម\nជា|វ៉ាន់នី",
+  groom_name: "លោក|កែវ|វីរៈ\nលោកស្រី|សោម|សុខា\nកែវ|ពិសិដ្ឋ",
   agenda_days: [],
   agenda_view_style: "list",
   contacts: [],
   map_embed: null,
   text_color_primary: null,
   text_color_accent: null,
+  open_button_color: null,
   sample_guest_name: "Honoured Guest",
   section_visibility: {},
   qr_code_url: null,
@@ -136,8 +158,12 @@ const DEFAULT_CONFIG: TemplateConfig = {
   thank_you_message: null,
   letter_bg_color: null,
   letter_bg_opacity: null,
+  agenda_bg_color: null,
+  agenda_bg_opacity: null,
+  agenda_asset_color: null,
   frame_url: null,
   frame_type: "image",
+  side_frame_config: normalizeSideFrameConfig(null),
   cover_music_url: null,
 };
 
@@ -157,6 +183,9 @@ function normalizeConfig(raw: any): TemplateConfig {
     sample_guest_name: r.sample_guest_name || "Honoured Guest",
     contact_phone: r.contact_phone ?? "+855 ",
     section_visibility: normalizeVisibility(r.section_visibility),
+    open_button_color: r.open_button_color ?? null,
+    text_effect_config: normalizeTextEffectConfig(r.text_effect_config ?? r.text_effects),
+    side_frame_config: normalizeSideFrameConfig(r.side_frame_config ?? r.section_visibility?.side_frame_config ?? r.side_frame),
   };
 }
 
@@ -678,8 +707,8 @@ export default function TemplateDetail() {
                 body (primary) and accent. All headings, icons, borders,
                 dividers and buttons inherit from these. */}
             <CollapsibleSection
-              title="Text colours"
-              description="Only two colours drive the invitation: body text and accent. All headings, icons, borders, dividers and buttons inherit from these."
+              title="Colours, Typography & Effects"
+              description="Configure default colours, open invitation button styling, and text drop shadow / glow effects."
               defaultOpen={false}
               rightSlot={sectionSave}
             >
@@ -722,8 +751,88 @@ export default function TemplateDetail() {
                       <Button variant="ghost" size="sm" onClick={() => patchConfig({ text_color_accent: null })}>Reset</Button>
                     )}
                   </div>
-                  <p className="text-xs text-muted-foreground">Used for titles, couple's names, dress code, dividers, icons, borders, buttons &amp; map link.</p>
+                  <p className="text-xs text-muted-foreground">Used for titles, couple's names, dress code, dividers, icons &amp; borders.</p>
                 </div>
+
+                <div className="space-y-2 md:col-span-2">
+                  <Label>Open invitation button colour</Label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="color"
+                      className="w-16 h-10 p-1"
+                      value={draftConfig.open_button_color || draftConfig.text_color_accent || "#c89b3c"}
+                      onChange={e => patchConfig({ open_button_color: e.target.value })}
+                    />
+                    <Input
+                      value={draftConfig.open_button_color ?? ""}
+                      onChange={e => patchConfig({ open_button_color: e.target.value || null })}
+                      placeholder={draftConfig.text_color_accent || "#c89b3c"}
+                    />
+                    {draftConfig.open_button_color && (
+                      <Button variant="ghost" size="sm" onClick={() => patchConfig({ open_button_color: null })}>Reset</Button>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground">Dedicated colour for the "Open Invitation" (បើកលិខិត) button on cover screens. Defaults to accent colour if unset.</p>
+                </div>
+              </div>
+
+              <div className="pt-6 border-t border-border/50 mt-6 space-y-4">
+                <div className="grid gap-4 md:grid-cols-2">
+                  <FontSelector
+                    type="header"
+                    label="Heading &amp; Title Font"
+                    value={draftConfig.header_font ?? null}
+                    onChange={(header_font) => patchConfig({ header_font })}
+                    accentColor={draftConfig.text_color_accent}
+                    description="Applied to the main title, couple names, honorific headings, and section headers."
+                  />
+                  <FontSelector
+                    type="body"
+                    label="Body &amp; Paragraph Font"
+                    value={draftConfig.body_font ?? null}
+                    onChange={(body_font) => patchConfig({ body_font })}
+                    accentColor={draftConfig.text_color_accent}
+                    description="Applied to letters of apology, gratitude, invitations, dates, and agenda descriptions."
+                  />
+                </div>
+
+                <TextEffectsEditor
+                  config={normalizeTextEffectConfig(draftConfig.text_effect_config)}
+                  onChange={(text_effect_config) => patchConfig({ text_effect_config })}
+                  accentColor={draftConfig.text_color_accent}
+                  primaryColor={draftConfig.text_color_primary}
+                  headerFont={draftConfig.header_font}
+                  bodyFont={draftConfig.body_font}
+                />
+              </div>
+            </CollapsibleSection>
+
+            {/* Ornamental side frame */}
+            <CollapsibleSection
+              title="Ornamental side frame"
+              description="Decorative ornate frame borders (Khmer vines, royal pillars, lotus garlands) flanking the sides of the screen."
+              defaultOpen={draftConfig.side_frame_config?.enabled ?? false}
+              rightSlot={
+                <div className="flex items-center gap-2">
+                  {draftConfig.side_frame_config?.enabled ? (
+                    <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-gold/15 text-gold border border-gold/40">
+                      Enabled
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-secondary text-muted-foreground border border-border">
+                      Disabled
+                    </span>
+                  )}
+                  {sectionSave}
+                </div>
+              }
+            >
+              <div className="pt-2">
+                <SideFrameEditor
+                  config={draftConfig.side_frame_config}
+                  accentColor={draftConfig.text_color_accent}
+                  onChange={(side_frame_config) => patchConfig({ side_frame_config })}
+                />
               </div>
             </CollapsibleSection>
 
@@ -1137,8 +1246,12 @@ export default function TemplateDetail() {
                 <AgendaEditor
                   days={draftConfig.agenda_days}
                   viewStyle={draftConfig.agenda_view_style}
+                  assetColor={draftConfig.agenda_asset_color}
+                  bgColor={draftConfig.agenda_bg_color}
+                  bgOpacity={draftConfig.agenda_bg_opacity}
                   onChange={(days) => patchConfig({ agenda_days: days })}
                   onChangeViewStyle={(v) => patchConfig({ agenda_view_style: v })}
+                  onChangeStyle={(patch) => patchConfig(patch)}
                 />
               </div>
             </CollapsibleSection>

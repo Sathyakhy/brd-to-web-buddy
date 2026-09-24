@@ -32,6 +32,7 @@ export type SectionKey =
   | "rsvp"
   | "floating_contact"
   | "background_music"
+  | "side_frame"
   | "footer";
 
 export type SectionVisibility = Partial<Record<SectionKey, boolean>>;
@@ -54,6 +55,7 @@ export const SECTION_DEFINITIONS: { key: SectionKey; label: string; description:
   { key: "rsvp",             label: "RSVP form",            description: "Guest reply card." },
   { key: "floating_contact", label: "Floating contact",     description: "Bottom-right contact widget." },
   { key: "background_music", label: "Background music",     description: "Floating music disc controller." },
+  { key: "side_frame",       label: "Ornamental side frame", description: "Decorative ornate frame borders displayed on the sides of the screen." },
   { key: "footer",           label: "Footer",               description: "Logo + footer text + social links." },
 ];
 

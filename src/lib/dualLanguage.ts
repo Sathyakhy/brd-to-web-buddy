@@ -177,37 +177,37 @@ export function getDualLanguageConfig(raw: unknown, baseEvent?: any): DualLangua
   ) === "en" ? "en" : "km";
 
   const km: LanguageContent = {
-    title: obj.km_content?.title ?? dualObj.km?.title ?? obj.km?.title ?? baseEvent?.title ?? null,
-    cover_message: obj.km_content?.cover_message ?? dualObj.km?.cover_message ?? obj.km?.cover_message ?? baseEvent?.cover_message ?? null,
-    countdown_message: obj.km_content?.countdown_message ?? dualObj.km?.countdown_message ?? obj.km?.countdown_message ?? baseEvent?.countdown_message ?? null,
-    description: obj.km_content?.description ?? dualObj.km?.description ?? obj.km?.description ?? baseEvent?.description ?? null,
-    venue: obj.km_content?.venue ?? dualObj.km?.venue ?? obj.km?.venue ?? baseEvent?.venue ?? null,
-    bride_name: obj.km_content?.bride_name ?? dualObj.km?.bride_name ?? obj.km?.bride_name ?? baseEvent?.bride_name ?? null,
-    groom_name: obj.km_content?.groom_name ?? dualObj.km?.groom_name ?? obj.km?.groom_name ?? baseEvent?.groom_name ?? null,
-    ceremony_time: obj.km_content?.ceremony_time ?? dualObj.km?.ceremony_time ?? obj.km?.ceremony_time ?? baseEvent?.ceremony_time ?? null,
-    reception_time: obj.km_content?.reception_time ?? dualObj.km?.reception_time ?? obj.km?.reception_time ?? baseEvent?.reception_time ?? null,
-    dress_code: obj.km_content?.dress_code ?? dualObj.km?.dress_code ?? obj.km?.dress_code ?? baseEvent?.dress_code ?? null,
-    qr_code_message: obj.km_content?.qr_code_message ?? dualObj.km?.qr_code_message ?? obj.km?.qr_code_message ?? baseEvent?.qr_code_message ?? null,
-    qr_account_name: obj.km_content?.qr_account_name ?? dualObj.km?.qr_account_name ?? obj.km?.qr_account_name ?? baseEvent?.qr_account_name ?? null,
-    apologies_message: obj.km_content?.apologies_message ?? dualObj.km?.apologies_message ?? obj.km?.apologies_message ?? baseEvent?.apologies_message ?? null,
-    thank_you_message: obj.km_content?.thank_you_message ?? dualObj.km?.thank_you_message ?? obj.km?.thank_you_message ?? baseEvent?.thank_you_message ?? null,
+    title: (obj.km_content?.title || dualObj.km?.title || obj.km?.title || baseEvent?.title) ?? null,
+    cover_message: (obj.km_content?.cover_message || dualObj.km?.cover_message || obj.km?.cover_message || baseEvent?.cover_message) ?? null,
+    countdown_message: (obj.km_content?.countdown_message || dualObj.km?.countdown_message || obj.km?.countdown_message || baseEvent?.countdown_message) ?? null,
+    description: (obj.km_content?.description || dualObj.km?.description || obj.km?.description || baseEvent?.description) ?? null,
+    venue: (obj.km_content?.venue || dualObj.km?.venue || obj.km?.venue || baseEvent?.venue) ?? null,
+    bride_name: (obj.km_content?.bride_name || dualObj.km?.bride_name || obj.km?.bride_name || baseEvent?.bride_name) ?? null,
+    groom_name: (obj.km_content?.groom_name || dualObj.km?.groom_name || obj.km?.groom_name || baseEvent?.groom_name) ?? null,
+    ceremony_time: (obj.km_content?.ceremony_time || dualObj.km?.ceremony_time || obj.km?.ceremony_time || baseEvent?.ceremony_time) ?? null,
+    reception_time: (obj.km_content?.reception_time || dualObj.km?.reception_time || obj.km?.reception_time || baseEvent?.reception_time) ?? null,
+    dress_code: (obj.km_content?.dress_code || dualObj.km?.dress_code || obj.km?.dress_code || baseEvent?.dress_code) ?? null,
+    qr_code_message: (obj.km_content?.qr_code_message || dualObj.km?.qr_code_message || obj.km?.qr_code_message || baseEvent?.qr_code_message) ?? null,
+    qr_account_name: (obj.km_content?.qr_account_name || dualObj.km?.qr_account_name || obj.km?.qr_account_name || baseEvent?.qr_account_name) ?? null,
+    apologies_message: (obj.km_content?.apologies_message || dualObj.km?.apologies_message || obj.km?.apologies_message || baseEvent?.apologies_message) ?? null,
+    thank_you_message: (obj.km_content?.thank_you_message || dualObj.km?.thank_you_message || obj.km?.thank_you_message || baseEvent?.thank_you_message) ?? null,
   };
 
   const en: LanguageContent = {
-    title: obj.en_content?.title ?? dualObj.en?.title ?? obj.en?.title ?? null,
-    cover_message: obj.en_content?.cover_message ?? dualObj.en?.cover_message ?? obj.en?.cover_message ?? null,
-    countdown_message: obj.en_content?.countdown_message ?? dualObj.en?.countdown_message ?? obj.en?.countdown_message ?? null,
-    description: obj.en_content?.description ?? dualObj.en?.description ?? obj.en?.description ?? null,
-    venue: obj.en_content?.venue ?? dualObj.en?.venue ?? obj.en?.venue ?? null,
-    bride_name: obj.en_content?.bride_name ?? dualObj.en?.bride_name ?? obj.en?.bride_name ?? null,
-    groom_name: obj.en_content?.groom_name ?? dualObj.en?.groom_name ?? obj.en?.groom_name ?? null,
-    ceremony_time: obj.en_content?.ceremony_time ?? dualObj.en?.ceremony_time ?? obj.en?.ceremony_time ?? null,
-    reception_time: obj.en_content?.reception_time ?? dualObj.en?.reception_time ?? obj.en?.reception_time ?? null,
-    dress_code: obj.en_content?.dress_code ?? dualObj.en?.dress_code ?? obj.en?.dress_code ?? null,
-    qr_code_message: obj.en_content?.qr_code_message ?? dualObj.en?.qr_code_message ?? obj.en?.qr_code_message ?? null,
-    qr_account_name: obj.en_content?.qr_account_name ?? dualObj.en?.qr_account_name ?? obj.en?.qr_account_name ?? null,
-    apologies_message: obj.en_content?.apologies_message ?? dualObj.en?.apologies_message ?? obj.en?.apologies_message ?? null,
-    thank_you_message: obj.en_content?.thank_you_message ?? dualObj.en?.thank_you_message ?? obj.en?.thank_you_message ?? null,
+    title: (obj.en_content?.title || dualObj.en?.title || obj.en?.title) ?? null,
+    cover_message: (obj.en_content?.cover_message || dualObj.en?.cover_message || obj.en?.cover_message) ?? null,
+    countdown_message: (obj.en_content?.countdown_message || dualObj.en?.countdown_message || obj.en?.countdown_message) ?? null,
+    description: (obj.en_content?.description || dualObj.en?.description || obj.en?.description) ?? null,
+    venue: (obj.en_content?.venue || dualObj.en?.venue || obj.en?.venue) ?? null,
+    bride_name: (obj.en_content?.bride_name || dualObj.en?.bride_name || obj.en?.bride_name) ?? null,
+    groom_name: (obj.en_content?.groom_name || dualObj.en?.groom_name || obj.en?.groom_name) ?? null,
+    ceremony_time: (obj.en_content?.ceremony_time || dualObj.en?.ceremony_time || obj.en?.ceremony_time) ?? null,
+    reception_time: (obj.en_content?.reception_time || dualObj.en?.reception_time || obj.en?.reception_time) ?? null,
+    dress_code: (obj.en_content?.dress_code || dualObj.en?.dress_code || obj.en?.dress_code) ?? null,
+    qr_code_message: (obj.en_content?.qr_code_message || dualObj.en?.qr_code_message || obj.en?.qr_code_message) ?? null,
+    qr_account_name: (obj.en_content?.qr_account_name || dualObj.en?.qr_account_name || obj.en?.qr_account_name) ?? null,
+    apologies_message: (obj.en_content?.apologies_message || dualObj.en?.apologies_message || obj.en?.apologies_message) ?? null,
+    thank_you_message: (obj.en_content?.thank_you_message || dualObj.en?.thank_you_message || obj.en?.thank_you_message) ?? null,
   };
 
   return { enabled, default_language, km, en };
@@ -217,25 +217,21 @@ export function getDualLanguageConfig(raw: unknown, baseEvent?: any): DualLangua
  * Creates default English content based on Khmer inputs or standard wedding phrases.
  */
 export function buildEnglishPresets(base: Partial<TemplateData>): LanguageContent {
-  const couple = base.bride_name && base.groom_name
-    ? `${base.groom_name} & ${base.bride_name}`
-    : "Wedding Celebration";
-
   return {
-    title: couple ? `The Wedding of ${couple}` : "Wedding Celebration",
+    title: base.title ? `The Wedding of ${base.title}` : "Wedding Celebration",
     cover_message: "The Wedding Celebration of",
     countdown_message: "Countdown to the Special Day",
     description: base.description
       ? "We joyfully invite you to celebrate our marriage and share in this special day with our families."
       : null,
-    venue: base.venue || "Grand Ballroom, Phnom Penh",
-    bride_name: base.bride_name || "Bride",
-    groom_name: base.groom_name || "Groom",
-    ceremony_time: base.ceremony_time ? "7:00 AM - Traditional Ceremony" : null,
-    reception_time: base.reception_time ? "5:00 PM - Wedding Banquet & Reception" : null,
+    venue: null,
+    bride_name: null,
+    groom_name: null,
+    ceremony_time: base.ceremony_time ? "7:00 AM - Wedding Ceremony" : null,
+    reception_time: base.reception_time ? "6:00 PM - Wedding Reception" : null,
     dress_code: "Formal / Traditional Attire",
     qr_code_message: "Wedding Gift Transfer",
-    qr_account_name: base.qr_account_name || "Wedding Gift",
+    qr_account_name: base.qr_account_name || null,
     apologies_message: "We sincerely apologize for any shortcomings or if we were unable to extend our invitation in person. Your blessings and well wishes mean the world to us.",
     thank_you_message: "Our deepest and most heartfelt thanks to our parents, family members, relatives, and esteemed guests for honouring us with your presence and warm wishes.",
   };
@@ -251,25 +247,25 @@ export function resolveEventContent(
   dualConfig?: DualLanguageConfig
 ): TemplateData {
   if (!dualConfig || !dualConfig.enabled || language === "km") {
-    // If language is Khmer, use km content overrides if provided, or default event
+    // If language is Khmer, use km content overrides if provided and non-empty, otherwise default event
     const km = dualConfig?.km;
-    const baseWithKm: TemplateData = (dualConfig?.enabled && km) ? {
+    const baseWithKm: TemplateData = {
       ...event,
-      title: km.title?.trim() || event.title,
-      cover_message: km.cover_message ?? event.cover_message,
-      countdown_message: km.countdown_message ?? event.countdown_message,
-      description: km.description ?? event.description,
-      venue: km.venue ?? event.venue,
-      bride_name: km.bride_name ?? event.bride_name,
-      groom_name: km.groom_name ?? event.groom_name,
-      ceremony_time: km.ceremony_time ?? event.ceremony_time,
-      reception_time: km.reception_time ?? event.reception_time,
-      dress_code: km.dress_code ?? event.dress_code,
-      qr_code_message: km.qr_code_message ?? event.qr_code_message,
-      qr_account_name: km.qr_account_name ?? event.qr_account_name,
-      apologies_message: km.apologies_message ?? event.apologies_message,
-      thank_you_message: km.thank_you_message ?? event.thank_you_message,
-    } : { ...event };
+      title: km?.title?.trim() || event.title,
+      cover_message: km?.cover_message?.trim() || event.cover_message,
+      countdown_message: km?.countdown_message?.trim() || event.countdown_message,
+      description: km?.description?.trim() || event.description,
+      venue: km?.venue?.trim() || event.venue,
+      bride_name: km?.bride_name?.trim() || event.bride_name,
+      groom_name: km?.groom_name?.trim() || event.groom_name,
+      ceremony_time: km?.ceremony_time?.trim() || event.ceremony_time,
+      reception_time: km?.reception_time?.trim() || event.reception_time,
+      dress_code: km?.dress_code?.trim() || event.dress_code,
+      qr_code_message: km?.qr_code_message?.trim() || event.qr_code_message,
+      qr_account_name: km?.qr_account_name?.trim() || event.qr_account_name,
+      apologies_message: km?.apologies_message?.trim() || event.apologies_message,
+      thank_you_message: km?.thank_you_message?.trim() || event.thank_you_message,
+    };
 
     // Resolve agenda days for Khmer
     if (Array.isArray(baseWithKm.agenda_days)) {
@@ -299,7 +295,7 @@ export function resolveEventContent(
   }
 
   // English version requested
-  const en = dualConfig.en;
+  const en = dualConfig.en || {};
   const presets = buildEnglishPresets(event);
 
   let resolvedVenue = event.venue;
@@ -311,43 +307,43 @@ export function resolveEventContent(
 
   const resolvedEvent: TemplateData = {
     ...event,
-    title: en.title?.trim() || presets.title || event.title,
+    title: en.title?.trim() || event.title,
     cover_message: en.cover_message?.trim() || presets.cover_message || event.cover_message,
     countdown_message: en.countdown_message?.trim() || presets.countdown_message || event.countdown_message,
-    description: en.description?.trim() || presets.description || event.description,
+    description: en.description?.trim() || event.description,
     venue: resolvedVenue,
     bride_name: en.bride_name?.trim() || event.bride_name,
     groom_name: en.groom_name?.trim() || event.groom_name,
-    ceremony_time: en.ceremony_time?.trim() || presets.ceremony_time || event.ceremony_time,
-    reception_time: en.reception_time?.trim() || presets.reception_time || event.reception_time,
+    ceremony_time: en.ceremony_time?.trim() || event.ceremony_time,
+    reception_time: en.reception_time?.trim() || event.reception_time,
     dress_code: en.dress_code?.trim() || presets.dress_code || event.dress_code,
     qr_code_message: en.qr_code_message?.trim() || presets.qr_code_message || event.qr_code_message,
     qr_account_name: en.qr_account_name?.trim() || event.qr_account_name,
-    apologies_message: en.apologies_message?.trim() || presets.apologies_message || event.apologies_message,
-    thank_you_message: en.thank_you_message?.trim() || presets.thank_you_message || event.thank_you_message,
+    apologies_message: en.apologies_message?.trim() || event.apologies_message,
+    thank_you_message: en.thank_you_message?.trim() || event.thank_you_message,
   };
 
-  // Resolve agenda days for English (use title_en / label_en if set)
+  // Resolve agenda days for English (use title_en / label_en if set, otherwise fallback)
   if (Array.isArray(resolvedEvent.agenda_days)) {
     resolvedEvent.agenda_days = resolvedEvent.agenda_days.map((day: any) => ({
       ...day,
-      title: day.title_en?.trim() || day.title,
+      title: day.title_en?.trim() || day.title_km || day.title,
       items: Array.isArray(day.items)
         ? day.items.map((it: any) => ({
             ...it,
-            label: it.label_en?.trim() || it.label,
-            description: it.description_en?.trim() ?? it.description,
-            subHeader: it.subHeader_en?.trim() ?? it.subHeader,
+            label: it.label_en?.trim() || it.label_km || it.label,
+            description: it.description_en?.trim() ?? it.description_km ?? it.description,
+            subHeader: it.subHeader_en?.trim() ?? it.subHeader_km ?? it.subHeader,
           }))
         : day.items,
     }));
   }
 
-  // Resolve contacts for English (use label_en if set)
+  // Resolve contacts for English (use label_en if set, otherwise fallback)
   if (Array.isArray(resolvedEvent.contacts)) {
     resolvedEvent.contacts = resolvedEvent.contacts.map((c: any) => ({
       ...c,
-      label: c.label_en?.trim() || c.label,
+      label: c.label_en?.trim() || c.label_km || c.label,
     }));
   }
 

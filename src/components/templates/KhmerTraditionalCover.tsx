@@ -34,6 +34,9 @@ type Props = {
   /** Event accent color used for the guest-name gradient. Defaults to the
    *  template's traditional gold when not provided. */
   accentColor?: string | null;
+  /** Distinct color configuration specifically for the Open Invitation button.
+   *  Defaults to accentColor when not provided. */
+  openButtonColor?: string | null;
   /** Language version: "km" (Khmer) or "en" (English) */
   language?: "km" | "en";
   onOpen: () => void;
@@ -56,6 +59,7 @@ export default function KhmerTraditionalCover({
   backgroundUrl,
   nameGraphicUrl,
   accentColor,
+  openButtonColor,
   language = "km",
   onOpen,
 }: Props) {
@@ -259,47 +263,53 @@ export default function KhmerTraditionalCover({
       `}</style>
 
       {/* Open button with click hand cue */}
-      <div className="relative z-10 mt-6 sm:mt-8">
-        <button
-          type="button"
-          onClick={onOpen}
-          className="relative inline-flex items-center justify-center"
-          style={{
-            padding: "14px 40px",
-            borderRadius: 999,
-            border: "1px solid #ffd07a",
-            background: "linear-gradient(180deg, #ffb347 0%, #ff9800 100%)",
-            boxShadow:
-              "0 8px 22px rgba(255,168,7,0.45), inset 0 1px 0 rgba(255,255,255,0.55), inset 0 -2px 8px rgba(180,90,0,0.25)",
-            cursor: "pointer",
-          }}
-        >
-          <span
-            className={`text-lg sm:text-xl ${isEn ? "font-serif font-bold tracking-wider" : "font-khmer-moul"}`}
-            style={{ color: "#fff", textShadow: "0 1px 2px rgba(0,0,0,0.25)" }}
-          >
-            {isEn ? "Open Invitation" : "បើកធៀប"}
-          </span>
-          {/* Pulse ring */}
-          <span
-            aria-hidden
-            className="absolute inset-0 rounded-full opacity-60 animate-ping"
-            style={{ border: "1px solid rgba(255,176,70,0.6)" }}
-          />
-        </button>
-        {/* Click-hand cue (decorative) */}
-        <img
-          src={DEFAULT_CLICK}
-          alt=""
-          aria-hidden
-          className="absolute kt-float pointer-events-none"
-          style={{
-            width: 72,
-            right: -28,
-            top: 6,
-          }}
-        />
-      </div>
+      {(() => {
+        const btnColor = (openButtonColor && openButtonColor.trim())
+          ? openButtonColor.trim()
+          : (accentColor && accentColor.trim() ? accentColor.trim() : "#ff9800");
+        return (
+          <div className="relative z-10 mt-6 sm:mt-8">
+            <button
+              type="button"
+              onClick={onOpen}
+              className="relative inline-flex items-center justify-center transition-transform hover:scale-105 active:scale-95"
+              style={{
+                padding: "14px 40px",
+                borderRadius: 999,
+                border: `1px solid color-mix(in srgb, ${btnColor} 40%, #ffffff)`,
+                background: `linear-gradient(180deg, color-mix(in srgb, ${btnColor} 70%, #ffffff) 0%, ${btnColor} 100%)`,
+                boxShadow: `0 8px 22px color-mix(in srgb, ${btnColor} 50%, transparent), inset 0 1px 0 rgba(255,255,255,0.55), inset 0 -2px 8px rgba(0,0,0,0.25)`,
+                cursor: "pointer",
+              }}
+            >
+              <span
+                className={`text-lg sm:text-xl ${isEn ? "font-serif font-bold tracking-wider" : "font-khmer-moul"}`}
+                style={{ color: "#fff", textShadow: "0 1px 2px rgba(0,0,0,0.3)" }}
+              >
+                {isEn ? "Open Invitation" : "បើកធៀប"}
+              </span>
+              {/* Pulse ring */}
+              <span
+                aria-hidden
+                className="absolute inset-0 rounded-full opacity-60 animate-ping"
+                style={{ border: `1.5px solid ${btnColor}` }}
+              />
+            </button>
+            {/* Click-hand cue (decorative) */}
+            <img
+              src={DEFAULT_CLICK}
+              alt=""
+              aria-hidden
+              className="absolute kt-float pointer-events-none"
+              style={{
+                width: 72,
+                right: -28,
+                top: 6,
+              }}
+            />
+          </div>
+        );
+      })()}
       </div>
     </div>
   );

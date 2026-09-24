@@ -50,7 +50,17 @@ export default function InvitePage() {
       });
       const ev = Array.isArray(evRows) ? evRows[0] : evRows;
       if (!ev) { setLoading(false); return; }
-      setEvent(ev as Event);
+      const agenda_bg_color = (ev as any).agenda_bg_color ?? (ev as any).section_visibility?.agenda_style?.bg_color ?? null;
+      const agenda_bg_opacity = (ev as any).agenda_bg_opacity ?? (ev as any).section_visibility?.agenda_style?.bg_opacity ?? null;
+      const agenda_asset_color = (ev as any).agenda_asset_color ?? (ev as any).section_visibility?.agenda_style?.asset_color ?? null;
+      const side_frame_config = (ev as any).side_frame_config ?? (ev as any).section_visibility?.side_frame_config ?? null;
+      setEvent({
+        ...ev,
+        agenda_bg_color,
+        agenda_bg_opacity,
+        agenda_asset_color,
+        side_frame_config,
+      } as Event);
       const dualCfg = getDualLanguageConfig(
         (ev as any).dual_language_config ??
         (ev as any).section_visibility?.dual_language ??
@@ -78,6 +88,10 @@ export default function InvitePage() {
         thank_you_message: cfg.thank_you_message ?? null,
         letter_bg_color: cfg.letter_bg_color ?? null,
         letter_bg_opacity: cfg.letter_bg_opacity ?? null,
+        agenda_bg_color: cfg.agenda_bg_color ?? cfg.section_visibility?.agenda_style?.bg_color ?? null,
+        agenda_bg_opacity: cfg.agenda_bg_opacity ?? cfg.section_visibility?.agenda_style?.bg_opacity ?? null,
+        agenda_asset_color: cfg.agenda_asset_color ?? cfg.section_visibility?.agenda_style?.asset_color ?? null,
+        side_frame_config: cfg.side_frame_config ?? cfg.section_visibility?.side_frame_config ?? null,
         frame_url: cfg.frame_url ?? null,
         frame_type: (cfg.frame_type as "image" | "video") ?? "image",
         cover_music_url: cfg.cover_music_url ?? null,
@@ -229,6 +243,7 @@ export default function InvitePage() {
             backgroundUrl={(event as any).cover_background_url ?? null}
             nameGraphicUrl={(event as any).cover_image_url ?? templateDefaults.cover_image_url ?? null}
             accentColor={(event as any).text_color_accent ?? null}
+            openButtonColor={(event as any).open_button_color ?? null}
             language={language}
             onOpen={() => setOpened(true)}
           />
@@ -258,6 +273,7 @@ export default function InvitePage() {
           frameUrl={(event as any).frame_url ?? templateDefaults.frame_url ?? null}
           frameType={((event as any).frame_type ?? templateDefaults.frame_type ?? "image") as "image" | "video"}
           accentColor={(event as any).text_color_accent ?? null}
+          openButtonColor={(event as any).open_button_color ?? null}
           language={language}
           onOpen={() => setOpened(true)}
           closing={opened}

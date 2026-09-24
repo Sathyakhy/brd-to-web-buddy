@@ -104,27 +104,67 @@ export default function ParentsEditor({
   const currentBrideStr = (isDual && activeLang === "en") ? (enBrideName ?? "") : (brideName ?? "");
 
   const groomLines = useMemo(
-    () => currentGroomStr.split(/\n|\s\/\s/).map(s => s.trim()),
+    () => currentGroomStr ? currentGroomStr.split(/\r?\n|\s\/\s/).map(s => s.trim()) : [],
     [currentGroomStr],
   );
   const brideLines = useMemo(
-    () => currentBrideStr.split(/\n|\s\/\s/).map(s => s.trim()),
+    () => currentBrideStr ? currentBrideStr.split(/\r?\n|\s\/\s/).map(s => s.trim()) : [],
     [currentBrideStr],
   );
 
   const defaultFatherPrefix = activeLang === "en" ? "Mr." : "លោក";
   const defaultMotherPrefix = activeLang === "en" ? "Mrs." : "លោកស្រី";
 
-  const groomFather = parseCell(groomLines[0], defaultFatherPrefix);
-  const groomMother = parseCell(groomLines[1], defaultMotherPrefix);
-  const brideFather = parseCell(brideLines[0], defaultFatherPrefix);
-  const brideMother = parseCell(brideLines[1], defaultMotherPrefix);
+  // Parse lines: if 3 lines -> [father, mother, couple]
+  // If 2 lines -> [father, mother, ""]
+  // If 1 line -> ["", "", couple]
+  // If 0 lines -> empty cells
+  const parseSide = (lines: string[]) => {
+    const emptyFather = { prefix: defaultFatherPrefix, firstName: "", lastName: "" };
+    const emptyMother = { prefix: defaultMotherPrefix, firstName: "", lastName: "" };
 
-  const groomCoupleLine = groomLines[2] ?? "";
-  const brideCoupleLine = brideLines[2] ?? "";
+    if (lines.length >= 3) {
+      return {
+        father: parseCell(lines[0], defaultFatherPrefix),
+        mother: parseCell(lines[1], defaultMotherPrefix),
+        couple: lines[2] || "",
+      };
+    }
+    if (lines.length === 2) {
+      return {
+        father: parseCell(lines[0], defaultFatherPrefix),
+        mother: parseCell(lines[1], defaultMotherPrefix),
+        couple: "",
+      };
+    }
+    if (lines.length === 1 && lines[0]) {
+      return {
+        father: emptyFather,
+        mother: emptyMother,
+        couple: lines[0],
+      };
+    }
+    return {
+      father: emptyFather,
+      mother: emptyMother,
+      couple: "",
+    };
+  };
+
+  const groomParsed = parseSide(groomLines);
+  const brideParsed = parseSide(brideLines);
+
+  const groomFather = groomParsed.father;
+  const groomMother = groomParsed.mother;
+  const brideFather = brideParsed.father;
+  const brideMother = brideParsed.mother;
+
+  const groomCoupleLine = groomParsed.couple;
+  const brideCoupleLine = brideParsed.couple;
   const splitCouple = (s: string): { first: string; last: string } => {
     const parts = s.split("|").map(p => p.trim());
-    if (parts.length >= 2) return { first: parts[0], last: parts.slice(1).join(" ") };
+    if (parts.length >= 3) return { first: parts[1] ?? "", last: parts.slice(2).join(" ") };
+    if (parts.length === 2) return { first: parts[0], last: parts[1] };
     return { first: parts[0] ?? "", last: "" };
   };
   const joinCouple = (first: string, last: string): string => {
@@ -200,7 +240,7 @@ export default function ParentsEditor({
           <Input
             className={activeLang === "en" ? "font-sans" : "font-khmer-moul"}
             value={cell.firstName}
-            placeholder={activeLang === "en" ? "First name" : "គោត្តនាម / នាម"}
+            placeholder={activeLang === "en" ? "First name" : "គោត្តនាម"}
             onChange={(e) => onChangeCell({ ...cell, firstName: e.target.value })}
           />
           <Input
@@ -216,9 +256,9 @@ export default function ParentsEditor({
 
   return (
     <div className="space-y-4 rounded-lg border border-border bg-secondary/30 p-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
-          <p className="text-sm font-medium font-khmer-siemreap">Parents & Couple Information</p>
+          <p className="text-sm font-medium font-khmer-siemreap">Parents &amp; Couple Information</p>
           <p className="text-xs text-muted-foreground">Configure parents' honorifics and names for both sides.</p>
         </div>
         {isDual && (
@@ -232,7 +272,7 @@ export default function ParentsEditor({
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              <span>🇰🇭</span> Khmer Content
+              <span>🇰🇭</span> Khmer
             </button>
             <button
               type="button"
@@ -243,7 +283,7 @@ export default function ParentsEditor({
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              <span>🇬🇧</span> English Content
+              <span>🇬🇧</span> English
             </button>
           </div>
         )}

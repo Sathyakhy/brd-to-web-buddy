@@ -28,6 +28,9 @@ type Props = {
   /** Event accent color used to tint the guest-name gradient on the gold
    *  ribbon. Defaults to the template's traditional warm-brown when absent. */
   accentColor?: string | null;
+  /** Distinct color configuration specifically for the Open Invitation button.
+   *  Defaults to accentColor when not provided. */
+  openButtonColor?: string | null;
   /** Language version: "km" (Khmer) or "en" (English) */
   language?: "km" | "en";
 };
@@ -56,6 +59,7 @@ export default function SignaturePackageCover({
   closing,
   positionMode = "fixed",
   accentColor,
+  openButtonColor,
   language = "km",
 }: Props) {
   const isEn = language === "en";
@@ -302,35 +306,40 @@ export default function SignaturePackageCover({
           </p>
 
           {/* Premium gold play button */}
-          <button
-            type="button"
-            onClick={handleOpen}
-            aria-label="Open invitation"
-            className="relative inline-flex items-center justify-center sp-pulse"
-            style={{
-              height: 64,
-              width: 64,
-              borderRadius: "50%",
-              background:
-                "radial-gradient(circle at 30% 30%, #fff3b0 0%, #f5d76e 35%, #d4a93a 70%, #a87614 100%)",
-              boxShadow:
-                "0 10px 24px rgba(0,0,0,0.5), 0 0 24px rgba(245,215,110,0.65), inset 0 2px 0 rgba(255,255,255,0.5), inset 0 -3px 8px rgba(120,70,0,0.45)",
-              border: "2px solid #fff3b0",
-              cursor: "pointer",
-            }}
-          >
-            <Play
-              className="h-7 w-7 ml-1"
-              style={{ color: "#3a2200", filter: "drop-shadow(0 1px 0 rgba(255,255,255,0.4))" }}
-              fill="currentColor"
-            />
-            {/* Ping ring */}
-            <span
-              aria-hidden
-              className="absolute inset-0 rounded-full opacity-70 animate-ping"
-              style={{ border: "2px solid rgba(245,215,110,0.7)" }}
-            />
-          </button>
+          {(() => {
+            const btnColor = (openButtonColor && openButtonColor.trim())
+              ? openButtonColor.trim()
+              : accent;
+            return (
+              <button
+                type="button"
+                onClick={handleOpen}
+                aria-label="Open invitation"
+                className="relative inline-flex items-center justify-center sp-pulse transition-transform hover:scale-110 active:scale-95"
+                style={{
+                  height: 64,
+                  width: 64,
+                  borderRadius: "50%",
+                  background: `radial-gradient(circle at 30% 30%, color-mix(in srgb, ${btnColor} 25%, #ffffff) 0%, color-mix(in srgb, ${btnColor} 60%, #ffffff) 35%, ${btnColor} 70%, color-mix(in srgb, ${btnColor} 85%, #000000) 100%)`,
+                  boxShadow: `0 10px 24px rgba(0,0,0,0.5), 0 0 24px color-mix(in srgb, ${btnColor} 65%, transparent), inset 0 2px 0 rgba(255,255,255,0.5), inset 0 -3px 8px rgba(0,0,0,0.45)`,
+                  border: `2px solid color-mix(in srgb, ${btnColor} 30%, #ffffff)`,
+                  cursor: "pointer",
+                }}
+              >
+                <Play
+                  className="h-7 w-7 ml-1"
+                  style={{ color: "#2a1800", filter: "drop-shadow(0 1px 0 rgba(255,255,255,0.4))" }}
+                  fill="currentColor"
+                />
+                {/* Ping ring */}
+                <span
+                  aria-hidden
+                  className="absolute inset-0 rounded-full opacity-70 animate-ping"
+                  style={{ border: `2px solid ${btnColor}` }}
+                />
+              </button>
+            );
+          })()}
         </div>
       </div>
 

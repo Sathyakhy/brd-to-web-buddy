@@ -9,7 +9,6 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   Plus, Trash2, Pencil, Upload, X, ArrowLeft, Library, Frame, ListChecks,
 } from "lucide-react";
-import { AGENDA_ICON_KEYS, getAgendaIcon } from "@/lib/agenda";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -205,34 +204,31 @@ function AgendaPresetsManager() {
             </div>
           ) : (
             <div className="grid gap-2 sm:grid-cols-2">
-              {filtered.map((p) => {
-                const Ico = getAgendaIcon(p.icon);
-                return (
-                  <div key={p.id} className="flex items-start gap-3 p-3 rounded-md border border-border bg-card">
-                    <div className="h-10 w-10 rounded-md border border-border flex items-center justify-center shrink-0">
-                      {p.icon_image_url ? (
-                        <img src={p.icon_image_url} alt="" className="h-7 w-7 object-contain" />
-                      ) : (
-                        <Ico className="h-5 w-5 text-gold" />
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm font-medium truncate">{p.label}</div>
-                      {p.description && (
-                        <div className="text-xs text-muted-foreground line-clamp-2">{p.description}</div>
-                      )}
-                    </div>
-                    <div className="flex gap-1">
-                      <Button variant="ghost" size="icon" onClick={() => startEdit(p)} title="Edit">
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon" onClick={() => remove(p.id)} title="Delete">
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
-                    </div>
+              {filtered.map((p) => (
+                <div key={p.id} className="flex items-start gap-3 p-3 rounded-md border border-border bg-card">
+                  <div className="h-10 w-10 rounded-md border border-border flex items-center justify-center shrink-0 bg-secondary/30">
+                    {p.icon_image_url ? (
+                      <img src={p.icon_image_url} alt="" className="h-7 w-7 object-contain" />
+                    ) : (
+                      <span className="text-xs font-semibold text-muted-foreground">—</span>
+                    )}
                   </div>
-                );
-              })}
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium truncate">{p.label}</div>
+                    {p.description && (
+                      <div className="text-xs text-muted-foreground line-clamp-2">{p.description}</div>
+                    )}
+                  </div>
+                  <div className="flex gap-1">
+                    <Button variant="ghost" size="icon" onClick={() => startEdit(p)} title="Edit">
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button variant="ghost" size="icon" onClick={() => remove(p.id)} title="Delete">
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </div>
@@ -256,66 +252,38 @@ function AgendaPresetsManager() {
             />
           </div>
 
-          <div className="grid sm:grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <Label className="text-xs">Built-in icon</Label>
-              <div className="grid grid-cols-6 gap-1 p-2 border border-border rounded-md max-h-48 overflow-y-auto">
-                {AGENDA_ICON_KEYS.map((k) => {
-                  const Ico = getAgendaIcon(k);
-                  const active = editing.icon === k && !editing.icon_image_url;
-                  return (
-                    <button
-                      key={k}
-                      type="button"
-                      onClick={() => setEditing({ ...editing, icon: k, icon_image_url: null })}
-                      title={k}
-                      className={`h-9 rounded-md flex items-center justify-center border transition-colors ${
-                        active ? "border-gold bg-gold/10 text-gold" : "border-border hover:bg-secondary/60"
-                      }`}
-                    >
-                      <Ico className="h-4 w-4" />
-                    </button>
-                  );
-                })}
-              </div>
-              <p className="text-[10px] text-muted-foreground">
-                This icon links to the title — it'll appear together when picked.
-              </p>
-            </div>
-
-            <div className="space-y-1.5">
-              <Label className="text-xs">Or upload custom icon</Label>
-              <div className="border border-dashed border-border rounded-md p-3 flex flex-col items-center gap-2">
-                {editing.icon_image_url ? (
-                  <div className="flex items-center gap-2">
-                    <img src={editing.icon_image_url} alt="" className="h-12 w-12 object-contain" />
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setEditing({ ...editing, icon_image_url: null })}
-                    >
-                      <X className="h-3 w-3 mr-1" /> Remove
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="text-xs text-muted-foreground">PNG/SVG recommended, square</div>
-                )}
-                <label className="inline-flex items-center justify-center gap-2 px-3 py-2 rounded-md border border-input bg-background text-sm cursor-pointer hover:bg-secondary/50">
-                  <Upload className="h-4 w-4" />
-                  {uploading ? "Uploading…" : "Upload icon"}
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    disabled={uploading}
-                    onChange={(e) => {
-                      const f = e.target.files?.[0];
-                      if (f) uploadIcon(f);
-                      e.target.value = "";
-                    }}
-                  />
-                </label>
-              </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs">Custom icon (Optional)</Label>
+            <div className="border border-dashed border-border rounded-md p-4 flex flex-col items-center gap-3">
+              {editing.icon_image_url ? (
+                <div className="flex items-center gap-3">
+                  <img src={editing.icon_image_url} alt="" className="h-14 w-14 object-contain rounded-md border p-1" />
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setEditing({ ...editing, icon_image_url: null })}
+                  >
+                    <X className="h-4 w-4 mr-1 text-destructive" /> Remove
+                  </Button>
+                </div>
+              ) : (
+                <div className="text-xs text-muted-foreground">PNG / SVG / JPG recommended (square)</div>
+              )}
+              <label className="inline-flex items-center justify-center gap-2 px-3 py-2 rounded-md border border-input bg-background text-sm cursor-pointer hover:bg-secondary/50">
+                <Upload className="h-4 w-4" />
+                {uploading ? "Uploading…" : editing.icon_image_url ? "Change icon" : "Upload icon"}
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  disabled={uploading}
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) uploadIcon(f);
+                    e.target.value = "";
+                  }}
+                />
+              </label>
             </div>
           </div>
 

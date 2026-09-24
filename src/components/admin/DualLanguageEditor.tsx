@@ -1,10 +1,7 @@
 import React from "react";
 import { Globe } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
-import {
-  DualLanguageConfig,
-  buildEnglishPresets,
-} from "@/lib/dualLanguage";
+import { DualLanguageConfig } from "@/lib/dualLanguage";
 import { TemplateData } from "@/components/templates/InvitationTemplate";
 
 type Props = {
@@ -21,18 +18,9 @@ export default function DualLanguageEditor({
   const isEnabled = config.enabled;
 
   const handleToggle = (checked: boolean) => {
-    let enContent = { ...config.en };
-    if (checked && (!enContent.title || !enContent.title.trim())) {
-      enContent = {
-        ...buildEnglishPresets(baseEvent),
-        ...enContent,
-      };
-    }
-
     onChange({
       ...config,
       enabled: checked,
-      en: enContent,
     });
   };
 

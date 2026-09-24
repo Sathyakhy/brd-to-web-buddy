@@ -90,6 +90,8 @@ export default function Events() {
       venue: venue || null,
       cover_message: coverMessage || null,
       description: description || null,
+      groom_name: "លោក|សោម|សុឃី\nលោកស្រី|តាំង|លីហួរ\nឃី|ច័ន្ទសត្យា",
+      bride_name: "លោក|ជិន|ប៊ុនស្រ៊ាង\nលោកស្រី|ម៉ឿង|ស៊ីណាត\nស្រ៊ាងវាសនា|សុខនិកា",
       owner_id: user?.id,
     });
     setSaving(false);

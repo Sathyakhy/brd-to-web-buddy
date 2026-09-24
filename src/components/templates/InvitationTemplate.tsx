@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Heart, Sparkles, MapPin, Facebook, Instagram, Send } from "lucide-react";
 import KhmerGallery from "./KhmerGallery";
 import KhmerFloatingContact from "./KhmerFloatingContact";
@@ -6,6 +6,9 @@ import FloatingMusicPlayer from "./FloatingMusicPlayer";
 import FloatingLanguageSwitch from "./FloatingLanguageSwitch";
 import FitText from "./FitText";
 import FitParagraph from "./FitParagraph";
+import AgendaIconImage from "./AgendaIconImage";
+import OrnamentalSideFrame from "./OrnamentalSideFrame";
+import { normalizeSideFrameConfig, SideFrameConfig } from "@/lib/sideFrame";
 import {
   AgendaDay, AgendaViewStyle, getAgendaIcon, normalizeAgenda, buildLegacyAgenda,
 } from "@/lib/agenda";
@@ -21,6 +24,12 @@ import {
   getDualLanguageConfig,
   resolveEventContent,
 } from "@/lib/dualLanguage";
+import {
+  normalizeTextEffectConfig,
+  computeTextShadow,
+  type TextEffectConfig,
+} from "@/lib/textEffects";
+import { resolveHeaderFont, resolveBodyFont } from "@/lib/fonts";
 
 export type TemplateData = {
   title: string;
@@ -71,6 +80,18 @@ export type TemplateData = {
   text_color_primary?: string | null;
   /** Hex colour replacing the default accent / "gold" text. */
   text_color_accent?: string | null;
+  /** Dedicated colour specifically for the Open Invitation button on cover screens. */
+  open_button_color?: string | null;
+  /** Text drop shadow and visual effects configuration. */
+  text_effect_config?: TextEffectConfig | null;
+  text_shadow_enabled?: boolean | null;
+  text_effect_type?: string | null;
+  text_shadow_color?: string | null;
+  text_shadow_blur?: number | null;
+  text_shadow_offset_x?: number | null;
+  text_shadow_offset_y?: number | null;
+  text_shadow_opacity?: number | null;
+  text_shadow_apply_to?: string | null;
   /** Optional uploaded QR code image (gift transfer). */
   qr_code_url?: string | null;
   /** Editable description above the QR code. */
@@ -87,6 +108,12 @@ export type TemplateData = {
   letter_bg_color?: string | null;
   /** Opacity 0–100 applied to {@link letter_bg_color}. Defaults to 70. */
   letter_bg_opacity?: number | null;
+  /** Background color (hex, e.g. "#fff8e7") used for the Agenda card. */
+  agenda_bg_color?: string | null;
+  /** Opacity 0–100 applied to {@link agenda_bg_color}. Defaults to 70. */
+  agenda_bg_opacity?: number | null;
+  /** Custom asset color (hex) for agenda icons, dividers, day badges, and timeline accents. */
+  agenda_asset_color?: string | null;
   /** Optional admin-uploaded ornamental frame (Signature Package). */
   frame_url?: string | null;
   /** "image" or "video" — tells the renderer which element to use. */
@@ -95,6 +122,8 @@ export type TemplateData = {
   body_font?: string | null;
   /** Optional background music URL (MP3/audio stream). */
   cover_music_url?: string | null;
+  /** Ornamental frame on the side of the screen configuration. */
+  side_frame_config?: unknown;
 };
 
 /** Convert "#rrggbb" + opacity (0–100) to an rgba() string. Returns the
@@ -196,7 +225,7 @@ function useCountdown(target: string | null) {
 
 /* ───────────────── KHMER TRADITIONAL ───────────────── */
 export function KhmerTraditionalTemplate({ event, guestName, children, hideBackground, hideFloatingContact, visibility, language = "km" }: TemplateProps) {
-  const isVisible = (k: SectionKey) => (visibility ? visibility[k] !== false : true);
+  const isVisible = useCallback((k: SectionKey) => (visibility ? visibility[k] !== false : true), [visibility]);
   const isEn = language === "en";
   const date = isEn ? formatDate(event.event_date) : formatKhmerDate(event.event_date);
   const couple = event.bride_name && event.groom_name
@@ -209,12 +238,26 @@ export function KhmerTraditionalTemplate({ event, guestName, children, hideBackg
   const colorPrimary = (event.text_color_primary && event.text_color_primary.trim()) || "#000";
   const colorAccent = (event.text_color_accent && event.text_color_accent.trim()) || "#db9b0f";
 
-  // Body font override — admins can pick a Khmer Google font from the editor.
-  // Only applied to text that uses the body (primary) color so accent and
-  // heading typography stay untouched. We merge `fontFamily: bodyFont` into
-  // every `color: colorPrimary` inline style throughout the template.
-  const bodyFont = (event.body_font && event.body_font.trim())
-    ? `"${event.body_font.trim()}", "Battambang", sans-serif`
+  // Text drop shadow & visual effects configuration
+  const textEffectConfig = useMemo(() => {
+    return normalizeTextEffectConfig(
+      (event as any).text_effect_config ??
+      (event as any).section_visibility?.text_effects ??
+      (event as any).section_visibility?.text_effect_config ??
+      event
+    );
+  }, [event]);
+
+  const headingShadow = computeTextShadow(textEffectConfig, true);
+  const bodyShadow = computeTextShadow(textEffectConfig, false);
+
+  // Header and Body font overrides from event or template configuration
+  const rawHeaderFont = (event as any).header_font || (event as any).heading_font;
+  const headerFont = resolveHeaderFont(rawHeaderFont, isEn);
+
+  const rawBodyFont = (event as any).body_font;
+  const bodyFont = (rawBodyFont && rawBodyFont.trim())
+    ? resolveBodyFont(rawBodyFont, isEn)
     : undefined;
 
   // Venue is stored as "Name|URL" — split into a display name + optional link.
@@ -267,6 +310,22 @@ export function KhmerTraditionalTemplate({ event, guestName, children, hideBackg
   const [mapZoom, setMapZoom] = useState(1);
   useEffect(() => { if (!mapZoomOpen) setMapZoom(1); }, [mapZoomOpen]);
 
+  // Ornamental side frame configuration
+  const eventSideFrame = (event as any).side_frame;
+  const eventSecVis = (event as any).section_visibility;
+  const sideFrameCfg = useMemo(() => {
+    const raw =
+      event.side_frame_config ??
+      eventSecVis?.side_frame_config ??
+      eventSideFrame;
+    const cfg = normalizeSideFrameConfig(raw);
+    // If section visibility explicitly turned off side_frame, respect that
+    if (!isVisible("side_frame")) {
+      cfg.enabled = false;
+    }
+    return cfg;
+  }, [event.side_frame_config, eventSecVis, eventSideFrame, isVisible]);
+
   // Background priority: explicit invite bg → cover bg → default Khmer Traditional ornate bg.
   // This guarantees the second page (after "បើកធៀប") always shows the ornate background,
   // matching the cover screen instead of falling back to a plain gradient.
@@ -309,6 +368,16 @@ export function KhmerTraditionalTemplate({ event, guestName, children, hideBackg
           }}
         />
       )}
+
+      {/* Ornamental frame on the side of the screen — fixed to viewport so it does not scroll with page */}
+      {!hideBackground && sideFrameCfg.enabled && (
+        <OrnamentalSideFrame
+          config={sideFrameCfg}
+          accentColor={colorAccent}
+          positionMode="fixed"
+        />
+      )}
+
       {/* Unified content column — every section inside uses w-full so they
           all share the exact same horizontal alignment & width. */}
       <div className="w-full max-w-2xl mx-auto px-3 sm:px-4 py-4 animate-fade-up relative z-10">
@@ -320,13 +389,13 @@ export function KhmerTraditionalTemplate({ event, guestName, children, hideBackg
           <h1
             className="text-center w-full break-words whitespace-normal px-2"
             style={{
-              fontFamily: isEn ? '"Cinzel", "Playfair Display", serif' : '"Moul", serif',
+              fontFamily: headerFont,
               fontWeight: isEn ? 600 : 400,
               color: colorAccent,
               fontSize: "clamp(1.8rem, 4vw, 2.8rem)",
               marginTop: "2rem",
               marginBottom: "1rem",
-              textShadow: "1px 1px 0 #decc86, 2px 2px 2px #fdffed, 0 0 6px #f2e4e8",
+              textShadow: headingShadow,
               WebkitTextStroke: isEn ? "none" : "0.2px #b3b3b3",
               lineHeight: 1.4,
               paddingTop: "0.2em",
@@ -339,50 +408,83 @@ export function KhmerTraditionalTemplate({ event, guestName, children, hideBackg
         {/* Parents grid — strictly 2 rows × 2 columns.
             Row 1 = fathers (col1 groom-side, col2 bride-side).
             Row 2 = mothers (col1 groom-side, col2 bride-side).
-            Each cell stores "prefix|name" (pipe-separated) so the admin can
-            choose any honorific (លោក / លោកស្រី / លោកឧកញ្ញ៉ា / ឯកឧត្តម / …).
-            If no pipe is present we fall back to លោក / លោកស្រី by row. */}
+            Each cell stores "prefix|firstName|lastName" (pipe-separated). */}
         {isVisible("parents") && (() => {
-          const groomLinesAll = (event.groom_name ?? "").split(/\n|\s\/\s/).map(s => s.trim()).filter(Boolean);
-          const brideLinesAll = (event.bride_name ?? "").split(/\n|\s\/\s/).map(s => s.trim()).filter(Boolean);
-          const groomParents = groomLinesAll.slice(0, 2);
-          const brideParents = brideLinesAll.slice(0, 2);
-          if (!groomParents.length && !brideParents.length) return null;
-          const prefixFor = (rowIdx: number) => (rowIdx === 0 ? "លោក" : "លោកស្រី");
+          const splitLines = (str: string | null | undefined): string[] => {
+            if (!str) return [];
+            return str.split(/\r?\n/).map(s => s.trim());
+          };
+          const groomLines = splitLines(event.groom_name);
+          const brideLines = splitLines(event.bride_name);
+
+          const defaultFatherPrefix = isEn ? "Mr." : "លោក";
+          const defaultMotherPrefix = isEn ? "Mrs." : "លោកស្រី";
 
           // Parse a stored cell into { prefix, firstName, lastName }.
           // Supports legacy "name", "prefix|name", and new "prefix|first|last".
-          const parseCell = (raw: string | undefined, rowIdx: number) => {
-            if (!raw) return null;
-            const parts = raw.split("|").map(s => s.trim());
-            if (parts.length === 1) return { prefix: prefixFor(rowIdx), firstName: parts[0], lastName: "" };
-            if (parts.length === 2) return { prefix: parts[0], firstName: parts[1], lastName: "" };
-            return { prefix: parts[0], firstName: parts[1], lastName: parts.slice(2).join(" ") };
+          const parseCell = (raw: string | undefined, defaultPrefix: string) => {
+            if (!raw || !raw.trim()) return null;
+            const trimmed = raw.trim();
+            const parts = trimmed.split("|").map(s => s.trim());
+            if (parts.length >= 3) {
+              const prefix = parts[0] || defaultPrefix;
+              const firstName = parts[1] || "";
+              const lastName = parts.slice(2).join(" ");
+              if (!firstName && !lastName) return null;
+              return { prefix, firstName, lastName };
+            }
+            if (parts.length === 2) {
+              const prefix = parts[0] || defaultPrefix;
+              const firstName = parts[1] || "";
+              if (!firstName) return null;
+              return { prefix, firstName, lastName: "" };
+            }
+            // Single part
+            const single = parts[0];
+            if (!single) return null;
+            const KNOWN_PREFIXES = [
+              "លោកឧកញ្ញ៉ា", "លោកជំទាវ", "ឯកឧត្តម", "លោកស្រី", "លោក",
+              "Mr.", "Mrs.", "Oknha", "Lok Chumteav", "H.E.", "Dr.", "Prof.",
+            ];
+            for (const p of KNOWN_PREFIXES) {
+              if (single === p) return null; // Only prefix entered
+              if (single.startsWith(p + " ") || single.startsWith(p + "\t")) {
+                const nameRest = single.slice(p.length).trim();
+                if (!nameRest) return null;
+                return { prefix: p, firstName: nameRest, lastName: "" };
+              }
+            }
+            return { prefix: defaultPrefix, firstName: single, lastName: "" };
           };
 
-          const renderCell = (raw: string | undefined, rowIdx: number, key: string, side: "left" | "right" = "left") => {
-            const cell = parseCell(raw, rowIdx);
-            if (!cell) return <div key={key} />;
+          const gf = parseCell(groomLines[0], defaultFatherPrefix);
+          const gm = parseCell(groomLines[1], defaultMotherPrefix);
+          const bf = parseCell(brideLines[0], defaultFatherPrefix);
+          const bm = parseCell(brideLines[1], defaultMotherPrefix);
+
+          if (!gf && !gm && !bf && !bm) return null;
+
+          const renderCell = (cell: ReturnType<typeof parseCell>, key: string, side: "left" | "right" = "left") => {
+            if (!cell) return <div key={key} className="min-h-[1.7em]" />;
             const fullName = [cell.firstName, cell.lastName].filter(Boolean).join(" ");
+            if (!fullName) return <div key={key} className="min-h-[1.7em]" />;
             return (
               <div
                 key={key}
-                className="min-w-0 overflow-hidden whitespace-nowrap font-khmer-koulen"
+                className={`min-w-0 flex items-baseline ${side === "right" ? "justify-end text-right" : "justify-start text-left"} ${isEn ? "font-serif text-sm sm:text-base font-semibold" : "font-khmer-koulen"}`}
                 style={{
                   color: colorPrimary,
-                  fontFamily: bodyFont,
-                  textShadow: "0 0 4px #fff",
-                  textAlign: side === "right" ? "right" : "left",
-                  fontSize: "1rem",
+                  fontFamily: isEn ? undefined : bodyFont,
+                  textShadow: bodyShadow,
+                  fontSize: isEn ? "0.95rem" : "1.05rem",
                   lineHeight: 1.7,
                   paddingTop: "0.25em",
                 }}
               >
-                <span>{cell.prefix}</span>
-                <span aria-hidden style={{ display: "inline-block", width: "0.08em" }} />
+                <span className="opacity-95 mr-1.5 shrink-0">{cell.prefix}</span>
                 <span
-                  className="font-khmer-moul"
-                  style={{ color: colorPrimary, letterSpacing: "0.04em" }}
+                  className={isEn ? "font-serif font-bold tracking-wide" : "font-khmer-moul"}
+                  style={{ color: colorPrimary, letterSpacing: isEn ? "0.02em" : "0.04em" }}
                 >
                   {fullName}
                 </span>
@@ -390,13 +492,13 @@ export function KhmerTraditionalTemplate({ event, guestName, children, hideBackg
             );
           };
           return (
-            <div className="grid grid-cols-2 gap-x-4 sm:gap-x-8 gap-y-4 sm:gap-y-5 mb-6 w-full px-2 sm:px-3 items-baseline">
+            <div className="grid grid-cols-2 gap-x-4 sm:gap-x-8 gap-y-3 sm:gap-y-4 mb-6 w-full px-2 sm:px-3 items-baseline">
               {/* Row 1 — fathers */}
-              {renderCell(groomParents[0], 0, "g-0", "left")}
-              {renderCell(brideParents[0], 0, "b-0", "right")}
+              {renderCell(gf, "g-0", "left")}
+              {renderCell(bf, "b-0", "right")}
               {/* Row 2 — mothers */}
-              {renderCell(groomParents[1], 1, "g-1", "left")}
-              {renderCell(brideParents[1], 1, "b-1", "right")}
+              {renderCell(gm, "g-1", "left")}
+              {renderCell(bm, "b-1", "right")}
             </div>
           );
         })()}
@@ -404,10 +506,11 @@ export function KhmerTraditionalTemplate({ event, guestName, children, hideBackg
         {/* "សូមគោរពអញ្ជើញ" + honorific paragraph form one logical "honorific" section. */}
         {isVisible("honorific") && (
           <p
-            className={`text-center mt-4 mb-4 ${isEn ? "font-serif uppercase tracking-widest text-sm sm:text-base font-semibold" : "font-khmer-moul text-base"}`}
+            className={`text-center mt-4 mb-4 ${isEn ? "font-serif uppercase tracking-widest text-sm sm:text-base font-semibold" : "text-base"}`}
             style={{
+              fontFamily: headerFont,
               color: colorPrimary,
-              textShadow: "0 0 4px #fff",
+              textShadow: headingShadow,
               letterSpacing: isEn ? "0.15em" : 0,
               wordSpacing: "normal",
             }}
@@ -440,7 +543,7 @@ export function KhmerTraditionalTemplate({ event, guestName, children, hideBackg
               className="font-khmer-siemreap text-center mb-4 px-4 sm:px-6 text-base"
               style={{
                 color: colorPrimary, fontFamily: bodyFont,
-                textShadow: "0 0 4px #fff",
+                textShadow: bodyShadow,
                 letterSpacing: 0,
                 wordSpacing: "normal",
               }}
@@ -453,7 +556,7 @@ export function KhmerTraditionalTemplate({ event, guestName, children, hideBackg
         {isVisible("description") && event.description && (
           <p
             className="font-khmer-siemreap text-center leading-[1.9] mb-2 w-full text-base"
-            style={{ color: colorPrimary, fontFamily: bodyFont, textShadow: "0 0 4px #fff" }}
+            style={{ color: colorPrimary, fontFamily: bodyFont, textShadow: bodyShadow }}
           >
             {event.description}
           </p>
@@ -477,15 +580,19 @@ export function KhmerTraditionalTemplate({ event, guestName, children, hideBackg
           )}
 
           {(() => {
-            const groomLinesAll = (event.groom_name ?? "").split(/\n|\s\/\s/).map(s => s.trim()).filter(Boolean);
-            const brideLinesAll = (event.bride_name ?? "").split(/\n|\s\/\s/).map(s => s.trim()).filter(Boolean);
+            const groomRawLines = (event.groom_name ?? "").split(/\r?\n/).map(s => s.trim());
+            const brideRawLines = (event.bride_name ?? "").split(/\r?\n/).map(s => s.trim());
             // The couple's own name lives at line index 2 (after the two parent
-            // lines). If only one or two lines are present, fall back to the
-            // last line.
-            const pickCouple = (lines: string[]) =>
-              lines.length >= 3 ? lines[2] : lines[lines.length - 1] || "";
-            const groomCouple = pickCouple(groomLinesAll);
-            const brideCouple = pickCouple(brideLinesAll);
+            // lines). If only 1 line is present, use that.
+            const pickCouple = (lines: string[]) => {
+              if (lines.length >= 3 && lines[2]) return lines[2];
+              if (lines.length === 1 && lines[0]) return lines[0];
+              const nonParent = lines.find((l, idx) => idx >= 2 && l);
+              if (nonParent) return nonParent;
+              return lines[lines.length - 1] || "";
+            };
+            const groomCouple = pickCouple(groomRawLines);
+            const brideCouple = pickCouple(brideRawLines);
             // Couple line is stored as "firstName|lastName" (legacy: a single
             // value, or "prefix|name" — strip leading prefix when 3+ parts).
             const splitCoupleName = (s: string): { first: string; last: string } => {
@@ -534,14 +641,14 @@ export function KhmerTraditionalTemplate({ event, guestName, children, hideBackg
               <div className="flex flex-col items-center gap-3 mt-4 w-full px-2">
                 <div
                   className={`grid grid-cols-2 gap-x-4 sm:gap-x-12 w-full text-center text-base ${isEn ? "font-serif uppercase tracking-widest font-semibold text-xs sm:text-sm" : "font-khmer-bokor"}`}
-                  style={{ color: colorPrimary, fontFamily: isEn ? undefined : bodyFont, textShadow: "0 0 4px #fff" }}
+                  style={{ color: colorPrimary, fontFamily: isEn ? undefined : bodyFont, textShadow: bodyShadow }}
                 >
                   <span>{isEn ? "Groom" : "កូនប្រុសនាម"}</span>
                   <span>{isEn ? "Bride" : "កូនស្រីនាម"}</span>
                 </div>
                 <div
-                  className={`grid grid-cols-2 gap-x-4 sm:gap-x-12 w-full ${isEn ? "font-serif font-bold text-lg sm:text-xl" : "font-khmer-moul"}`}
-                  style={{ color: colorAccent, textShadow: "1px 1px 0 #fff8dc" }}
+                  className={`grid grid-cols-2 gap-x-4 sm:gap-x-12 w-full ${isEn ? "font-serif font-bold text-lg sm:text-xl" : ""}`}
+                  style={{ fontFamily: headerFont, color: colorAccent, textShadow: headingShadow }}
                 >
                   {renderName(groomParts, "g")}
                   {renderName(brideParts, "b")}
@@ -556,7 +663,7 @@ export function KhmerTraditionalTemplate({ event, guestName, children, hideBackg
         {isVisible("details") && (date || venueDisplay || event.reception_time || event.ceremony_time) && (
           <div
             className="font-khmer-siemreap text-center leading-[1.7] mb-6 w-full space-y-2 text-base"
-            style={{ color: colorPrimary, fontFamily: bodyFont, textShadow: "0 0 4px #fff" }}
+            style={{ color: colorPrimary, fontFamily: bodyFont, textShadow: bodyShadow }}
           >
             {isEn ? (
               <>
@@ -641,16 +748,18 @@ export function KhmerTraditionalTemplate({ event, guestName, children, hideBackg
           </div>
         )}
 
-        {/* Agenda (editable, multi-day, list/card) — uses the same soft
-            card background as the apology / thank-you letters so the three
-            sections feel visually unified. */}
+        {/* Agenda (editable, multi-day, list/card) — configurable background color,
+            opacity, and dedicated asset/icon color. */}
         {isVisible("agenda") && agendaDays.length > 0 && (() => {
           const fallbackBg = hexWithOpacity("#fff8e7", 70);
-          const cardBg =
-            hexWithOpacity(event.letter_bg_color, event.letter_bg_opacity ?? 70) ?? fallbackBg;
+          const agendaBgColor = event.agenda_bg_color ?? event.letter_bg_color;
+          const agendaBgOpacity = event.agenda_bg_opacity ?? (event.agenda_bg_color ? 70 : (event.letter_bg_opacity ?? 70));
+          const cardBg = hexWithOpacity(agendaBgColor, agendaBgOpacity) ?? fallbackBg;
+          const agendaAssetColor = event.agenda_asset_color || colorAccent;
+
           const agendaCardStyle: React.CSSProperties = {
             background: cardBg ?? undefined,
-            border: `1px solid ${colorAccent}33`,
+            border: `1px solid ${agendaAssetColor}33`,
             borderRadius: 12,
             backdropFilter: "blur(2px)",
           };
@@ -667,8 +776,8 @@ export function KhmerTraditionalTemplate({ event, guestName, children, hideBackg
                     className="px-3 py-1.5 rounded-full text-xs sm:text-sm font-khmer-koulen transition-colors"
                     style={
                       i === activeDay
-                        ? { background: colorAccent, color: "#fff", border: `1px solid ${colorAccent}` }
-                        : { background: "rgba(255,255,255,0.5)", color: colorPrimary, fontFamily: bodyFont, border: `1px solid ${colorAccent}73` }
+                        ? { background: agendaAssetColor, color: "#fff", border: `1px solid ${agendaAssetColor}` }
+                        : { background: "rgba(255,255,255,0.5)", color: colorPrimary, fontFamily: bodyFont, border: `1px solid ${agendaAssetColor}73` }
                     }
                   >
                     {d.title || (isEn ? `Day ${i + 1}` : `ថ្ងៃទី${toKhmerNumber(i + 1)}`)}
@@ -685,7 +794,7 @@ export function KhmerTraditionalTemplate({ event, guestName, children, hideBackg
                 <div className="text-center mb-2.5">
                   <h4
                     className={`text-base sm:text-lg ${isEn ? "font-serif font-semibold" : "font-khmer-koulen"}`}
-                    style={{ color: colorAccent }}
+                    style={{ color: agendaAssetColor }}
                   >
                     {dayTitle}
                   </h4>
@@ -700,28 +809,29 @@ export function KhmerTraditionalTemplate({ event, guestName, children, hideBackg
                     {item.subHeader && (
                       <div
                         className="font-khmer-koulen text-base sm:text-lg mt-1 mb-1 px-2 flex items-center gap-2"
-                        style={{ color: colorAccent }}
+                        style={{ color: agendaAssetColor }}
                       >
                         <span
                           aria-hidden="true"
                           className="inline-block h-px flex-1"
-                          style={{ background: `linear-gradient(to right, transparent, ${colorAccent}, transparent)` }}
+                          style={{ background: `linear-gradient(to right, transparent, ${agendaAssetColor}, transparent)` }}
                         />
                         <span>{item.subHeader}</span>
                         <span
                           aria-hidden="true"
                           className="inline-block h-px flex-1"
-                          style={{ background: `linear-gradient(to right, transparent, ${colorAccent}, transparent)` }}
+                          style={{ background: `linear-gradient(to right, transparent, ${agendaAssetColor}, transparent)` }}
                         />
                       </div>
                     )}
                     <AgendaRow
                       time={item.time}
-                      icon={getAgendaIcon(item.icon)}
+                      icon={item.icon}
                       iconImageUrl={item.iconImageUrl ?? null}
                       label={item.label}
                       description={item.description}
                       accentColor={colorAccent}
+                      assetColor={agendaAssetColor}
                       primaryColor={colorPrimary}
                       bodyFont={bodyFont}
                       language={language}
@@ -749,47 +859,51 @@ export function KhmerTraditionalTemplate({ event, guestName, children, hideBackg
                       {g.subHeader && (
                         <div
                           className="font-khmer-koulen text-base sm:text-lg mt-1 mb-1 px-2 flex items-center gap-2"
-                          style={{ color: colorAccent }}
+                          style={{ color: agendaAssetColor }}
                         >
                           <span
                             aria-hidden="true"
                             className="inline-block h-px flex-1"
-                            style={{ background: `linear-gradient(to right, transparent, ${colorAccent}, transparent)` }}
+                            style={{ background: `linear-gradient(to right, transparent, ${agendaAssetColor}, transparent)` }}
                           />
                           <span>{g.subHeader}</span>
                           <span
                             aria-hidden="true"
                             className="inline-block h-px flex-1"
-                            style={{ background: `linear-gradient(to right, transparent, ${colorAccent}, transparent)` }}
+                            style={{ background: `linear-gradient(to right, transparent, ${agendaAssetColor}, transparent)` }}
                           />
                         </div>
                       )}
                       <div className="grid grid-cols-2 auto-rows-fr gap-2 items-stretch">
-                        {g.items.map((item) => {
-                          const Icon = getAgendaIcon(item.icon);
-                          return (
-                            <div
-                              key={item.id}
-                              className="rounded-lg p-2 flex flex-col items-center text-center w-full h-full"
-                              style={{ background: "rgba(255,255,255,0.55)", border: `1px solid ${colorAccent}66` }}
-                            >
-                              {item.iconImageUrl ? (
-                                <img src={item.iconImageUrl} alt="" className="h-6 w-6 sm:h-8 sm:w-8 object-contain shrink-0" />
-                              ) : (
-                                <Icon className="h-6 w-6 sm:h-8 sm:w-8 shrink-0" style={{ color: colorAccent }} />
-                              )}
-                              <div className="font-khmer-siemreap text-base mt-0.5" style={{ color: colorPrimary, fontFamily: bodyFont }}>
-                                {isEn ? item.time : toKhmerTime(item.time)}
-                              </div>
-                              <div className="font-khmer-siemreap text-base leading-snug mt-0.5" style={{ color: colorPrimary, fontFamily: bodyFont }}>{item.label}</div>
-                              {item.description && (
-                                <div className="font-khmer-siemreap text-sm leading-snug mt-0.5 opacity-90" style={{ color: colorPrimary, fontFamily: bodyFont }}>
-                                  {item.description}
-                                </div>
-                              )}
+                        {g.items.map((item) => (
+                          <div
+                            key={item.id}
+                            className="rounded-lg p-2.5 flex flex-col items-center text-center w-full h-full justify-center"
+                            style={{ background: "rgba(255,255,255,0.55)", border: `1px solid ${agendaAssetColor}66` }}
+                          >
+                            {item.iconImageUrl ? (
+                              <AgendaIconImage
+                                src={item.iconImageUrl}
+                                color={agendaAssetColor}
+                                className="h-6 w-6 sm:h-8 sm:w-8 mb-1"
+                              />
+                            ) : item.icon ? (
+                              (() => {
+                                const IconCmp = getAgendaIcon(item.icon);
+                                return <IconCmp className="h-6 w-6 sm:h-7 sm:w-7 shrink-0 mb-1" style={{ color: agendaAssetColor }} />;
+                              })()
+                            ) : null}
+                            <div className="font-khmer-siemreap text-base font-semibold" style={{ color: agendaAssetColor, fontFamily: bodyFont }}>
+                              {isEn ? item.time : toKhmerTime(item.time)}
                             </div>
-                          );
-                        })}
+                            <div className="font-khmer-siemreap text-base leading-snug mt-0.5" style={{ color: colorPrimary, fontFamily: bodyFont }}>{item.label}</div>
+                            {item.description && (
+                              <div className="font-khmer-siemreap text-sm leading-snug mt-0.5 opacity-90" style={{ color: colorPrimary, fontFamily: bodyFont }}>
+                                {item.description}
+                              </div>
+                            )}
+                          </div>
+                        ))}
                       </div>
                     </div>
                   ));
@@ -803,7 +917,10 @@ export function KhmerTraditionalTemplate({ event, guestName, children, hideBackg
         {/* Gallery */}
         {isVisible("gallery") && gallery.length > 0 && (
           <section className="my-8 w-full">
-            <h3 className={`text-center text-2xl sm:text-3xl mb-1 ${isEn ? "font-serif font-bold" : "kt-title"}`} style={{ color: colorAccent }}>
+            <h3
+              className={`text-center text-2xl sm:text-3xl mb-1 ${isEn ? "font-serif font-bold" : ""}`}
+              style={{ fontFamily: headerFont, color: colorAccent, textShadow: headingShadow }}
+            >
               {isEn ? "Photo Gallery" : "វិចិត្រសាល"}
             </h3>
             <p className="font-khmer-siemreap text-center text-sm mb-5 kt-glow-text" style={{ fontFamily: isEn ? undefined : bodyFont }}>
@@ -823,7 +940,7 @@ export function KhmerTraditionalTemplate({ event, guestName, children, hideBackg
             The headline above is editable per event via `countdown_message`. */}
         {isVisible("countdown") && daysLeft !== null && (
           <section className="kt-section-card text-center p-5 sm:p-6 my-8 w-full" style={{ borderColor: colorAccent, boxShadow: `0 0 12px ${colorAccent}40` }}>
-            <span className={`text-base ${isEn ? "font-serif uppercase tracking-wider font-semibold text-sm sm:text-base" : "font-khmer-koulen"}`} style={{ color: colorAccent }}>
+            <span className={`text-base ${isEn ? "font-serif uppercase tracking-wider font-semibold text-sm sm:text-base" : "font-khmer-koulen"}`} style={{ color: colorAccent, textShadow: headingShadow }}>
               {(event.countdown_message?.trim()) ||
                 (isEn
                   ? "You are cordially invited to celebrate our wedding day!"
@@ -832,13 +949,13 @@ export function KhmerTraditionalTemplate({ event, guestName, children, hideBackg
 
             {daysLeft > 0 && (
               <>
-                <div className={`text-sm mt-3 ${isEn ? "font-serif uppercase tracking-widest font-semibold" : "font-khmer-koulen"}`} style={{ color: colorAccent }}>
+                <div className={`text-sm mt-3 ${isEn ? "font-serif uppercase tracking-widest font-semibold" : "font-khmer-koulen"}`} style={{ color: colorAccent, textShadow: headingShadow }}>
                   {isEn ? "Countdown" : "នៅសល់"}
                 </div>
-                <div className={`${isEn ? "font-serif font-bold" : "font-khmer-moul"} text-6xl sm:text-7xl my-1`} style={{ color: colorAccent, lineHeight: 1 }}>
+                <div className={`${isEn ? "font-serif font-bold" : ""} text-6xl sm:text-7xl my-1`} style={{ fontFamily: headerFont, color: colorAccent, textShadow: headingShadow, lineHeight: 1 }}>
                   {daysLeft}
                 </div>
-                <span className={`text-sm ${isEn ? "font-serif uppercase tracking-wider font-semibold" : "font-khmer-koulen"}`} style={{ color: colorAccent }}>
+                <span className={`text-sm ${isEn ? "font-serif uppercase tracking-wider font-semibold" : "font-khmer-koulen"}`} style={{ color: colorAccent, textShadow: headingShadow }}>
                   {isEn
                     ? (daysLeft === 1 ? "Day until our wedding" : "Days until our wedding")
                     : "ថ្ងៃទៀតដល់ថ្ងៃរៀបអាពាហ៍ពិពាហ៍"}
@@ -847,13 +964,13 @@ export function KhmerTraditionalTemplate({ event, guestName, children, hideBackg
             )}
 
             {daysLeft === 0 && (
-              <div className={`${isEn ? "font-serif font-bold text-2xl sm:text-3xl" : "font-khmer-moul text-3xl sm:text-4xl"} mt-4`} style={{ color: colorAccent, lineHeight: 1.2 }}>
+              <div className={`${isEn ? "font-serif font-bold text-2xl sm:text-3xl" : "text-3xl sm:text-4xl"} mt-4`} style={{ fontFamily: headerFont, color: colorAccent, textShadow: headingShadow, lineHeight: 1.2 }}>
                 {isEn ? "Today is our Wedding Day!" : "ថ្ងៃនេះ​ជាថ្ងៃរៀបអាពាហ៍ពិពាហ៍"}
               </div>
             )}
 
             {daysLeft < 0 && (
-              <div className={`${isEn ? "font-serif font-bold text-xl sm:text-2xl" : "font-khmer-moul text-2xl sm:text-3xl"} mt-4`} style={{ color: colorAccent, lineHeight: 1.3 }}>
+              <div className={`${isEn ? "font-serif font-bold text-xl sm:text-2xl" : "text-2xl sm:text-3xl"} mt-4`} style={{ fontFamily: headerFont, color: colorAccent, textShadow: headingShadow, lineHeight: 1.3 }}>
                 {isEn ? "Thank you for celebrating with us!" : "សូមអរគុណ​ដែលបានចូលរួម​ក្នុងពិធីរបស់យើងខ្ញុំ"}
               </div>
             )}
@@ -870,19 +987,22 @@ export function KhmerTraditionalTemplate({ event, guestName, children, hideBackg
           const account = (event.qr_account_name?.trim()) || "";
           return (
             <section className="text-center my-8 w-full">
-              <h3 className={`text-2xl sm:text-3xl mb-3 ${isEn ? "font-serif font-bold" : "kt-title"}`} style={{ color: colorAccent }}>
+              <h3
+                className={`text-2xl sm:text-3xl mb-3 ${isEn ? "font-serif font-bold" : ""}`}
+                style={{ fontFamily: headerFont, color: colorAccent, textShadow: headingShadow }}
+              >
                 {isEn ? "Wedding Gift · Bank Transfer" : "ចំណងដៃជូនពរ"}
               </h3>
               <p
                 className="font-khmer-siemreap text-base leading-[1.9] mb-3 whitespace-pre-line text-center"
-                style={{ color: colorPrimary, fontFamily: isEn ? undefined : bodyFont, textShadow: "0 0 4px #fff" }}
+                style={{ color: colorPrimary, fontFamily: isEn ? undefined : bodyFont, textShadow: bodyShadow }}
               >
                 {msg}
               </p>
               {account && (
                 <p
-                  className={`text-base mb-4 ${isEn ? "font-serif font-bold tracking-wider" : "font-khmer-moul"}`}
-                  style={{ color: colorAccent, textShadow: "0 0 4px #fff" }}
+                  className={`text-base mb-4 ${isEn ? "font-serif font-bold tracking-wider" : ""}`}
+                  style={{ fontFamily: headerFont, color: colorAccent, textShadow: headingShadow }}
                 >
                   {account}
                 </p>
@@ -925,7 +1045,10 @@ export function KhmerTraditionalTemplate({ event, guestName, children, hideBackg
                 const body = (event.apologies_message?.trim()) || DEFAULT_APOLOGY;
                 return (
                   <section className="text-center p-5 sm:p-6 my-8 w-full" style={cardStyle}>
-                    <h3 className={`text-2xl sm:text-3xl mb-2 ${isEn ? "font-serif font-bold" : "kt-title"}`} style={{ color: colorAccent }}>
+                    <h3
+                      className={`text-2xl sm:text-3xl mb-2 ${isEn ? "font-serif font-bold" : ""}`}
+                      style={{ fontFamily: headerFont, color: colorAccent, textShadow: headingShadow }}
+                    >
                       {isEn ? "Letter of Apology" : "លិខិតសូមអភ័យទោស"}
                     </h3>
                     <div
@@ -939,7 +1062,7 @@ export function KhmerTraditionalTemplate({ event, guestName, children, hideBackg
                     />
                     <p
                       className="font-khmer-siemreap text-base leading-[1.9] whitespace-pre-line text-center"
-                      style={{ color: colorPrimary, fontFamily: isEn ? undefined : bodyFont }}
+                      style={{ color: colorPrimary, fontFamily: isEn ? undefined : bodyFont, textShadow: bodyShadow }}
                     >
                       {body}
                     </p>
@@ -954,7 +1077,10 @@ export function KhmerTraditionalTemplate({ event, guestName, children, hideBackg
                 const body = (event.thank_you_message?.trim()) || DEFAULT_THANKS;
                 return (
                   <section className="text-center p-5 sm:p-6 my-8 w-full" style={cardStyle}>
-                    <h3 className={`text-2xl sm:text-3xl mb-2 ${isEn ? "font-serif font-bold" : "kt-title"}`} style={{ color: colorAccent }}>
+                    <h3
+                      className={`text-2xl sm:text-3xl mb-2 ${isEn ? "font-serif font-bold" : ""}`}
+                      style={{ fontFamily: headerFont, color: colorAccent, textShadow: headingShadow }}
+                    >
                       {isEn ? "Letter of Gratitude" : "លិខិតថ្លែងអំណរគុណ"}
                     </h3>
                     <div
@@ -968,7 +1094,7 @@ export function KhmerTraditionalTemplate({ event, guestName, children, hideBackg
                     />
                     <p
                       className="font-khmer-siemreap text-base leading-[1.9] whitespace-pre-line text-center"
-                      style={{ color: colorPrimary, fontFamily: isEn ? undefined : bodyFont }}
+                      style={{ color: colorPrimary, fontFamily: isEn ? undefined : bodyFont, textShadow: bodyShadow }}
                     >
                       {body}
                     </p>
@@ -982,7 +1108,10 @@ export function KhmerTraditionalTemplate({ event, guestName, children, hideBackg
         {/* Location / Map */}
         {isVisible("location") && venueDisplay && (
           <section className="my-8 text-center w-full">
-            <h3 className={`text-2xl sm:text-3xl mb-4 inline-block pb-1 ${isEn ? "font-serif font-bold" : "kt-title"}`} style={{ color: colorAccent, borderBottom: `2px solid ${colorAccent}` }}>
+            <h3
+              className={`text-2xl sm:text-3xl mb-4 inline-block pb-1 ${isEn ? "font-serif font-bold" : ""}`}
+              style={{ fontFamily: headerFont, color: colorAccent, borderBottom: `2px solid ${colorAccent}`, textShadow: headingShadow }}
+            >
               {isEn ? "Location & Map" : "ទីតាំងកម្មវិធី"}
             </h3>
             <p className="text-base mb-3 mt-2 kt-glow-text px-3 font-bold">{venueDisplay}</p>
@@ -1183,20 +1312,22 @@ export function KhmerTraditionalTemplate({ event, guestName, children, hideBackg
 
 /* Agenda row helper */
 function AgendaRow({
-  time, icon: Icon, iconImageUrl, label, description,
-  accentColor = "#db9b0f", primaryColor = "#3a2a00", bodyFont,
+  time, icon, iconImageUrl, label, description,
+  accentColor = "#db9b0f", assetColor, primaryColor = "#3a2a00", bodyFont,
   language = "km",
 }: {
   time: string;
-  icon: any;
+  icon?: any;
   iconImageUrl?: string | null;
   label: string;
   description?: string | null;
   accentColor?: string;
+  assetColor?: string;
   primaryColor?: string;
   bodyFont?: string;
   language?: LanguageCode;
 }) {
+  const resolvedAssetColor = assetColor || accentColor;
   return (
     <div className="flex items-center gap-2 py-1.5 px-1 w-full">
       <div
@@ -1211,16 +1342,25 @@ function AgendaRow({
         style={{
           width: 2,
           height: 22,
-          background: `linear-gradient(to bottom, transparent, ${accentColor}, transparent)`,
+          background: `linear-gradient(to bottom, transparent, ${resolvedAssetColor}, transparent)`,
         }}
       />
-      <div className="shrink-0 flex items-center justify-center">
-        {iconImageUrl ? (
-          <img src={iconImageUrl} alt="" className="h-6 w-6 sm:h-7 sm:w-7 object-contain" />
-        ) : (
-          <Icon className="h-6 w-6 sm:h-7 sm:w-7" style={{ color: accentColor }} />
-        )}
-      </div>
+      {iconImageUrl ? (
+        <div className="shrink-0 flex items-center justify-center">
+          <AgendaIconImage
+            src={iconImageUrl}
+            color={resolvedAssetColor}
+            className="h-6 w-6 sm:h-7 sm:w-7"
+          />
+        </div>
+      ) : icon ? (
+        <div className="shrink-0 flex items-center justify-center">
+          {(() => {
+            const IconCmp = getAgendaIcon(icon);
+            return <IconCmp className="h-5 w-5 sm:h-6 sm:w-6 shrink-0" style={{ color: resolvedAssetColor }} />;
+          })()}
+        </div>
+      ) : null}
       <div className="flex-1 min-w-0">
         <p className="font-khmer-siemreap text-base leading-snug" style={{ color: primaryColor, fontFamily: bodyFont }}>
           {label}
