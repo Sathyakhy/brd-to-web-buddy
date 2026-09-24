@@ -866,9 +866,8 @@ export default function EventDetail() {
           </div>
         </div>
 
-        {/* Preview ⇄ Configuration tabs — keeps the live preview visually
-            separated from the form sections, so admins can focus on one task
-            at a time without scrolling past the other. */}
+        {/* Preview ⇄ Configuration tabs — sticky freeze pane so admins can
+            switch tabs instantly without scrolling all the way back to the top */}
         <Tabs
           value={activeTab}
           onValueChange={(v) => {
@@ -876,19 +875,62 @@ export default function EventDetail() {
             if (v === "config") next.delete("tab");
             else next.set("tab", v);
             setSearchParams(next, { replace: true });
+            window.scrollTo({ top: 0, behavior: "smooth" });
           }}
           className="w-full"
         >
-          <TabsList className="grid w-full max-w-3xl mx-auto grid-cols-2 sm:grid-cols-4 font-khmer-moul h-auto">
-            <TabsTrigger value="config" className="text-xs sm:text-sm">Configuration</TabsTrigger>
-            <TabsTrigger value="preview" className="text-xs sm:text-sm">Preview</TabsTrigger>
-            <TabsTrigger value="billing" className="text-xs sm:text-sm">Billing</TabsTrigger>
-            <TabsTrigger value="guests" className="text-xs sm:text-sm">
-              Guests {guests.length > 0 && <span className="ml-1.5 text-xs opacity-70">({guests.length})</span>}
-            </TabsTrigger>
-          </TabsList>
+          {/* Sticky Freeze Pane Bar */}
+          <div className="sticky top-14 lg:top-0 z-30 bg-background/95 backdrop-blur-md -mx-4 px-4 sm:-mx-6 sm:px-6 lg:-mx-10 lg:px-10 py-2.5 mb-6 border-b border-border/80 shadow-xs transition-all">
+            <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
+              {/* Event quick indicator (compact) */}
+              <div className="hidden md:flex items-center gap-2 min-w-0">
+                <span className="font-khmer-moul text-sm text-foreground truncate max-w-[200px] lg:max-w-xs">
+                  {event.title}
+                </span>
+                <span className="text-xs text-muted-foreground truncate">
+                  (/{event.slug})
+                </span>
+              </div>
 
-          <TabsContent value="preview" className="mt-6">
+              {/* Tabs List */}
+              <TabsList className="grid w-full sm:w-auto grid-cols-2 sm:grid-cols-4 font-khmer-moul h-auto sm:h-9 gap-1 sm:gap-0">
+                <TabsTrigger value="config" className="text-xs sm:text-sm px-3 sm:px-4 py-1.5">Configuration</TabsTrigger>
+                <TabsTrigger value="preview" className="text-xs sm:text-sm px-3 sm:px-4 py-1.5">Preview</TabsTrigger>
+                <TabsTrigger value="billing" className="text-xs sm:text-sm px-3 sm:px-4 py-1.5">Billing</TabsTrigger>
+                <TabsTrigger value="guests" className="text-xs sm:text-sm px-3 sm:px-4 py-1.5">
+                  Guests {guests.length > 0 && <span className="ml-1 text-[11px] opacity-70">({guests.length})</span>}
+                </TabsTrigger>
+              </TabsList>
+
+              {/* Quick actions on the right */}
+              <div className="hidden sm:flex items-center gap-2 shrink-0">
+                {activeTab === "config" && (
+                  <Button
+                    size="sm"
+                    onClick={handleSave}
+                    disabled={saving}
+                    className="h-8 text-xs font-medium bg-gold hover:bg-gold-light text-primary-foreground shadow-xs"
+                  >
+                    <Save className="h-3.5 w-3.5 mr-1" />
+                    {saving ? "Saving..." : "Save"}
+                  </Button>
+                )}
+                <a
+                  href={`https://21invite.online/${event.slug}/invite?token=preview`}
+                  target="_blank"
+                  rel="noreferrer"
+                  title="View public page"
+                >
+                  <Button variant="outline" size="sm" className="h-8 text-xs">
+                    <ExternalLink className="h-3.5 w-3.5 sm:mr-1.5" />
+                    <span className="hidden lg:inline">Public page</span>
+                  </Button>
+                </a>
+              </div>
+            </div>
+          </div>
+
+          <TabsContent value="preview" className="mt-0">
             <PreviewPanel
               event={{
                 ...event,

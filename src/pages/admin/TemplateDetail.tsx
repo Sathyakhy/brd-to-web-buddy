@@ -539,12 +539,41 @@ export default function TemplateDetail() {
         </div>
 
         <Tabs defaultValue="config" className="w-full">
-          <TabsList className="grid w-full max-w-md mx-auto grid-cols-2">
-            <TabsTrigger value="config">Configuration</TabsTrigger>
-            <TabsTrigger value="preview">Preview</TabsTrigger>
-          </TabsList>
+          {/* Sticky Freeze Pane Bar */}
+          <div className="sticky top-14 lg:top-0 z-30 bg-background/95 backdrop-blur-md -mx-4 px-4 sm:-mx-6 sm:px-6 lg:-mx-10 lg:px-10 py-2.5 mb-6 border-b border-border/80 shadow-xs transition-all">
+            <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
+              {/* Template quick indicator */}
+              <div className="hidden md:flex items-center gap-2 min-w-0">
+                <span className="font-serif text-sm font-semibold text-foreground truncate max-w-[200px] lg:max-w-xs">
+                  {draft.label || "Untitled template"}
+                </span>
+                <span className="text-xs text-muted-foreground truncate">
+                  ({draft.slug})
+                </span>
+              </div>
 
-          <TabsContent value="preview" className="mt-6">
+              {/* Tabs List */}
+              <TabsList className="grid w-full sm:w-auto grid-cols-2 font-serif h-9">
+                <TabsTrigger value="config" className="text-xs sm:text-sm px-4 py-1.5">Configuration</TabsTrigger>
+                <TabsTrigger value="preview" className="text-xs sm:text-sm px-4 py-1.5">Preview</TabsTrigger>
+              </TabsList>
+
+              {/* Quick save button */}
+              <div className="hidden sm:flex items-center gap-2 shrink-0">
+                <Button
+                  size="sm"
+                  onClick={handleSave}
+                  disabled={!dirty || saving}
+                  className="h-8 text-xs font-medium bg-gold hover:bg-gold-light text-primary-foreground shadow-xs"
+                >
+                  <Save className="h-3.5 w-3.5 mr-1" />
+                  {saving ? "Saving..." : dirty ? "Save changes" : "Saved"}
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          <TabsContent value="preview" className="mt-0">
             <PreviewPanel
               event={previewEvent as any}
               guestName={draftConfig.sample_guest_name}
