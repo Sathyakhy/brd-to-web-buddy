@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Volume2, VolumeX, Play } from "lucide-react";
+import { computeMonogramFilter, MonogramShadowSettings, TextEffectConfig } from "@/lib/textEffects";
 
 type Props = {
   guestName: string;
@@ -33,6 +34,10 @@ type Props = {
   openButtonColor?: string | null;
   /** Language version: "km" (Khmer) or "en" (English) */
   language?: "km" | "en";
+  /** Optional custom filter style for the title graphic / monogram */
+  monogramFilter?: string | null;
+  /** Optional monogram effect configuration */
+  monogramEffectConfig?: MonogramShadowSettings | TextEffectConfig | null;
 };
 
 const FRAME = "/templates/signature-package-01/frame.png";
@@ -61,8 +66,16 @@ export default function SignaturePackageCover({
   accentColor,
   openButtonColor,
   language = "km",
+  monogramFilter,
+  monogramEffectConfig,
 }: Props) {
   const isEn = language === "en";
+
+  const resolvedMonogramFilter = monogramFilter !== undefined
+    ? (monogramFilter || "none")
+    : monogramEffectConfig
+    ? computeMonogramFilter(monogramEffectConfig)
+    : "drop-shadow(0 2px 6px rgba(255,255,255,0.5)) drop-shadow(0 0 14px rgba(255,196,70,0.5))";
   // Premium 4-stop gradient anchored on the event accent — bright top
   // highlight + mid body + slightly deeper bottom for a metallic shine.
   const accent = accentColor && accentColor.trim() ? accentColor.trim() : "#a87614";
@@ -222,8 +235,7 @@ export default function SignaturePackageCover({
               alt={title}
               className="w-[200px] sm:w-[240px] max-w-[70vw]"
               style={{
-                filter:
-                  "drop-shadow(0 2px 6px rgba(255,255,255,0.5)) drop-shadow(0 0 14px rgba(255,196,70,0.5))",
+                filter: resolvedMonogramFilter,
               }}
             />
           ) : (

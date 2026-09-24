@@ -95,6 +95,7 @@ export default function InvitePage() {
         frame_url: cfg.frame_url ?? null,
         frame_type: (cfg.frame_type as "image" | "video") ?? "image",
         cover_music_url: cfg.cover_music_url ?? null,
+        text_effect_config: cfg.text_effect_config ?? null,
       });
       if (isPreview) {
         // Synthetic guest used purely for the public preview — no name,
@@ -245,6 +246,7 @@ export default function InvitePage() {
             accentColor={(event as any).text_color_accent ?? null}
             openButtonColor={(event as any).open_button_color ?? null}
             language={language}
+            monogramEffectConfig={(event as any).text_effect_config ?? (event as any).section_visibility?.text_effects ?? templateDefaults.text_effect_config ?? null}
             onOpen={() => setOpened(true)}
           />
         </div>

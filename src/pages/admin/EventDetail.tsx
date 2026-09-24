@@ -59,6 +59,7 @@ import { getDualLanguageConfig, type DualLanguageConfig } from "@/lib/dualLangua
 import { BilingualInput, BilingualTextarea } from "@/components/admin/BilingualField";
 import { thumbUrl } from "@/lib/imageUrl";
 import TextEffectsEditor from "@/components/admin/TextEffectsEditor";
+import MonogramEffectEditor from "@/components/admin/MonogramEffectEditor";
 import FontSelector from "@/components/admin/FontSelector";
 import SideFrameEditor from "@/components/admin/SideFrameEditor";
 import {
@@ -1890,6 +1891,33 @@ export default function EventDetail() {
                 <p className="text-xs text-muted-foreground">Recommended: Transparent PNG, SVG, or high-res JPG (&lt; 2MB).</p>
               </div>
             </div>
+
+            {/* Monogram Drop Shadow & Glow Controls */}
+            <div className="mt-5 pt-4 border-t border-border">
+              <MonogramEffectEditor
+                settings={
+                  normalizeTextEffectConfig(
+                    (event as any).text_effect_config ?? (event as any).section_visibility?.text_effects
+                  ).monogram
+                }
+                onChange={(monogramSettings) => {
+                  const currentNorm = normalizeTextEffectConfig(
+                    (event as any).text_effect_config ?? (event as any).section_visibility?.text_effects
+                  );
+                  const updatedTextEffect = { ...currentNorm, monogram: monogramSettings };
+                  setEvent({
+                    ...event,
+                    text_effect_config: updatedTextEffect,
+                    section_visibility: {
+                      ...((event as any).section_visibility ?? {}),
+                      text_effects: updatedTextEffect,
+                    },
+                  } as any);
+                }}
+                monogramUrl={event.cover_image_url}
+                accentColor={event.text_color_accent}
+              />
+            </div>
           </div>
         </CollapsibleSection>
 
@@ -1992,6 +2020,7 @@ export default function EventDetail() {
                 primaryColor={event.text_color_primary}
                 headerFont={event.header_font}
                 bodyFont={event.body_font}
+                monogramUrl={event.cover_image_url}
               />
             </div>
           </div>

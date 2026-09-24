@@ -24,12 +24,35 @@ export type TextShadowSettings = {
   opacity: number;
 };
 
+export type MonogramEffectType =
+  | "royal_gold"
+  | "gold_glow"
+  | "soft_white"
+  | "dark_shadow"
+  | "custom"
+  | "none";
+
+export type MonogramShadowSettings = {
+  enabled: boolean;
+  type: MonogramEffectType;
+  color: string;
+  blur: number;
+  offset_x: number;
+  offset_y: number;
+  opacity: number;
+  secondary_glow: boolean;
+  secondary_color: string;
+  secondary_blur: number;
+  secondary_opacity: number;
+};
+
 export type TextEffectConfig = {
   enabled: boolean;
   /** When true, Header and Body have independent shadow & effect parameters */
   separate_header_body: boolean;
   header: TextShadowSettings;
   body: TextShadowSettings;
+  monogram: MonogramShadowSettings;
 
   // Legacy fallback fields for backward compatibility
   type?: TextEffectType;
@@ -61,11 +84,26 @@ export const DEFAULT_BODY_SETTINGS: TextShadowSettings = {
   opacity: 80,
 };
 
+export const DEFAULT_MONOGRAM_SETTINGS: MonogramShadowSettings = {
+  enabled: true,
+  type: "royal_gold",
+  color: "#ffc446",
+  blur: 10,
+  offset_x: 0,
+  offset_y: 0,
+  opacity: 65,
+  secondary_glow: true,
+  secondary_color: "#ffffff",
+  secondary_blur: 4,
+  secondary_opacity: 80,
+};
+
 export const DEFAULT_TEXT_EFFECT_CONFIG: TextEffectConfig = {
   enabled: true,
   separate_header_body: true,
   header: { ...DEFAULT_HEADER_SETTINGS },
   body: { ...DEFAULT_BODY_SETTINGS },
+  monogram: { ...DEFAULT_MONOGRAM_SETTINGS },
   type: "soft_glow",
   color: "#ffffff",
   blur: 4,
@@ -113,6 +151,85 @@ export const TEXT_EFFECT_PRESETS: {
   },
 ];
 
+export const MONOGRAM_EFFECT_PRESETS: {
+  id: MonogramEffectType;
+  label: string;
+  description: string;
+  defaults: Partial<MonogramShadowSettings>;
+}[] = [
+  {
+    id: "royal_gold",
+    label: "Royal Gold & White Glow (Default)",
+    description: "Layered halo with crisp white inner rim and rich warm gold aura.",
+    defaults: {
+      color: "#ffc446",
+      blur: 10,
+      offset_x: 0,
+      offset_y: 0,
+      opacity: 65,
+      secondary_glow: true,
+      secondary_color: "#ffffff",
+      secondary_blur: 4,
+      secondary_opacity: 80,
+    },
+  },
+  {
+    id: "gold_glow",
+    label: "Pure Warm Gold Aura",
+    description: "Opulent golden radial shimmer matching traditional gold leaf.",
+    defaults: {
+      color: "#db9b0f",
+      blur: 14,
+      offset_x: 0,
+      offset_y: 0,
+      opacity: 75,
+      secondary_glow: false,
+    },
+  },
+  {
+    id: "soft_white",
+    label: "Soft Ambient White",
+    description: "Gentle clean illumination to lift dark or intricate monograms.",
+    defaults: {
+      color: "#ffffff",
+      blur: 10,
+      offset_x: 0,
+      offset_y: 0,
+      opacity: 85,
+      secondary_glow: false,
+    },
+  },
+  {
+    id: "dark_shadow",
+    label: "Dramatic Drop Shadow",
+    description: "Realistic depth shadow giving the emblem a 3D elevated look.",
+    defaults: {
+      color: "#000000",
+      blur: 8,
+      offset_x: 0,
+      offset_y: 4,
+      opacity: 50,
+      secondary_glow: false,
+    },
+  },
+  {
+    id: "custom",
+    label: "Custom Shadow & Glow",
+    description: "Adjust primary color, blur radius, X/Y offsets, and secondary halo.",
+    defaults: {
+      color: "#db9b0f",
+      blur: 10,
+      offset_x: 0,
+      offset_y: 2,
+      opacity: 70,
+      secondary_glow: true,
+      secondary_color: "#ffffff",
+      secondary_blur: 3,
+      secondary_opacity: 75,
+    },
+  },
+];
+
 export function hexToRgba(hex: string, opacityPercent: number = 100): string {
   const clean = (hex || "").trim().replace("#", "");
   const alpha = Math.max(0, Math.min(1, (opacityPercent ?? 100) / 100));
@@ -149,6 +266,39 @@ function normalizeShadowSettings(raw: any, fallback: TextShadowSettings): TextSh
   return { enabled, type, color, blur, offset_x, offset_y, opacity };
 }
 
+function normalizeMonogramSettings(raw: any, fallback: MonogramShadowSettings): MonogramShadowSettings {
+  if (!raw || typeof raw !== "object") {
+    return { ...fallback };
+  }
+  const enabled = raw.enabled !== undefined ? Boolean(raw.enabled) : fallback.enabled;
+  const type = (["royal_gold", "gold_glow", "soft_white", "dark_shadow", "custom", "none"].includes(raw.type))
+    ? raw.type as MonogramEffectType
+    : fallback.type;
+  const color = typeof raw.color === "string" && raw.color.trim() ? raw.color.trim() : fallback.color;
+  const blur = typeof raw.blur === "number" ? Math.max(0, raw.blur) : fallback.blur;
+  const offset_x = typeof raw.offset_x === "number" ? raw.offset_x : fallback.offset_x;
+  const offset_y = typeof raw.offset_y === "number" ? raw.offset_y : fallback.offset_y;
+  const opacity = typeof raw.opacity === "number" ? Math.max(0, Math.min(100, raw.opacity)) : fallback.opacity;
+  const secondary_glow = raw.secondary_glow !== undefined ? Boolean(raw.secondary_glow) : fallback.secondary_glow;
+  const secondary_color = typeof raw.secondary_color === "string" && raw.secondary_color.trim() ? raw.secondary_color.trim() : fallback.secondary_color;
+  const secondary_blur = typeof raw.secondary_blur === "number" ? Math.max(0, raw.secondary_blur) : fallback.secondary_blur;
+  const secondary_opacity = typeof raw.secondary_opacity === "number" ? Math.max(0, Math.min(100, raw.secondary_opacity)) : fallback.secondary_opacity;
+
+  return {
+    enabled,
+    type,
+    color,
+    blur,
+    offset_x,
+    offset_y,
+    opacity,
+    secondary_glow,
+    secondary_color,
+    secondary_blur,
+    secondary_opacity,
+  };
+}
+
 /**
  * Normalizes raw input from event/template JSON into a valid TextEffectConfig.
  */
@@ -158,6 +308,7 @@ export function normalizeTextEffectConfig(raw: unknown): TextEffectConfig {
       ...DEFAULT_TEXT_EFFECT_CONFIG,
       header: { ...DEFAULT_HEADER_SETTINGS },
       body: { ...DEFAULT_BODY_SETTINGS },
+      monogram: { ...DEFAULT_MONOGRAM_SETTINGS },
     };
   }
 
@@ -229,12 +380,17 @@ export function normalizeTextEffectConfig(raw: unknown): TextEffectConfig {
 
   const header = normalizeShadowSettings(nested.header, headerFallback);
   const body = normalizeShadowSettings(nested.body, bodyFallback);
+  const monogram = normalizeMonogramSettings(
+    nested.monogram ?? r.monogram_effect_config ?? r.monogram_effect,
+    DEFAULT_MONOGRAM_SETTINGS
+  );
 
   return {
     enabled,
     separate_header_body,
     header,
     body,
+    monogram,
     type: legacyType,
     color: legacyColor,
     blur: legacyBlur,
@@ -315,4 +471,46 @@ export function computeTextShadow(
   }
 
   return formatShadowString(unified);
+}
+
+/**
+ * Computes the CSS `filter` property value for image monograms / emblems / logos.
+ * Uses `drop-shadow(...)` which strictly hugs transparent PNG/SVG boundaries.
+ * Returns `"none"` when disabled or unset.
+ */
+export function computeMonogramFilter(
+  config: TextEffectConfig | MonogramShadowSettings | null | undefined
+): string {
+  if (!config) {
+    // Default fallback to the traditional dual glow
+    return "drop-shadow(0 2px 4px rgba(255,255,255,0.8)) drop-shadow(0 0 10px rgba(255,196,70,0.63))";
+  }
+
+  let s: MonogramShadowSettings;
+  if ("monogram" in config && config.monogram) {
+    s = config.monogram;
+  } else if ("color" in config && "enabled" in config) {
+    s = config as MonogramShadowSettings;
+  } else {
+    s = DEFAULT_MONOGRAM_SETTINGS;
+  }
+
+  if (s.enabled === false || s.type === "none") {
+    return "none";
+  }
+
+  const primaryRgba = hexToRgba(s.color || "#ffc446", s.opacity ?? 65);
+  const blur = typeof s.blur === "number" ? Math.max(0, s.blur) : 10;
+  const ox = typeof s.offset_x === "number" ? s.offset_x : 0;
+  const oy = typeof s.offset_y === "number" ? s.offset_y : 0;
+
+  let filter = `drop-shadow(${ox}px ${oy}px ${blur}px ${primaryRgba})`;
+
+  if (s.secondary_glow) {
+    const secRgba = hexToRgba(s.secondary_color || "#ffffff", s.secondary_opacity ?? 80);
+    const secBlur = typeof s.secondary_blur === "number" ? Math.max(0, s.secondary_blur) : 4;
+    filter = `drop-shadow(0px 2px ${secBlur}px ${secRgba}) ` + filter;
+  }
+
+  return filter;
 }

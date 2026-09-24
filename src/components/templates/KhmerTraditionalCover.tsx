@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { computeMonogramFilter, MonogramShadowSettings, TextEffectConfig } from "@/lib/textEffects";
 
 function isKhmerChar(ch: string): boolean {
   const cp = ch.codePointAt(0) || 0;
@@ -39,6 +40,10 @@ type Props = {
   openButtonColor?: string | null;
   /** Language version: "km" (Khmer) or "en" (English) */
   language?: "km" | "en";
+  /** Optional custom filter style for the monogram / name graphic */
+  monogramFilter?: string | null;
+  /** Optional monogram effect configuration */
+  monogramEffectConfig?: MonogramShadowSettings | TextEffectConfig | null;
   onOpen: () => void;
 };
 
@@ -61,12 +66,21 @@ export default function KhmerTraditionalCover({
   accentColor,
   openButtonColor,
   language = "km",
+  monogramFilter,
+  monogramEffectConfig,
   onOpen,
 }: Props) {
   const isEn = language === "en";
   const plateRef = useRef<HTMLDivElement | null>(null);
   const nameRef = useRef<HTMLSpanElement | null>(null);
   const [scale, setScale] = useState(1);
+
+  // Compute monogram filter style based on custom settings or defaults
+  const resolvedMonogramFilter = monogramFilter !== undefined
+    ? (monogramFilter || "none")
+    : monogramEffectConfig
+    ? computeMonogramFilter(monogramEffectConfig)
+    : "drop-shadow(0 2px 4px rgba(255,255,255,0.7)) drop-shadow(0 0 14px rgba(255,196,70,0.55))";
   // Wait for the background to actually paint before revealing the rest of
   // the cover (most importantly the guest name). Otherwise on slow networks
   // the name flashes on a blank/white screen for a beat before the
@@ -193,8 +207,8 @@ export default function KhmerTraditionalCover({
         <img
           src={nameImg}
           alt={title}
-          className="w-[clamp(220px,22vw,340px)] max-w-[80%] drop-shadow-[0_4px_10px_rgba(255,255,255,0.6)]"
-          style={{ filter: "drop-shadow(0 0 14px rgba(255,196,70,0.55))" }}
+          className="w-[clamp(220px,22vw,340px)] max-w-[80%]"
+          style={{ filter: resolvedMonogramFilter }}
         />
       </div>
 

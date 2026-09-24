@@ -27,6 +27,7 @@ import { ContactItem, normalizeContacts } from "@/lib/contacts";
 import SectionVisibilityEditor from "@/components/admin/SectionVisibilityEditor";
 import { normalizeVisibility, SectionVisibility } from "@/lib/sectionVisibility";
 import TextEffectsEditor from "@/components/admin/TextEffectsEditor";
+import MonogramEffectEditor from "@/components/admin/MonogramEffectEditor";
 import FontSelector from "@/components/admin/FontSelector";
 import SideFrameEditor from "@/components/admin/SideFrameEditor";
 import {
@@ -803,6 +804,7 @@ export default function TemplateDetail() {
                   primaryColor={draftConfig.text_color_primary}
                   headerFont={draftConfig.header_font}
                   bodyFont={draftConfig.body_font}
+                  monogramUrl={draftConfig.cover_image_url}
                 />
               </div>
             </CollapsibleSection>
@@ -1011,6 +1013,22 @@ export default function TemplateDetail() {
                     )}
                     <p className="text-xs text-muted-foreground">Recommended: Transparent PNG, SVG, or high-res JPG (&lt; 2MB).</p>
                   </div>
+                </div>
+
+                {/* Monogram Drop Shadow & Glow Controls */}
+                <div className="mt-5 pt-4 border-t border-border">
+                  <MonogramEffectEditor
+                    settings={
+                      normalizeTextEffectConfig(draftConfig.text_effect_config).monogram
+                    }
+                    onChange={(monogramSettings) => {
+                      const currentNorm = normalizeTextEffectConfig(draftConfig.text_effect_config);
+                      const updatedTextEffect = { ...currentNorm, monogram: monogramSettings };
+                      patchConfig({ text_effect_config: updatedTextEffect });
+                    }}
+                    monogramUrl={draftConfig.cover_image_url}
+                    accentColor={draftConfig.text_color_accent}
+                  />
                 </div>
               </div>
             </CollapsibleSection>

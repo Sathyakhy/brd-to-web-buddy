@@ -27,6 +27,7 @@ import {
 import {
   normalizeTextEffectConfig,
   computeTextShadow,
+  computeMonogramFilter,
   type TextEffectConfig,
 } from "@/lib/textEffects";
 import { resolveHeaderFont, resolveBodyFont } from "@/lib/fonts";
@@ -250,6 +251,7 @@ export function KhmerTraditionalTemplate({ event, guestName, children, hideBackg
 
   const headingShadow = computeTextShadow(textEffectConfig, true);
   const bodyShadow = computeTextShadow(textEffectConfig, false);
+  const monogramFilter = computeMonogramFilter(textEffectConfig);
 
   // Header and Body font overrides from event or template configuration
   const rawHeaderFont = (event as any).header_font || (event as any).heading_font;
@@ -574,7 +576,7 @@ export function KhmerTraditionalTemplate({ event, guestName, children, hideBackg
                 width: "70%",
                 maxWidth: 220,
                 height: "auto",
-                filter: "drop-shadow(0 2px 4px #fff) drop-shadow(0 0 10px rgba(255,196,70,0.63))",
+                filter: monogramFilter,
               }}
             />
           )}

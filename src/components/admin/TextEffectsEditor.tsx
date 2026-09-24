@@ -11,10 +11,13 @@ import {
   TEXT_EFFECT_PRESETS,
   TextEffectType,
   computeTextShadow,
+  computeMonogramFilter,
   DEFAULT_HEADER_SETTINGS,
   DEFAULT_BODY_SETTINGS,
+  DEFAULT_MONOGRAM_SETTINGS,
 } from "@/lib/textEffects";
-import { Sparkles, SlidersHorizontal, RotateCcw, Copy, Crown, FileText } from "lucide-react";
+import { Sparkles, SlidersHorizontal, RotateCcw, Copy, Crown, FileText, Heart } from "lucide-react";
+import MonogramEffectEditor from "./MonogramEffectEditor";
 
 type Props = {
   config: TextEffectConfig;
@@ -23,6 +26,7 @@ type Props = {
   primaryColor?: string | null;
   headerFont?: string | null;
   bodyFont?: string | null;
+  monogramUrl?: string | null;
 };
 
 export default function TextEffectsEditor({
@@ -32,11 +36,13 @@ export default function TextEffectsEditor({
   primaryColor = "#333333",
   headerFont,
   bodyFont,
+  monogramUrl,
 }: Props) {
-  const [activeTab, setActiveTab] = useState<"header" | "body">("header");
+  const [activeTab, setActiveTab] = useState<"header" | "body" | "monogram">("header");
 
   const sampleHeadingShadow = computeTextShadow(config, true);
   const sampleBodyShadow = computeTextShadow(config, false);
+  const sampleMonogramFilter = computeMonogramFilter(config);
 
   const handleApplyPreset = (target: "header" | "body", presetId: TextEffectType) => {
     const preset = TEXT_EFFECT_PRESETS.find((p) => p.id === presetId);
@@ -129,8 +135,18 @@ export default function TextEffectsEditor({
         <div className="space-y-5 pt-1">
           {/* Live Dual Preview Box */}
           <div className="rounded-md border border-border bg-gradient-to-br from-[#fdf5dc] to-[#f4e6be] p-4 text-center overflow-hidden shadow-inner">
-            <div className="text-[11px] font-medium uppercase tracking-wider text-[#7a5c2d] mb-1.5 flex items-center justify-center gap-1">
-              <span>Live Typography &amp; Shadow Preview</span>
+            <div className="text-[11px] font-medium uppercase tracking-wider text-[#7a5c2d] mb-2 flex items-center justify-center gap-1">
+              <span>Live Typography &amp; Monogram Preview</span>
+            </div>
+
+            {/* Monogram Live Preview */}
+            <div className="flex justify-center mb-3">
+              <img
+                src={monogramUrl || "/lovable-uploads/7f671c66-fc93-4a0b-9c76-5743f1e94474.png"}
+                alt="Groom & Bride Monogram"
+                className="h-14 sm:h-16 w-auto object-contain transition-all duration-200"
+                style={{ filter: sampleMonogramFilter }}
+              />
             </div>
 
             {/* Header Text Preview */}
@@ -158,45 +174,46 @@ export default function TextEffectsEditor({
             </div>
           </div>
 
-          {/* Separate Header/Body Toggle */}
-          <div className="flex items-center justify-between p-2.5 rounded-md border border-border bg-secondary/30">
-            <div className="space-y-0.5">
-              <Label className="text-xs font-semibold">
-                Separate Header &amp; Body Settings
-              </Label>
-              <p className="text-[11px] text-muted-foreground">
-                When enabled, customize different shadow colors, blur, and opacity for headings vs body text.
-              </p>
-            </div>
-            <Switch
-              checked={config.separate_header_body}
-              onCheckedChange={(separate_header_body) =>
-                onChange({ ...config, separate_header_body })
-              }
-            />
-          </div>
-
-          {/* Tab Navigation for Header vs Body */}
+          {/* Tab Navigation for Header vs Body vs Monogram */}
           <Tabs
-            value={config.separate_header_body ? activeTab : "header"}
-            onValueChange={(v) => setActiveTab(v as "header" | "body")}
+            value={activeTab}
+            onValueChange={(v) => setActiveTab(v as "header" | "body" | "monogram")}
             className="w-full space-y-4"
           >
-            {config.separate_header_body ? (
-              <TabsList className="grid grid-cols-2 w-full">
-                <TabsTrigger value="header" className="text-xs gap-1.5">
-                  <Crown className="h-3.5 w-3.5 text-gold" />
-                  Headings &amp; Titles Effect
-                </TabsTrigger>
-                <TabsTrigger value="body" className="text-xs gap-1.5">
-                  <FileText className="h-3.5 w-3.5 text-gold" />
-                  Body &amp; Details Effect
-                </TabsTrigger>
-              </TabsList>
-            ) : null}
+            <TabsList className="grid grid-cols-3 w-full">
+              <TabsTrigger value="header" className="text-xs gap-1 sm:gap-1.5">
+                <Crown className="h-3.5 w-3.5 text-gold shrink-0" />
+                <span className="truncate">Headings</span>
+              </TabsTrigger>
+              <TabsTrigger value="body" className="text-xs gap-1 sm:gap-1.5">
+                <FileText className="h-3.5 w-3.5 text-gold shrink-0" />
+                <span className="truncate">Body Text</span>
+              </TabsTrigger>
+              <TabsTrigger value="monogram" className="text-xs gap-1 sm:gap-1.5">
+                <Heart className="h-3.5 w-3.5 text-gold shrink-0" />
+                <span className="truncate">Monogram</span>
+              </TabsTrigger>
+            </TabsList>
 
-            {/* Section Settings (Header or Body) */}
+            {/* Section Settings: Header */}
             <TabsContent value="header" className="space-y-4 mt-0">
+              <div className="flex items-center justify-between p-2.5 rounded-md border border-border bg-secondary/30">
+                <div className="space-y-0.5">
+                  <Label className="text-xs font-semibold">
+                    Independent Headings &amp; Body Controls
+                  </Label>
+                  <p className="text-[11px] text-muted-foreground">
+                    When enabled, headings have their own shadow color, blur, and offsets.
+                  </p>
+                </div>
+                <Switch
+                  checked={config.separate_header_body}
+                  onCheckedChange={(separate_header_body) =>
+                    onChange({ ...config, separate_header_body })
+                  }
+                />
+              </div>
+
               <ShadowControlPanel
                 title="Heading & Title Shadow Effects"
                 settings={config.header}
@@ -209,7 +226,25 @@ export default function TextEffectsEditor({
               />
             </TabsContent>
 
+            {/* Section Settings: Body */}
             <TabsContent value="body" className="space-y-4 mt-0">
+              <div className="flex items-center justify-between p-2.5 rounded-md border border-border bg-secondary/30">
+                <div className="space-y-0.5">
+                  <Label className="text-xs font-semibold">
+                    Independent Headings &amp; Body Controls
+                  </Label>
+                  <p className="text-[11px] text-muted-foreground">
+                    When enabled, body text has its own shadow color, blur, and offsets.
+                  </p>
+                </div>
+                <Switch
+                  checked={config.separate_header_body}
+                  onCheckedChange={(separate_header_body) =>
+                    onChange({ ...config, separate_header_body })
+                  }
+                />
+              </div>
+
               <ShadowControlPanel
                 title="Body Text Shadow Effects"
                 settings={config.body}
@@ -219,6 +254,16 @@ export default function TextEffectsEditor({
                 copyButtonLabel="Copy this style to Headings"
                 showCopy={config.separate_header_body}
                 defaultColor="#ffffff"
+              />
+            </TabsContent>
+
+            {/* Section Settings: Monogram */}
+            <TabsContent value="monogram" className="space-y-4 mt-0">
+              <MonogramEffectEditor
+                settings={config.monogram || DEFAULT_MONOGRAM_SETTINGS}
+                onChange={(monogram) => onChange({ ...config, monogram })}
+                monogramUrl={monogramUrl}
+                accentColor={accentColor}
               />
             </TabsContent>
           </Tabs>
