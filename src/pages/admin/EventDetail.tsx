@@ -189,22 +189,29 @@ export default function EventDetail() {
       const galleryLayout: "grid" | "mosaic" = raw.gallery_layout === "mosaic" ? "mosaic" : "grid";
       const contactsList = normalizeContacts(raw.contacts);
       const contacts = contactsList.length ? contactsList : buildLegacyContacts(raw.contact_phone);
-      const section_visibility = normalizeVisibility(raw.section_visibility);
+      const rawVis = (raw.section_visibility as any) ?? {};
+      const section_visibility = {
+        ...rawVis,
+        ...normalizeVisibility(raw.section_visibility),
+      };
       const dual_language_config = getDualLanguageConfig(
-        raw.dual_language_config ?? (raw.section_visibility as any)?.dual_language ?? raw.section_visibility,
+        raw.dual_language_config ?? rawVis.dual_language ?? raw.section_visibility,
         raw
       );
-      const open_button_color = raw.open_button_color ?? (raw.section_visibility as any)?.open_button_color ?? null;
+      const open_button_color = raw.open_button_color ?? rawVis.open_button_color ?? null;
       const text_effect_config = normalizeTextEffectConfig(
-        raw.text_effect_config ?? (raw.section_visibility as any)?.text_effects ?? (raw.section_visibility as any)?.text_effect_config ?? raw
+        raw.text_effect_config ?? rawVis.text_effects ?? rawVis.text_effect_config ?? raw
       );
-      const agenda_bg_color = (raw as any).agenda_bg_color ?? (raw.section_visibility as any)?.agenda_style?.bg_color ?? (raw.section_visibility as any)?.agenda_bg_color ?? null;
-      const agenda_bg_opacity = (raw as any).agenda_bg_opacity ?? (raw.section_visibility as any)?.agenda_style?.bg_opacity ?? (raw.section_visibility as any)?.agenda_bg_opacity ?? null;
-      const agenda_asset_color = (raw as any).agenda_asset_color ?? (raw.section_visibility as any)?.agenda_style?.asset_color ?? (raw.section_visibility as any)?.agenda_asset_color ?? null;
+      const agenda_bg_color = (raw as any).agenda_bg_color ?? rawVis.agenda_style?.bg_color ?? rawVis.agenda_bg_color ?? null;
+      const agenda_bg_opacity = (raw as any).agenda_bg_opacity ?? rawVis.agenda_style?.bg_opacity ?? rawVis.agenda_bg_opacity ?? null;
+      const agenda_asset_color = (raw as any).agenda_asset_color ?? rawVis.agenda_style?.asset_color ?? rawVis.agenda_asset_color ?? null;
       const side_frame_config = normalizeSideFrameConfig(
-        raw.side_frame_config ?? (raw.section_visibility as any)?.side_frame_config ?? (raw.section_visibility as any)?.side_frame
+        raw.side_frame_config ?? rawVis.side_frame_config ?? rawVis.side_frame
       );
-      const header_font = (raw as any).header_font ?? (raw.section_visibility as any)?.header_font ?? null;
+      const header_font = (raw as any).header_font ?? rawVis.header_font ?? null;
+      const music_autoplay_cover = (raw as any).music_autoplay_cover ?? rawVis.music_autoplay_cover ?? true;
+      const music_autoplay_invitation = (raw as any).music_autoplay_invitation ?? rawVis.music_autoplay_invitation ?? true;
+      const music_autoplay_mode = (raw as any).music_autoplay_mode ?? rawVis.music_autoplay_mode ?? "both";
       setEvent({
         ...raw,
         agenda_days: days,
@@ -220,7 +227,10 @@ export default function EventDetail() {
         open_button_color,
         text_effect_config,
         header_font,
-      } as Event);
+        music_autoplay_cover,
+        music_autoplay_invitation,
+        music_autoplay_mode,
+      } as any);
     } else {
       setEvent(null);
     }
@@ -418,9 +428,15 @@ export default function EventDetail() {
       return toast.error(upErr.message);
     }
     const { data } = supabase.storage.from("event-media").getPublicUrl(path);
-    setEvent({ ...event, cover_music_url: data.publicUrl });
-    await supabase.from("events").update({ cover_music_url: data.publicUrl }).eq("id", event.id);
+    const currentVis = (event.section_visibility as any) ?? {};
+    const updatedVis = { ...currentVis, background_music: true };
+    setEvent({ ...event, cover_music_url: data.publicUrl, section_visibility: updatedVis });
+    const { error: dbErr } = await supabase.from("events").update({
+      cover_music_url: data.publicUrl,
+      section_visibility: updatedVis,
+    }).eq("id", event.id);
     setUploading(false);
+    if (dbErr) return toast.error(`Database error: ${dbErr.message}`);
     toast.success("Background music uploaded and activated");
   };
 
@@ -2057,8 +2073,25 @@ export default function EventDetail() {
           <MusicEditor
             musicUrl={event.cover_music_url}
             onChange={async (url) => {
-              setEvent({ ...event, cover_music_url: url });
-              await supabase.from("events").update({ cover_music_url: url }).eq("id", event.id);
+              const currentVis = (event.section_visibility as any) ?? {};
+              const updatedVis = {
+                ...currentVis,
+                background_music: url ? true : currentVis.background_music,
+              };
+              setEvent({
+                ...event,
+                cover_music_url: url,
+                section_visibility: updatedVis,
+              });
+              const { error } = await supabase.from("events").update({
+                cover_music_url: url,
+                section_visibility: updatedVis,
+              }).eq("id", event.id);
+              if (error) {
+                toast.error(`Error saving music: ${error.message}`);
+              } else {
+                toast.success(url ? "Background music updated" : "Background music removed");
+              }
             }}
             onUpload={handleUploadCoverMusic}
             uploading={uploading}
@@ -2098,9 +2131,10 @@ export default function EventDetail() {
                 music_autoplay_mode: updatedVis.music_autoplay_mode,
                 section_visibility: updatedVis,
               } as any);
-              await supabase.from("events").update({
+              const { error } = await supabase.from("events").update({
                 section_visibility: updatedVis as any,
               }).eq("id", event.id);
+              if (error) return toast.error(`Error saving autoplay: ${error.message}`);
               toast.success("Music autoplay settings updated");
             }}
           />

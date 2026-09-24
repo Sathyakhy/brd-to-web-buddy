@@ -31,10 +31,21 @@ export default function MusicEditor({
   autoPlayInvitation = true,
   onAutoPlayChange,
 }: Props) {
-  const [customUrlInput, setCustomUrlInput] = useState("");
+  const isPreset = MUSIC_PRESETS.some((p) => p.url === musicUrl);
+  const [customUrlInput, setCustomUrlInput] = useState(
+    musicUrl && !isPreset ? musicUrl : ""
+  );
   const [previewingPresetId, setPreviewingPresetId] = useState<string | null>(null);
   const presetAudioRef = useRef<HTMLAudioElement | null>(null);
   const [dragOver, setDragOver] = useState(false);
+
+  useEffect(() => {
+    if (musicUrl && !MUSIC_PRESETS.some((p) => p.url === musicUrl)) {
+      setCustomUrlInput(musicUrl);
+    } else if (!musicUrl) {
+      setCustomUrlInput("");
+    }
+  }, [musicUrl]);
 
   const handleApplyCustomUrl = () => {
     const trimmed = customUrlInput.trim();
@@ -47,8 +58,14 @@ export default function MusicEditor({
       return;
     }
     onChange(trimmed);
-    setCustomUrlInput("");
     toast.success("Background music URL applied");
+  };
+
+  const handleBlurCustomUrl = () => {
+    const trimmed = customUrlInput.trim();
+    if (trimmed && /^https?:\/\//i.test(trimmed) && trimmed !== musicUrl) {
+      onChange(trimmed);
+    }
   };
 
   const togglePresetPreview = (preset: MusicPreset) => {
@@ -491,6 +508,13 @@ export default function MusicEditor({
                 placeholder="https://example.com/audio/wedding-melody.mp3"
                 value={customUrlInput}
                 onChange={(e) => setCustomUrlInput(e.target.value)}
+                onBlur={handleBlurCustomUrl}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    handleApplyCustomUrl();
+                  }
+                }}
                 className="text-xs font-mono"
               />
               <Button

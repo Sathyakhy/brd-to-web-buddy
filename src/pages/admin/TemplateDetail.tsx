@@ -311,9 +311,10 @@ export default function TemplateDetail() {
 
   const handleUploadMusic = async (file: File) => {
     const MAX = 8 * 1024 * 1024;
-    if (file.size > MAX) { toast.error("Max 8 MB audio file"); return; }
+    if (file.size > MAX) { toast.error("Max 8 MB audio file"); return null; }
     const url = await runUpload("audio", file, "audio");
     if (url) { patchConfig({ cover_music_url: url }); toast.success("Cover music uploaded"); }
+    return url;
   };
 
   const handleUploadGallery = async (files: FileList) => {
