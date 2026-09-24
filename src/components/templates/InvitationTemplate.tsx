@@ -254,7 +254,12 @@ export function KhmerTraditionalTemplate({ event, guestName, children, hideBackg
   const monogramFilter = computeMonogramFilter(textEffectConfig);
 
   // Header and Body font overrides from event or template configuration
-  const rawHeaderFont = (event as any).header_font || (event as any).heading_font;
+  const rawHeaderFont =
+    (event as any).header_font ||
+    (event as any).heading_font ||
+    (event as any).section_visibility?.header_font ||
+    (templateDefaults as any)?.header_font ||
+    (templateVisibility as any)?.header_font;
   const headerFont = resolveHeaderFont(rawHeaderFont, isEn);
 
   const rawBodyFont = (event as any).body_font;

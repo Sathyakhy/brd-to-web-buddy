@@ -375,6 +375,7 @@ export default function PreviewPanel({
                     accentColor={(event as any).text_color_accent ?? null}
                     openButtonColor={(event as any).open_button_color ?? null}
                     language={language}
+                    monogramEffectConfig={(event as any).text_effect_config ?? (event as any).section_visibility?.text_effects ?? null}
                     onOpen={() => setOpened(true)}
                     closing={opened}
                     positionMode="absolute"

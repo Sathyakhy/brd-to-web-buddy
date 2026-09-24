@@ -204,6 +204,7 @@ export default function EventDetail() {
       const side_frame_config = normalizeSideFrameConfig(
         raw.side_frame_config ?? (raw.section_visibility as any)?.side_frame_config ?? (raw.section_visibility as any)?.side_frame
       );
+      const header_font = (raw as any).header_font ?? (raw.section_visibility as any)?.header_font ?? null;
       setEvent({
         ...raw,
         agenda_days: days,
@@ -218,6 +219,7 @@ export default function EventDetail() {
         dual_language_config,
         open_button_color,
         text_effect_config,
+        header_font,
       } as Event);
     } else {
       setEvent(null);
@@ -259,6 +261,7 @@ export default function EventDetail() {
       dual_language: event.dual_language_config,
       open_button_color: event.open_button_color,
       text_effects: event.text_effect_config,
+      header_font: event.header_font ?? (event.section_visibility as any)?.header_font ?? null,
       side_frame_config: event.side_frame_config,
       music_autoplay_cover: (event as any).music_autoplay_cover ?? (event.section_visibility as any)?.music_autoplay_cover ?? true,
       music_autoplay_invitation: (event as any).music_autoplay_invitation ?? (event.section_visibility as any)?.music_autoplay_invitation ?? true,
@@ -311,7 +314,6 @@ export default function EventDetail() {
       letter_bg_opacity: event.letter_bg_opacity,
       cover_music_url: event.cover_music_url,
       share_preview_index: event.share_preview_index,
-      header_font: event.header_font ?? null,
       body_font: event.body_font,
     }).eq("id", event.id);
     setSaving(false);
