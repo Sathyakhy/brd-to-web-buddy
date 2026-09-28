@@ -646,9 +646,15 @@ export default function EventDetail() {
    *  directly into Telegram/Messenger for each guest. */
   const buildKhmerMessage = (guestName: string, token: string) => {
     if (!event) return "";
-    // Names may be stored pipe-separated like "លោក|សោម|សុឃី" — flatten to spaces.
-    const cleanName = (raw: string | null) =>
-      (raw ?? "").split(/\n|\s\/\s/)[0]?.replace(/\|/g, " ").replace(/\s+/g, " ").trim() || "";
+    // Extract the couple's name from stored groom/bride string.
+    // Format: line 0 = father, line 1 = mother, line 2 = couple name (or single line = couple name).
+    const cleanName = (raw: string | null) => {
+      if (!raw) return "";
+      const lines = raw.split(/\r?\n|\s\/\s/).map(s => s.trim()).filter(Boolean);
+      const target = lines.length >= 3 ? lines[2] : (lines.length === 1 ? lines[0] : (lines[lines.length - 1] || ""));
+      const parts = target.split("|").map(s => s.trim()).filter(Boolean);
+      return parts.join(" ").trim();
+    };
     const groom = cleanName(event.groom_name) || "<Groom's Name>";
     const bride = cleanName(event.bride_name) || "<Bride's Name>";
     const couple = `${groom} និង ${bride}`;
@@ -1614,9 +1620,25 @@ export default function EventDetail() {
                 isDual={isDual}
                 enGroomName={event.dual_language_config?.en?.groom_name}
                 enBrideName={event.dual_language_config?.en?.bride_name}
-                onChange={({ groom_name, bride_name }) =>
-                  setEvent({ ...event, groom_name, bride_name })
-                }
+                onChange={({ groom_name, bride_name }) => {
+                  if (!event) return;
+                  const currentDual = event.dual_language_config;
+                  setEvent({
+                    ...event,
+                    groom_name,
+                    bride_name,
+                    dual_language_config: currentDual
+                      ? {
+                          ...currentDual,
+                          km: {
+                            ...currentDual.km,
+                            groom_name,
+                            bride_name,
+                          },
+                        }
+                      : currentDual,
+                  });
+                }}
                 onEnChange={({ groom_name, bride_name }) => {
                   if (!event) return;
                   const currentDual = event.dual_language_config ?? { enabled: false, default_language: "km", km: {}, en: {} };

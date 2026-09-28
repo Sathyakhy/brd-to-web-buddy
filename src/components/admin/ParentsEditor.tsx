@@ -171,6 +171,8 @@ export default function ParentsEditor({
     const f = first.trim();
     const l = last.trim();
     if (!f && !l) return "";
+    if (!l) return f;
+    if (!f) return l;
     return `${f}|${l}`;
   };
   const groomCouple = splitCouple(groomCoupleLine);
