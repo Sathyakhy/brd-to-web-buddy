@@ -1989,7 +1989,22 @@ export default function EventDetail() {
               bgOpacity={event.agenda_bg_opacity}
               onChange={(days) => setEvent({ ...event, agenda_days: days })}
               onChangeViewStyle={(v) => setEvent({ ...event, agenda_view_style: v })}
-              onChangeStyle={(patch) => setEvent({ ...event, ...patch })}
+              onChangeStyle={(patch) => {
+                const currentVis = (event.section_visibility as any) ?? {};
+                const nextVis = {
+                  ...currentVis,
+                  agenda_style: {
+                    ...(currentVis.agenda_style ?? {}),
+                    bg_color: patch.agenda_bg_color !== undefined ? patch.agenda_bg_color : (event.agenda_bg_color ?? null),
+                    bg_opacity: patch.agenda_bg_opacity !== undefined ? patch.agenda_bg_opacity : (event.agenda_bg_opacity ?? null),
+                    asset_color: patch.agenda_asset_color !== undefined ? patch.agenda_asset_color : (event.agenda_asset_color ?? null),
+                  },
+                  agenda_bg_color: patch.agenda_bg_color !== undefined ? patch.agenda_bg_color : (event.agenda_bg_color ?? null),
+                  agenda_bg_opacity: patch.agenda_bg_opacity !== undefined ? patch.agenda_bg_opacity : (event.agenda_bg_opacity ?? null),
+                  agenda_asset_color: patch.agenda_asset_color !== undefined ? patch.agenda_asset_color : (event.agenda_asset_color ?? null),
+                };
+                setEvent({ ...event, ...patch, section_visibility: nextVis });
+              }}
             />
             <p className="text-xs text-muted-foreground mt-4">
               Tip: Save changes below to publish your agenda.

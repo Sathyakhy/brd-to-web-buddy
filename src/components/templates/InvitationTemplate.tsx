@@ -798,8 +798,7 @@ export function KhmerTraditionalTemplate({ event, guestName, children, hideBackg
         {/* Agenda (editable, multi-day, list/card) — configurable background color,
             opacity, and dedicated asset/icon color. */}
         {isVisible("agenda") && agendaDays.length > 0 && (() => {
-          const fallbackBg = hexWithOpacity("#fff8e7", 70);
-          const agendaBgColor =
+          const rawBgColor =
             (event as any).agenda_bg_color ||
             (event as any).section_visibility?.agenda_style?.bg_color ||
             (event as any).section_visibility?.agenda_bg_color ||
@@ -808,16 +807,21 @@ export function KhmerTraditionalTemplate({ event, guestName, children, hideBackg
             (event as any).templateDefaults?.agenda_bg_color ||
             (event as any).letter_bg_color;
 
-          const agendaBgOpacity =
+          const rawBgOpacity =
             (event as any).agenda_bg_opacity ??
             (event as any).section_visibility?.agenda_style?.bg_opacity ??
             (event as any).section_visibility?.agenda_bg_opacity ??
             (event as any).template_section_visibility?.agenda_style?.bg_opacity ??
             (event as any).template_section_visibility?.agenda_bg_opacity ??
             (event as any).templateDefaults?.agenda_bg_opacity ??
-            ((event as any).agenda_bg_color ? 70 : ((event as any).letter_bg_opacity ?? 70));
+            (event as any).letter_bg_opacity;
 
-          const cardBg = hexWithOpacity(agendaBgColor, agendaBgOpacity) ?? fallbackBg;
+          const safeColor = (rawBgColor && String(rawBgColor).trim()) || "#fff8e7";
+          const safeOpacity = typeof rawBgOpacity === "number" && !isNaN(rawBgOpacity)
+            ? Math.max(0, Math.min(100, rawBgOpacity))
+            : 70;
+
+          const cardBg = hexWithOpacity(safeColor, safeOpacity) || `rgba(255, 248, 231, ${safeOpacity / 100})`;
           const agendaAssetColor =
             (event as any).agenda_asset_color ||
             (event as any).section_visibility?.agenda_style?.asset_color ||
@@ -828,13 +832,13 @@ export function KhmerTraditionalTemplate({ event, guestName, children, hideBackg
             colorAccent;
 
           const agendaCardStyle: React.CSSProperties = {
-            background: cardBg ?? undefined,
+            backgroundColor: cardBg,
             border: `1px solid ${agendaAssetColor}33`,
             borderRadius: 12,
-            backdropFilter: "blur(2px)",
+            backdropFilter: safeOpacity > 0 ? "blur(2px)" : "none",
           };
           return (
-          <section className="p-5 sm:p-6 my-8 w-full" style={agendaCardStyle}>
+          <section className="p-5 sm:p-6 my-8 w-full transition-all" style={agendaCardStyle}>
             {/* Day tabs (only when more than one day) */}
             {agendaDays.length > 1 && (
               <div className="flex flex-wrap justify-center gap-2 mb-4">
@@ -949,7 +953,10 @@ export function KhmerTraditionalTemplate({ event, guestName, children, hideBackg
                           <div
                             key={item.id}
                             className="rounded-lg p-2.5 flex flex-col items-center text-center w-full h-full justify-center"
-                            style={{ background: "rgba(255,255,255,0.55)", border: `1px solid ${agendaAssetColor}66` }}
+                            style={{
+                              background: hexWithOpacity("#ffffff", Math.round(safeOpacity * 0.65)) || "rgba(255,255,255,0.55)",
+                              border: `1px solid ${agendaAssetColor}66`
+                            }}
                           >
                             {item.iconImageUrl ? (
                               <AgendaIconImage
@@ -1097,13 +1104,24 @@ export function KhmerTraditionalTemplate({ event, guestName, children, hideBackg
             When no colour is set we fall back to a faint tint derived from
             the page accent so the card always blends in. */}
         {(() => {
-          const fallbackBg = hexWithOpacity("#fff8e7", 70);
-          const cardBg = hexWithOpacity(event.letter_bg_color, event.letter_bg_opacity ?? 70) ?? fallbackBg;
+          const rawLetterColor =
+            (event as any).letter_bg_color ||
+            (event as any).section_visibility?.letter_bg_color ||
+            (event as any).templateDefaults?.letter_bg_color;
+          const rawLetterOpacity =
+            (event as any).letter_bg_opacity ??
+            (event as any).section_visibility?.letter_bg_opacity ??
+            (event as any).templateDefaults?.letter_bg_opacity;
+          const safeColor = (rawLetterColor && String(rawLetterColor).trim()) || "#fff8e7";
+          const safeOpacity = typeof rawLetterOpacity === "number" && !isNaN(rawLetterOpacity)
+            ? Math.max(0, Math.min(100, rawLetterOpacity))
+            : 70;
+          const cardBg = hexWithOpacity(safeColor, safeOpacity) || `rgba(255, 248, 231, ${safeOpacity / 100})`;
           const cardStyle: React.CSSProperties = {
-            background: cardBg ?? undefined,
+            backgroundColor: cardBg,
             border: `1px solid ${colorAccent}33`,
             borderRadius: 12,
-            backdropFilter: "blur(2px)",
+            backdropFilter: safeOpacity > 0 ? "blur(2px)" : "none",
           };
 
           return (

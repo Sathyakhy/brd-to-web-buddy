@@ -1474,7 +1474,22 @@ export default function TemplateDetail() {
                   bgOpacity={draftConfig.agenda_bg_opacity}
                   onChange={(days) => patchConfig({ agenda_days: days })}
                   onChangeViewStyle={(v) => patchConfig({ agenda_view_style: v })}
-                  onChangeStyle={(patch) => patchConfig(patch)}
+                  onChangeStyle={(patch) => {
+                    const currentVis = (draftConfig.section_visibility as any) ?? {};
+                    const nextVis = {
+                      ...currentVis,
+                      agenda_style: {
+                        ...(currentVis.agenda_style ?? {}),
+                        bg_color: patch.agenda_bg_color !== undefined ? patch.agenda_bg_color : (draftConfig.agenda_bg_color ?? null),
+                        bg_opacity: patch.agenda_bg_opacity !== undefined ? patch.agenda_bg_opacity : (draftConfig.agenda_bg_opacity ?? null),
+                        asset_color: patch.agenda_asset_color !== undefined ? patch.agenda_asset_color : (draftConfig.agenda_asset_color ?? null),
+                      },
+                      agenda_bg_color: patch.agenda_bg_color !== undefined ? patch.agenda_bg_color : (draftConfig.agenda_bg_color ?? null),
+                      agenda_bg_opacity: patch.agenda_bg_opacity !== undefined ? patch.agenda_bg_opacity : (draftConfig.agenda_bg_opacity ?? null),
+                      agenda_asset_color: patch.agenda_asset_color !== undefined ? patch.agenda_asset_color : (draftConfig.agenda_asset_color ?? null),
+                    };
+                    patchConfig({ ...patch, section_visibility: nextVis });
+                  }}
                 />
               </div>
             </CollapsibleSection>
