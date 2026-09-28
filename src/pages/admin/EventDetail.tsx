@@ -352,8 +352,6 @@ export default function EventDetail() {
       letter_bg_opacity: event.letter_bg_opacity,
       cover_music_url: event.cover_music_url,
       share_preview_index: event.share_preview_index,
-      header_font: event.header_font ?? null,
-      body_font: event.body_font ?? null,
     }).eq("id", event.id);
     setSaving(false);
     if (error) return toast.error(error.message);
