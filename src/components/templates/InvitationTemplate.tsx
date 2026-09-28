@@ -127,6 +127,29 @@ export type TemplateData = {
   rsvp_bg_color?: string | null;
   /** Opacity 0–100 applied to {@link rsvp_bg_color}. */
   rsvp_bg_opacity?: number | null;
+  /** Custom header font for the RSVP card question/title */
+  rsvp_header_font?: string | null;
+  /** English header font for the RSVP card */
+  rsvp_header_font_en?: string | null;
+  /** Custom body font for the RSVP card */
+  rsvp_body_font?: string | null;
+  /** English body font for the RSVP card */
+  rsvp_body_font_en?: string | null;
+  /** RSVP header text effect preset/type */
+  rsvp_header_effect?: string | null;
+  rsvp_header_effect_color?: string | null;
+  rsvp_header_effect_blur?: number | null;
+  rsvp_header_effect_x?: number | null;
+  rsvp_header_effect_y?: number | null;
+  rsvp_header_effect_opacity?: number | null;
+  /** RSVP card shadow preset/type */
+  rsvp_card_shadow_type?: string | null;
+  rsvp_card_shadow_color?: string | null;
+  rsvp_card_shadow_blur?: number | null;
+  rsvp_card_shadow_spread?: number | null;
+  rsvp_card_shadow_x?: number | null;
+  rsvp_card_shadow_y?: number | null;
+  rsvp_card_shadow_opacity?: number | null;
   /** Optional admin-uploaded ornamental frame (Signature Package). */
   frame_url?: string | null;
   /** "image" or "video" — tells the renderer which element to use. */
@@ -1313,17 +1336,144 @@ export function KhmerTraditionalTemplate({ event, guestName, children, hideBackg
 
         {/* RSVP slot — RsvpCard provides its own kt-section-card framing. */}
         {isVisible("rsvp") && (() => {
+          const rawEv = event as any;
+          const rawVis = rawEv.section_visibility || {};
+          const rawTplVis = rawEv.template_section_visibility || {};
+          const rawTplDef = rawEv.templateDefaults || {};
+          const rsvpStyle = rawVis.rsvp_style || {};
+
           const rsvpBgColor =
-            (event as any).rsvp_bg_color ||
-            (event as any).section_visibility?.rsvp_bg_color ||
-            (event as any).template_section_visibility?.rsvp_bg_color ||
-            (event as any).templateDefaults?.rsvp_bg_color ||
+            rawEv.rsvp_bg_color ??
+            rawVis.rsvp_bg_color ??
+            rsvpStyle.bg_color ??
+            rawTplVis.rsvp_bg_color ??
+            rawTplDef.rsvp_bg_color ??
             null;
+
           const rsvpBgOpacity =
-            typeof (event as any).rsvp_bg_opacity === "number" ? (event as any).rsvp_bg_opacity :
-            typeof (event as any).section_visibility?.rsvp_bg_opacity === "number" ? (event as any).section_visibility?.rsvp_bg_opacity :
-            typeof (event as any).template_section_visibility?.rsvp_bg_opacity === "number" ? (event as any).template_section_visibility?.rsvp_bg_opacity :
-            typeof (event as any).templateDefaults?.rsvp_bg_opacity === "number" ? (event as any).templateDefaults?.rsvp_bg_opacity :
+            typeof rawEv.rsvp_bg_opacity === "number" ? rawEv.rsvp_bg_opacity :
+            typeof rawVis.rsvp_bg_opacity === "number" ? rawVis.rsvp_bg_opacity :
+            typeof rsvpStyle.bg_opacity === "number" ? rsvpStyle.bg_opacity :
+            typeof rawTplVis.rsvp_bg_opacity === "number" ? rawTplVis.rsvp_bg_opacity :
+            typeof rawTplDef.rsvp_bg_opacity === "number" ? rawTplDef.rsvp_bg_opacity :
+            null;
+
+          const rsvpHeaderFont =
+            rawEv.rsvp_header_font ??
+            rawVis.rsvp_header_font ??
+            rsvpStyle.header_font ??
+            rawTplVis.rsvp_header_font ??
+            rawTplDef.rsvp_header_font ??
+            rawHeaderFont ??
+            null;
+
+          const rsvpHeaderFontEn =
+            rawEv.rsvp_header_font_en ??
+            rawVis.rsvp_header_font_en ??
+            rsvpStyle.header_font_en ??
+            rawTplVis.rsvp_header_font_en ??
+            rawTplDef.rsvp_header_font_en ??
+            headerFontEn ??
+            null;
+
+          const rsvpBodyFont =
+            rawEv.rsvp_body_font ??
+            rawVis.rsvp_body_font ??
+            rsvpStyle.body_font ??
+            rawTplVis.rsvp_body_font ??
+            rawTplDef.rsvp_body_font ??
+            rawBodyFont ??
+            null;
+
+          const rsvpBodyFontEn =
+            rawEv.rsvp_body_font_en ??
+            rawVis.rsvp_body_font_en ??
+            rsvpStyle.body_font_en ??
+            rawTplVis.rsvp_body_font_en ??
+            rawTplDef.rsvp_body_font_en ??
+            bodyFontEn ??
+            null;
+
+          const rsvpHeaderEffect =
+            rawEv.rsvp_header_effect ??
+            rawVis.rsvp_header_effect ??
+            rsvpStyle.header_effect ??
+            rawTplVis.rsvp_header_effect ??
+            rawTplDef.rsvp_header_effect ??
+            null;
+
+          const rsvpHeaderEffectColor =
+            rawEv.rsvp_header_effect_color ??
+            rawVis.rsvp_header_effect_color ??
+            rsvpStyle.header_effect_color ??
+            null;
+
+          const rsvpHeaderEffectBlur =
+            typeof rawEv.rsvp_header_effect_blur === "number" ? rawEv.rsvp_header_effect_blur :
+            typeof rawVis.rsvp_header_effect_blur === "number" ? rawVis.rsvp_header_effect_blur :
+            typeof rsvpStyle.header_effect_blur === "number" ? rsvpStyle.header_effect_blur :
+            null;
+
+          const rsvpHeaderEffectX =
+            typeof rawEv.rsvp_header_effect_x === "number" ? rawEv.rsvp_header_effect_x :
+            typeof rawVis.rsvp_header_effect_x === "number" ? rawVis.rsvp_header_effect_x :
+            typeof rsvpStyle.header_effect_x === "number" ? rsvpStyle.header_effect_x :
+            null;
+
+          const rsvpHeaderEffectY =
+            typeof rawEv.rsvp_header_effect_y === "number" ? rawEv.rsvp_header_effect_y :
+            typeof rawVis.rsvp_header_effect_y === "number" ? rawVis.rsvp_header_effect_y :
+            typeof rsvpStyle.header_effect_y === "number" ? rsvpStyle.header_effect_y :
+            null;
+
+          const rsvpHeaderEffectOpacity =
+            typeof rawEv.rsvp_header_effect_opacity === "number" ? rawEv.rsvp_header_effect_opacity :
+            typeof rawVis.rsvp_header_effect_opacity === "number" ? rawVis.rsvp_header_effect_opacity :
+            typeof rsvpStyle.header_effect_opacity === "number" ? rsvpStyle.header_effect_opacity :
+            null;
+
+          const rsvpCardShadowType =
+            rawEv.rsvp_card_shadow_type ??
+            rawVis.rsvp_card_shadow_type ??
+            rsvpStyle.card_shadow_type ??
+            rawTplVis.rsvp_card_shadow_type ??
+            rawTplDef.rsvp_card_shadow_type ??
+            null;
+
+          const rsvpCardShadowColor =
+            rawEv.rsvp_card_shadow_color ??
+            rawVis.rsvp_card_shadow_color ??
+            rsvpStyle.card_shadow_color ??
+            null;
+
+          const rsvpCardShadowBlur =
+            typeof rawEv.rsvp_card_shadow_blur === "number" ? rawEv.rsvp_card_shadow_blur :
+            typeof rawVis.rsvp_card_shadow_blur === "number" ? rawVis.rsvp_card_shadow_blur :
+            typeof rsvpStyle.card_shadow_blur === "number" ? rsvpStyle.card_shadow_blur :
+            null;
+
+          const rsvpCardShadowSpread =
+            typeof rawEv.rsvp_card_shadow_spread === "number" ? rawEv.rsvp_card_shadow_spread :
+            typeof rawVis.rsvp_card_shadow_spread === "number" ? rawVis.rsvp_card_shadow_spread :
+            typeof rsvpStyle.card_shadow_spread === "number" ? rsvpStyle.card_shadow_spread :
+            null;
+
+          const rsvpCardShadowX =
+            typeof rawEv.rsvp_card_shadow_x === "number" ? rawEv.rsvp_card_shadow_x :
+            typeof rawVis.rsvp_card_shadow_x === "number" ? rawVis.rsvp_card_shadow_x :
+            typeof rsvpStyle.card_shadow_x === "number" ? rsvpStyle.card_shadow_x :
+            null;
+
+          const rsvpCardShadowY =
+            typeof rawEv.rsvp_card_shadow_y === "number" ? rawEv.rsvp_card_shadow_y :
+            typeof rawVis.rsvp_card_shadow_y === "number" ? rawVis.rsvp_card_shadow_y :
+            typeof rsvpStyle.card_shadow_y === "number" ? rsvpStyle.card_shadow_y :
+            null;
+
+          const rsvpCardShadowOpacity =
+            typeof rawEv.rsvp_card_shadow_opacity === "number" ? rawEv.rsvp_card_shadow_opacity :
+            typeof rawVis.rsvp_card_shadow_opacity === "number" ? rawVis.rsvp_card_shadow_opacity :
+            typeof rsvpStyle.card_shadow_opacity === "number" ? rsvpStyle.card_shadow_opacity :
             null;
 
           if (React.isValidElement(children)) {
@@ -1331,6 +1481,23 @@ export function KhmerTraditionalTemplate({ event, guestName, children, hideBackg
               language,
               bgColor: (children.props as any).bgColor ?? rsvpBgColor,
               bgOpacity: typeof (children.props as any).bgOpacity === "number" ? (children.props as any).bgOpacity : rsvpBgOpacity,
+              headerFont: (children.props as any).headerFont ?? rsvpHeaderFont,
+              headerFontEn: (children.props as any).headerFontEn ?? rsvpHeaderFontEn,
+              bodyFont: (children.props as any).bodyFont ?? rsvpBodyFont,
+              bodyFontEn: (children.props as any).bodyFontEn ?? rsvpBodyFontEn,
+              headerEffect: (children.props as any).headerEffect ?? rsvpHeaderEffect,
+              headerEffectColor: (children.props as any).headerEffectColor ?? rsvpHeaderEffectColor,
+              headerEffectBlur: (children.props as any).headerEffectBlur ?? rsvpHeaderEffectBlur,
+              headerEffectX: (children.props as any).headerEffectX ?? rsvpHeaderEffectX,
+              headerEffectY: (children.props as any).headerEffectY ?? rsvpHeaderEffectY,
+              headerEffectOpacity: (children.props as any).headerEffectOpacity ?? rsvpHeaderEffectOpacity,
+              cardShadowType: (children.props as any).cardShadowType ?? rsvpCardShadowType,
+              cardShadowColor: (children.props as any).cardShadowColor ?? rsvpCardShadowColor,
+              cardShadowBlur: (children.props as any).cardShadowBlur ?? rsvpCardShadowBlur,
+              cardShadowSpread: (children.props as any).cardShadowSpread ?? rsvpCardShadowSpread,
+              cardShadowX: (children.props as any).cardShadowX ?? rsvpCardShadowX,
+              cardShadowY: (children.props as any).cardShadowY ?? rsvpCardShadowY,
+              cardShadowOpacity: (children.props as any).cardShadowOpacity ?? rsvpCardShadowOpacity,
             });
           }
           return children;
@@ -1913,6 +2080,10 @@ export function InvitationTemplate({
     "map_button_bg_color" | "map_button_bg_opacity" |
     "countdown_bg_color" | "countdown_bg_opacity" |
     "rsvp_bg_color" | "rsvp_bg_opacity" |
+    "rsvp_header_font" | "rsvp_header_font_en" |
+    "rsvp_body_font" | "rsvp_body_font_en" |
+    "rsvp_header_effect" | "rsvp_header_effect_color" | "rsvp_header_effect_blur" | "rsvp_header_effect_x" | "rsvp_header_effect_y" | "rsvp_header_effect_opacity" |
+    "rsvp_card_shadow_type" | "rsvp_card_shadow_color" | "rsvp_card_shadow_blur" | "rsvp_card_shadow_spread" | "rsvp_card_shadow_x" | "rsvp_card_shadow_y" | "rsvp_card_shadow_opacity" |
     "frame_url" | "frame_type" |
     "header_font" | "header_font_km" | "header_font_en" |
     "body_font" | "body_font_km" | "body_font_en" |
@@ -1950,6 +2121,23 @@ export function InvitationTemplate({
         countdown_bg_opacity: fallback("countdown_bg_opacity") as any,
         rsvp_bg_color: fallback("rsvp_bg_color") as any,
         rsvp_bg_opacity: fallback("rsvp_bg_opacity") as any,
+        rsvp_header_font: fallback("rsvp_header_font") as any,
+        rsvp_header_font_en: fallback("rsvp_header_font_en") as any,
+        rsvp_body_font: fallback("rsvp_body_font") as any,
+        rsvp_body_font_en: fallback("rsvp_body_font_en") as any,
+        rsvp_header_effect: fallback("rsvp_header_effect") as any,
+        rsvp_header_effect_color: fallback("rsvp_header_effect_color") as any,
+        rsvp_header_effect_blur: fallback("rsvp_header_effect_blur") as any,
+        rsvp_header_effect_x: fallback("rsvp_header_effect_x") as any,
+        rsvp_header_effect_y: fallback("rsvp_header_effect_y") as any,
+        rsvp_header_effect_opacity: fallback("rsvp_header_effect_opacity") as any,
+        rsvp_card_shadow_type: fallback("rsvp_card_shadow_type") as any,
+        rsvp_card_shadow_color: fallback("rsvp_card_shadow_color") as any,
+        rsvp_card_shadow_blur: fallback("rsvp_card_shadow_blur") as any,
+        rsvp_card_shadow_spread: fallback("rsvp_card_shadow_spread") as any,
+        rsvp_card_shadow_x: fallback("rsvp_card_shadow_x") as any,
+        rsvp_card_shadow_y: fallback("rsvp_card_shadow_y") as any,
+        rsvp_card_shadow_opacity: fallback("rsvp_card_shadow_opacity") as any,
         header_font: fallback("header_font") as any,
         header_font_km: fallback("header_font_km") as any,
         header_font_en: fallback("header_font_en") as any,

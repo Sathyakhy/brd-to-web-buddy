@@ -49,6 +49,7 @@ import ParentsEditor from "@/components/admin/ParentsEditor";
 import CollapsibleSection from "@/components/admin/CollapsibleSection";
 import LetterCardStyleEditor from "@/components/admin/LetterCardStyleEditor";
 import ElementStyleEditor from "@/components/admin/ElementStyleEditor";
+import RsvpCardStyleEditor from "@/components/admin/RsvpCardStyleEditor";
 import MusicEditor from "@/components/admin/MusicEditor";
 import PreviewPanel from "@/components/admin/PreviewPanel";
 import EventBillingTab from "@/components/admin/EventBillingTab";
@@ -124,6 +125,23 @@ type Event = {
   countdown_bg_opacity?: number | null;
   rsvp_bg_color?: string | null;
   rsvp_bg_opacity?: number | null;
+  rsvp_header_font?: string | null;
+  rsvp_header_font_en?: string | null;
+  rsvp_body_font?: string | null;
+  rsvp_body_font_en?: string | null;
+  rsvp_header_effect?: string | null;
+  rsvp_header_effect_color?: string | null;
+  rsvp_header_effect_blur?: number | null;
+  rsvp_header_effect_x?: number | null;
+  rsvp_header_effect_y?: number | null;
+  rsvp_header_effect_opacity?: number | null;
+  rsvp_card_shadow_type?: string | null;
+  rsvp_card_shadow_color?: string | null;
+  rsvp_card_shadow_blur?: number | null;
+  rsvp_card_shadow_spread?: number | null;
+  rsvp_card_shadow_x?: number | null;
+  rsvp_card_shadow_y?: number | null;
+  rsvp_card_shadow_opacity?: number | null;
   side_frame_config?: SideFrameConfig;
   envelope_unboxing?: EnvelopeUnboxingConfig;
   cover_music_url: string | null;
@@ -226,8 +244,25 @@ export default function EventDetail() {
       const map_button_bg_opacity = typeof (raw as any).map_button_bg_opacity === "number" ? (raw as any).map_button_bg_opacity : (typeof rawVis.map_button_bg_opacity === "number" ? rawVis.map_button_bg_opacity : null);
       const countdown_bg_color = (raw as any).countdown_bg_color ?? rawVis.countdown_bg_color ?? null;
       const countdown_bg_opacity = typeof (raw as any).countdown_bg_opacity === "number" ? (raw as any).countdown_bg_opacity : (typeof rawVis.countdown_bg_opacity === "number" ? rawVis.countdown_bg_opacity : null);
-      const rsvp_bg_color = (raw as any).rsvp_bg_color ?? rawVis.rsvp_bg_color ?? null;
-      const rsvp_bg_opacity = typeof (raw as any).rsvp_bg_opacity === "number" ? (raw as any).rsvp_bg_opacity : (typeof rawVis.rsvp_bg_opacity === "number" ? rawVis.rsvp_bg_opacity : null);
+      const rsvp_bg_color = (raw as any).rsvp_bg_color ?? rawVis.rsvp_bg_color ?? rawVis.rsvp_style?.bg_color ?? null;
+      const rsvp_bg_opacity = typeof (raw as any).rsvp_bg_opacity === "number" ? (raw as any).rsvp_bg_opacity : (typeof rawVis.rsvp_bg_opacity === "number" ? rawVis.rsvp_bg_opacity : (typeof rawVis.rsvp_style?.bg_opacity === "number" ? rawVis.rsvp_style?.bg_opacity : null));
+      const rsvp_header_font = (raw as any).rsvp_header_font ?? rawVis.rsvp_header_font ?? rawVis.rsvp_style?.header_font ?? null;
+      const rsvp_header_font_en = (raw as any).rsvp_header_font_en ?? rawVis.rsvp_header_font_en ?? rawVis.rsvp_style?.header_font_en ?? null;
+      const rsvp_body_font = (raw as any).rsvp_body_font ?? rawVis.rsvp_body_font ?? rawVis.rsvp_style?.body_font ?? null;
+      const rsvp_body_font_en = (raw as any).rsvp_body_font_en ?? rawVis.rsvp_body_font_en ?? rawVis.rsvp_style?.body_font_en ?? null;
+      const rsvp_header_effect = (raw as any).rsvp_header_effect ?? rawVis.rsvp_header_effect ?? rawVis.rsvp_style?.header_effect ?? null;
+      const rsvp_header_effect_color = (raw as any).rsvp_header_effect_color ?? rawVis.rsvp_header_effect_color ?? rawVis.rsvp_style?.header_effect_color ?? null;
+      const rsvp_header_effect_blur = typeof (raw as any).rsvp_header_effect_blur === "number" ? (raw as any).rsvp_header_effect_blur : (typeof rawVis.rsvp_header_effect_blur === "number" ? rawVis.rsvp_header_effect_blur : (typeof rawVis.rsvp_style?.header_effect_blur === "number" ? rawVis.rsvp_style?.header_effect_blur : null));
+      const rsvp_header_effect_x = typeof (raw as any).rsvp_header_effect_x === "number" ? (raw as any).rsvp_header_effect_x : (typeof rawVis.rsvp_header_effect_x === "number" ? rawVis.rsvp_header_effect_x : (typeof rawVis.rsvp_style?.header_effect_x === "number" ? rawVis.rsvp_style?.header_effect_x : null));
+      const rsvp_header_effect_y = typeof (raw as any).rsvp_header_effect_y === "number" ? (raw as any).rsvp_header_effect_y : (typeof rawVis.rsvp_header_effect_y === "number" ? rawVis.rsvp_header_effect_y : (typeof rawVis.rsvp_style?.header_effect_y === "number" ? rawVis.rsvp_style?.header_effect_y : null));
+      const rsvp_header_effect_opacity = typeof (raw as any).rsvp_header_effect_opacity === "number" ? (raw as any).rsvp_header_effect_opacity : (typeof rawVis.rsvp_header_effect_opacity === "number" ? rawVis.rsvp_header_effect_opacity : (typeof rawVis.rsvp_style?.header_effect_opacity === "number" ? rawVis.rsvp_style?.header_effect_opacity : null));
+      const rsvp_card_shadow_type = (raw as any).rsvp_card_shadow_type ?? rawVis.rsvp_card_shadow_type ?? rawVis.rsvp_style?.card_shadow_type ?? null;
+      const rsvp_card_shadow_color = (raw as any).rsvp_card_shadow_color ?? rawVis.rsvp_card_shadow_color ?? rawVis.rsvp_style?.card_shadow_color ?? null;
+      const rsvp_card_shadow_blur = typeof (raw as any).rsvp_card_shadow_blur === "number" ? (raw as any).rsvp_card_shadow_blur : (typeof rawVis.rsvp_card_shadow_blur === "number" ? rawVis.rsvp_card_shadow_blur : (typeof rawVis.rsvp_style?.card_shadow_blur === "number" ? rawVis.rsvp_style?.card_shadow_blur : null));
+      const rsvp_card_shadow_spread = typeof (raw as any).rsvp_card_shadow_spread === "number" ? (raw as any).rsvp_card_shadow_spread : (typeof rawVis.rsvp_card_shadow_spread === "number" ? rawVis.rsvp_card_shadow_spread : (typeof rawVis.rsvp_style?.card_shadow_spread === "number" ? rawVis.rsvp_style?.card_shadow_spread : null));
+      const rsvp_card_shadow_x = typeof (raw as any).rsvp_card_shadow_x === "number" ? (raw as any).rsvp_card_shadow_x : (typeof rawVis.rsvp_card_shadow_x === "number" ? rawVis.rsvp_card_shadow_x : (typeof rawVis.rsvp_style?.card_shadow_x === "number" ? rawVis.rsvp_style?.card_shadow_x : null));
+      const rsvp_card_shadow_y = typeof (raw as any).rsvp_card_shadow_y === "number" ? (raw as any).rsvp_card_shadow_y : (typeof rawVis.rsvp_card_shadow_y === "number" ? rawVis.rsvp_card_shadow_y : (typeof rawVis.rsvp_style?.card_shadow_y === "number" ? rawVis.rsvp_style?.card_shadow_y : null));
+      const rsvp_card_shadow_opacity = typeof (raw as any).rsvp_card_shadow_opacity === "number" ? (raw as any).rsvp_card_shadow_opacity : (typeof rawVis.rsvp_card_shadow_opacity === "number" ? rawVis.rsvp_card_shadow_opacity : (typeof rawVis.rsvp_style?.card_shadow_opacity === "number" ? rawVis.rsvp_style?.card_shadow_opacity : null));
       const side_frame_config = normalizeSideFrameConfig(
         raw.side_frame_config ?? rawVis.side_frame_config ?? rawVis.side_frame
       );
@@ -256,6 +291,23 @@ export default function EventDetail() {
         countdown_bg_opacity,
         rsvp_bg_color,
         rsvp_bg_opacity,
+        rsvp_header_font,
+        rsvp_header_font_en,
+        rsvp_body_font,
+        rsvp_body_font_en,
+        rsvp_header_effect,
+        rsvp_header_effect_color,
+        rsvp_header_effect_blur,
+        rsvp_header_effect_x,
+        rsvp_header_effect_y,
+        rsvp_header_effect_opacity,
+        rsvp_card_shadow_type,
+        rsvp_card_shadow_color,
+        rsvp_card_shadow_blur,
+        rsvp_card_shadow_spread,
+        rsvp_card_shadow_x,
+        rsvp_card_shadow_y,
+        rsvp_card_shadow_opacity,
         side_frame_config,
         envelope_unboxing,
         gallery_layout: galleryLayout,
@@ -337,8 +389,46 @@ export default function EventDetail() {
       map_button_bg_opacity: event.map_button_bg_opacity ?? null,
       countdown_bg_color: event.countdown_bg_color ?? null,
       countdown_bg_opacity: event.countdown_bg_opacity ?? null,
+      rsvp_style: {
+        bg_color: event.rsvp_bg_color ?? null,
+        bg_opacity: event.rsvp_bg_opacity ?? null,
+        header_font: event.rsvp_header_font ?? null,
+        header_font_en: event.rsvp_header_font_en ?? null,
+        body_font: event.rsvp_body_font ?? null,
+        body_font_en: event.rsvp_body_font_en ?? null,
+        header_effect: event.rsvp_header_effect ?? "default",
+        header_effect_color: event.rsvp_header_effect_color ?? null,
+        header_effect_blur: event.rsvp_header_effect_blur ?? null,
+        header_effect_x: event.rsvp_header_effect_x ?? null,
+        header_effect_y: event.rsvp_header_effect_y ?? null,
+        header_effect_opacity: event.rsvp_header_effect_opacity ?? null,
+        card_shadow_type: event.rsvp_card_shadow_type ?? "default",
+        card_shadow_color: event.rsvp_card_shadow_color ?? null,
+        card_shadow_blur: event.rsvp_card_shadow_blur ?? null,
+        card_shadow_spread: event.rsvp_card_shadow_spread ?? null,
+        card_shadow_x: event.rsvp_card_shadow_x ?? null,
+        card_shadow_y: event.rsvp_card_shadow_y ?? null,
+        card_shadow_opacity: event.rsvp_card_shadow_opacity ?? null,
+      },
       rsvp_bg_color: event.rsvp_bg_color ?? null,
       rsvp_bg_opacity: event.rsvp_bg_opacity ?? null,
+      rsvp_header_font: event.rsvp_header_font ?? null,
+      rsvp_header_font_en: event.rsvp_header_font_en ?? null,
+      rsvp_body_font: event.rsvp_body_font ?? null,
+      rsvp_body_font_en: event.rsvp_body_font_en ?? null,
+      rsvp_header_effect: event.rsvp_header_effect ?? null,
+      rsvp_header_effect_color: event.rsvp_header_effect_color ?? null,
+      rsvp_header_effect_blur: event.rsvp_header_effect_blur ?? null,
+      rsvp_header_effect_x: event.rsvp_header_effect_x ?? null,
+      rsvp_header_effect_y: event.rsvp_header_effect_y ?? null,
+      rsvp_header_effect_opacity: event.rsvp_header_effect_opacity ?? null,
+      rsvp_card_shadow_type: event.rsvp_card_shadow_type ?? null,
+      rsvp_card_shadow_color: event.rsvp_card_shadow_color ?? null,
+      rsvp_card_shadow_blur: event.rsvp_card_shadow_blur ?? null,
+      rsvp_card_shadow_spread: event.rsvp_card_shadow_spread ?? null,
+      rsvp_card_shadow_x: event.rsvp_card_shadow_x ?? null,
+      rsvp_card_shadow_y: event.rsvp_card_shadow_y ?? null,
+      rsvp_card_shadow_opacity: event.rsvp_card_shadow_opacity ?? null,
     };
     const { error } = await supabase.from("events").update({
       title: event.title,
@@ -2069,14 +2159,57 @@ export default function EventDetail() {
         {/* RSVP card appearance */}
         <CollapsibleSection title="RSVP card appearance" defaultOpen={false} rightSlot={sectionSave}>
           <div className="pt-2">
-            <ElementStyleEditor
-              title="RSVP card background & opacity"
-              description="Customise the background tint and opacity for the RSVP response card on the invitation."
-              color={event.rsvp_bg_color}
-              opacity={event.rsvp_bg_opacity}
-              defaultColor="#ffffff"
-              defaultOpacity={25}
-              onChange={(c, op) => setEvent({ ...event, rsvp_bg_color: c, rsvp_bg_opacity: op })}
+            <RsvpCardStyleEditor
+              config={{
+                bg_color: event.rsvp_bg_color,
+                bg_opacity: event.rsvp_bg_opacity,
+                header_font: event.rsvp_header_font,
+                header_font_en: event.rsvp_header_font_en,
+                body_font: event.rsvp_body_font,
+                body_font_en: event.rsvp_body_font_en,
+                header_effect: event.rsvp_header_effect,
+                header_effect_color: event.rsvp_header_effect_color,
+                header_effect_blur: event.rsvp_header_effect_blur,
+                header_effect_x: event.rsvp_header_effect_x,
+                header_effect_y: event.rsvp_header_effect_y,
+                header_effect_opacity: event.rsvp_header_effect_opacity,
+                card_shadow_type: event.rsvp_card_shadow_type,
+                card_shadow_color: event.rsvp_card_shadow_color,
+                card_shadow_blur: event.rsvp_card_shadow_blur,
+                card_shadow_spread: event.rsvp_card_shadow_spread,
+                card_shadow_x: event.rsvp_card_shadow_x,
+                card_shadow_y: event.rsvp_card_shadow_y,
+                card_shadow_opacity: event.rsvp_card_shadow_opacity,
+              }}
+              accentColor={event.text_color_accent}
+              primaryColor={event.text_color_primary}
+              globalHeaderFont={event.header_font}
+              globalBodyFont={event.body_font}
+              isDualLanguage={isDual}
+              onChange={(patch) => {
+                setEvent({
+                  ...event,
+                  ...(patch.bg_color !== undefined ? { rsvp_bg_color: patch.bg_color } : {}),
+                  ...(patch.bg_opacity !== undefined ? { rsvp_bg_opacity: patch.bg_opacity } : {}),
+                  ...(patch.header_font !== undefined ? { rsvp_header_font: patch.header_font } : {}),
+                  ...(patch.header_font_en !== undefined ? { rsvp_header_font_en: patch.header_font_en } : {}),
+                  ...(patch.body_font !== undefined ? { rsvp_body_font: patch.body_font } : {}),
+                  ...(patch.body_font_en !== undefined ? { rsvp_body_font_en: patch.body_font_en } : {}),
+                  ...(patch.header_effect !== undefined ? { rsvp_header_effect: patch.header_effect } : {}),
+                  ...(patch.header_effect_color !== undefined ? { rsvp_header_effect_color: patch.header_effect_color } : {}),
+                  ...(patch.header_effect_blur !== undefined ? { rsvp_header_effect_blur: patch.header_effect_blur } : {}),
+                  ...(patch.header_effect_x !== undefined ? { rsvp_header_effect_x: patch.header_effect_x } : {}),
+                  ...(patch.header_effect_y !== undefined ? { rsvp_header_effect_y: patch.header_effect_y } : {}),
+                  ...(patch.header_effect_opacity !== undefined ? { rsvp_header_effect_opacity: patch.header_effect_opacity } : {}),
+                  ...(patch.card_shadow_type !== undefined ? { rsvp_card_shadow_type: patch.card_shadow_type } : {}),
+                  ...(patch.card_shadow_color !== undefined ? { rsvp_card_shadow_color: patch.card_shadow_color } : {}),
+                  ...(patch.card_shadow_blur !== undefined ? { rsvp_card_shadow_blur: patch.card_shadow_blur } : {}),
+                  ...(patch.card_shadow_spread !== undefined ? { rsvp_card_shadow_spread: patch.card_shadow_spread } : {}),
+                  ...(patch.card_shadow_x !== undefined ? { rsvp_card_shadow_x: patch.card_shadow_x } : {}),
+                  ...(patch.card_shadow_y !== undefined ? { rsvp_card_shadow_y: patch.card_shadow_y } : {}),
+                  ...(patch.card_shadow_opacity !== undefined ? { rsvp_card_shadow_opacity: patch.card_shadow_opacity } : {}),
+                });
+              }}
             />
           </div>
         </CollapsibleSection>

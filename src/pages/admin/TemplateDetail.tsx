@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import CollapsibleSection from "@/components/admin/CollapsibleSection";
 import LetterCardStyleEditor from "@/components/admin/LetterCardStyleEditor";
 import ElementStyleEditor from "@/components/admin/ElementStyleEditor";
+import RsvpCardStyleEditor from "@/components/admin/RsvpCardStyleEditor";
 import MusicEditor from "@/components/admin/MusicEditor";
 import PreviewPanel from "@/components/admin/PreviewPanel";
 import FrameLibraryPicker from "@/components/admin/FrameLibraryPicker";
@@ -110,6 +111,23 @@ type TemplateConfig = {
   countdown_bg_opacity?: number | null;
   rsvp_bg_color?: string | null;
   rsvp_bg_opacity?: number | null;
+  rsvp_header_font?: string | null;
+  rsvp_header_font_en?: string | null;
+  rsvp_body_font?: string | null;
+  rsvp_body_font_en?: string | null;
+  rsvp_header_effect?: string | null;
+  rsvp_header_effect_color?: string | null;
+  rsvp_header_effect_blur?: number | null;
+  rsvp_header_effect_x?: number | null;
+  rsvp_header_effect_y?: number | null;
+  rsvp_header_effect_opacity?: number | null;
+  rsvp_card_shadow_type?: string | null;
+  rsvp_card_shadow_color?: string | null;
+  rsvp_card_shadow_blur?: number | null;
+  rsvp_card_shadow_spread?: number | null;
+  rsvp_card_shadow_x?: number | null;
+  rsvp_card_shadow_y?: number | null;
+  rsvp_card_shadow_opacity?: number | null;
   /** Optional ornamental frame overlay (Signature Package). PNG/SVG with
       transparent center, OR a video (MP4/WebM) — chosen from the Asset
       Library and identified by URL. `frame_type` tells the renderer
@@ -195,6 +213,23 @@ const DEFAULT_CONFIG: TemplateConfig = {
   countdown_bg_opacity: null,
   rsvp_bg_color: null,
   rsvp_bg_opacity: null,
+  rsvp_header_font: null,
+  rsvp_header_font_en: null,
+  rsvp_body_font: null,
+  rsvp_body_font_en: null,
+  rsvp_header_effect: null,
+  rsvp_header_effect_color: null,
+  rsvp_header_effect_blur: null,
+  rsvp_header_effect_x: null,
+  rsvp_header_effect_y: null,
+  rsvp_header_effect_opacity: null,
+  rsvp_card_shadow_type: null,
+  rsvp_card_shadow_color: null,
+  rsvp_card_shadow_blur: null,
+  rsvp_card_shadow_spread: null,
+  rsvp_card_shadow_x: null,
+  rsvp_card_shadow_y: null,
+  rsvp_card_shadow_opacity: null,
   frame_url: null,
   frame_type: "image",
   side_frame_config: normalizeSideFrameConfig(null),
@@ -236,8 +271,25 @@ function normalizeConfig(raw: any): TemplateConfig {
     map_button_bg_opacity: typeof r.map_button_bg_opacity === "number" ? r.map_button_bg_opacity : (typeof r.section_visibility?.map_button_bg_opacity === "number" ? r.section_visibility?.map_button_bg_opacity : null),
     countdown_bg_color: r.countdown_bg_color ?? r.section_visibility?.countdown_bg_color ?? null,
     countdown_bg_opacity: typeof r.countdown_bg_opacity === "number" ? r.countdown_bg_opacity : (typeof r.section_visibility?.countdown_bg_opacity === "number" ? r.section_visibility?.countdown_bg_opacity : null),
-    rsvp_bg_color: r.rsvp_bg_color ?? r.section_visibility?.rsvp_bg_color ?? null,
-    rsvp_bg_opacity: typeof r.rsvp_bg_opacity === "number" ? r.rsvp_bg_opacity : (typeof r.section_visibility?.rsvp_bg_opacity === "number" ? r.section_visibility?.rsvp_bg_opacity : null),
+    rsvp_bg_color: r.rsvp_bg_color ?? r.section_visibility?.rsvp_bg_color ?? r.section_visibility?.rsvp_style?.bg_color ?? null,
+    rsvp_bg_opacity: typeof r.rsvp_bg_opacity === "number" ? r.rsvp_bg_opacity : (typeof r.section_visibility?.rsvp_bg_opacity === "number" ? r.section_visibility?.rsvp_bg_opacity : (typeof r.section_visibility?.rsvp_style?.bg_opacity === "number" ? r.section_visibility?.rsvp_style?.bg_opacity : null)),
+    rsvp_header_font: r.rsvp_header_font ?? r.section_visibility?.rsvp_header_font ?? r.section_visibility?.rsvp_style?.header_font ?? null,
+    rsvp_header_font_en: r.rsvp_header_font_en ?? r.section_visibility?.rsvp_header_font_en ?? r.section_visibility?.rsvp_style?.header_font_en ?? null,
+    rsvp_body_font: r.rsvp_body_font ?? r.section_visibility?.rsvp_body_font ?? r.section_visibility?.rsvp_style?.body_font ?? null,
+    rsvp_body_font_en: r.rsvp_body_font_en ?? r.section_visibility?.rsvp_body_font_en ?? r.section_visibility?.rsvp_style?.body_font_en ?? null,
+    rsvp_header_effect: r.rsvp_header_effect ?? r.section_visibility?.rsvp_header_effect ?? r.section_visibility?.rsvp_style?.header_effect ?? null,
+    rsvp_header_effect_color: r.rsvp_header_effect_color ?? r.section_visibility?.rsvp_header_effect_color ?? r.section_visibility?.rsvp_style?.header_effect_color ?? null,
+    rsvp_header_effect_blur: typeof r.rsvp_header_effect_blur === "number" ? r.rsvp_header_effect_blur : (typeof r.section_visibility?.rsvp_header_effect_blur === "number" ? r.section_visibility?.rsvp_header_effect_blur : (typeof r.section_visibility?.rsvp_style?.header_effect_blur === "number" ? r.section_visibility?.rsvp_style?.header_effect_blur : null)),
+    rsvp_header_effect_x: typeof r.rsvp_header_effect_x === "number" ? r.rsvp_header_effect_x : (typeof r.section_visibility?.rsvp_header_effect_x === "number" ? r.section_visibility?.rsvp_header_effect_x : (typeof r.section_visibility?.rsvp_style?.header_effect_x === "number" ? r.section_visibility?.rsvp_style?.header_effect_x : null)),
+    rsvp_header_effect_y: typeof r.rsvp_header_effect_y === "number" ? r.rsvp_header_effect_y : (typeof r.section_visibility?.rsvp_header_effect_y === "number" ? r.section_visibility?.rsvp_header_effect_y : (typeof r.section_visibility?.rsvp_style?.header_effect_y === "number" ? r.section_visibility?.rsvp_style?.header_effect_y : null)),
+    rsvp_header_effect_opacity: typeof r.rsvp_header_effect_opacity === "number" ? r.rsvp_header_effect_opacity : (typeof r.section_visibility?.rsvp_header_effect_opacity === "number" ? r.section_visibility?.rsvp_header_effect_opacity : (typeof r.section_visibility?.rsvp_style?.header_effect_opacity === "number" ? r.section_visibility?.rsvp_style?.header_effect_opacity : null)),
+    rsvp_card_shadow_type: r.rsvp_card_shadow_type ?? r.section_visibility?.rsvp_card_shadow_type ?? r.section_visibility?.rsvp_style?.card_shadow_type ?? null,
+    rsvp_card_shadow_color: r.rsvp_card_shadow_color ?? r.section_visibility?.rsvp_card_shadow_color ?? r.section_visibility?.rsvp_style?.card_shadow_color ?? null,
+    rsvp_card_shadow_blur: typeof r.rsvp_card_shadow_blur === "number" ? r.rsvp_card_shadow_blur : (typeof r.section_visibility?.rsvp_card_shadow_blur === "number" ? r.section_visibility?.rsvp_card_shadow_blur : (typeof r.section_visibility?.rsvp_style?.card_shadow_blur === "number" ? r.section_visibility?.rsvp_style?.card_shadow_blur : null)),
+    rsvp_card_shadow_spread: typeof r.rsvp_card_shadow_spread === "number" ? r.rsvp_card_shadow_spread : (typeof r.section_visibility?.rsvp_card_shadow_spread === "number" ? r.section_visibility?.rsvp_card_shadow_spread : (typeof r.section_visibility?.rsvp_style?.card_shadow_spread === "number" ? r.section_visibility?.rsvp_style?.card_shadow_spread : null)),
+    rsvp_card_shadow_x: typeof r.rsvp_card_shadow_x === "number" ? r.rsvp_card_shadow_x : (typeof r.section_visibility?.rsvp_card_shadow_x === "number" ? r.section_visibility?.rsvp_card_shadow_x : (typeof r.section_visibility?.rsvp_style?.card_shadow_x === "number" ? r.section_visibility?.rsvp_style?.card_shadow_x : null)),
+    rsvp_card_shadow_y: typeof r.rsvp_card_shadow_y === "number" ? r.rsvp_card_shadow_y : (typeof r.section_visibility?.rsvp_card_shadow_y === "number" ? r.section_visibility?.rsvp_card_shadow_y : (typeof r.section_visibility?.rsvp_style?.card_shadow_y === "number" ? r.section_visibility?.rsvp_style?.card_shadow_y : null)),
+    rsvp_card_shadow_opacity: typeof r.rsvp_card_shadow_opacity === "number" ? r.rsvp_card_shadow_opacity : (typeof r.section_visibility?.rsvp_card_shadow_opacity === "number" ? r.section_visibility?.rsvp_card_shadow_opacity : (typeof r.section_visibility?.rsvp_style?.card_shadow_opacity === "number" ? r.section_visibility?.rsvp_style?.card_shadow_opacity : null)),
     music_autoplay_cover: musicSettings.autoPlayCover,
     music_autoplay_invitation: musicSettings.autoPlayInvitation,
     music_autoplay_mode: r.music_autoplay_mode ?? (musicSettings.autoPlayCover && musicSettings.autoPlayInvitation ? "both" : musicSettings.autoPlayCover ? "cover" : musicSettings.autoPlayInvitation ? "invitation" : "none"),
@@ -463,8 +515,46 @@ export default function TemplateDetail() {
       map_button_bg_opacity: draftConfig.map_button_bg_opacity ?? null,
       countdown_bg_color: draftConfig.countdown_bg_color ?? null,
       countdown_bg_opacity: draftConfig.countdown_bg_opacity ?? null,
+      rsvp_style: {
+        bg_color: draftConfig.rsvp_bg_color ?? null,
+        bg_opacity: draftConfig.rsvp_bg_opacity ?? null,
+        header_font: draftConfig.rsvp_header_font ?? null,
+        header_font_en: draftConfig.rsvp_header_font_en ?? null,
+        body_font: draftConfig.rsvp_body_font ?? null,
+        body_font_en: draftConfig.rsvp_body_font_en ?? null,
+        header_effect: draftConfig.rsvp_header_effect ?? "default",
+        header_effect_color: draftConfig.rsvp_header_effect_color ?? null,
+        header_effect_blur: draftConfig.rsvp_header_effect_blur ?? null,
+        header_effect_x: draftConfig.rsvp_header_effect_x ?? null,
+        header_effect_y: draftConfig.rsvp_header_effect_y ?? null,
+        header_effect_opacity: draftConfig.rsvp_header_effect_opacity ?? null,
+        card_shadow_type: draftConfig.rsvp_card_shadow_type ?? "default",
+        card_shadow_color: draftConfig.rsvp_card_shadow_color ?? null,
+        card_shadow_blur: draftConfig.rsvp_card_shadow_blur ?? null,
+        card_shadow_spread: draftConfig.rsvp_card_shadow_spread ?? null,
+        card_shadow_x: draftConfig.rsvp_card_shadow_x ?? null,
+        card_shadow_y: draftConfig.rsvp_card_shadow_y ?? null,
+        card_shadow_opacity: draftConfig.rsvp_card_shadow_opacity ?? null,
+      },
       rsvp_bg_color: draftConfig.rsvp_bg_color ?? null,
       rsvp_bg_opacity: draftConfig.rsvp_bg_opacity ?? null,
+      rsvp_header_font: draftConfig.rsvp_header_font ?? null,
+      rsvp_header_font_en: draftConfig.rsvp_header_font_en ?? null,
+      rsvp_body_font: draftConfig.rsvp_body_font ?? null,
+      rsvp_body_font_en: draftConfig.rsvp_body_font_en ?? null,
+      rsvp_header_effect: draftConfig.rsvp_header_effect ?? null,
+      rsvp_header_effect_color: draftConfig.rsvp_header_effect_color ?? null,
+      rsvp_header_effect_blur: draftConfig.rsvp_header_effect_blur ?? null,
+      rsvp_header_effect_x: draftConfig.rsvp_header_effect_x ?? null,
+      rsvp_header_effect_y: draftConfig.rsvp_header_effect_y ?? null,
+      rsvp_header_effect_opacity: draftConfig.rsvp_header_effect_opacity ?? null,
+      rsvp_card_shadow_type: draftConfig.rsvp_card_shadow_type ?? null,
+      rsvp_card_shadow_color: draftConfig.rsvp_card_shadow_color ?? null,
+      rsvp_card_shadow_blur: draftConfig.rsvp_card_shadow_blur ?? null,
+      rsvp_card_shadow_spread: draftConfig.rsvp_card_shadow_spread ?? null,
+      rsvp_card_shadow_x: draftConfig.rsvp_card_shadow_x ?? null,
+      rsvp_card_shadow_y: draftConfig.rsvp_card_shadow_y ?? null,
+      rsvp_card_shadow_opacity: draftConfig.rsvp_card_shadow_opacity ?? null,
     };
     const payload = {
       label: draft.label.trim() || "Untitled template",
@@ -581,6 +671,23 @@ export default function TemplateDetail() {
     countdown_bg_opacity: draftConfig.countdown_bg_opacity ?? null,
     rsvp_bg_color: draftConfig.rsvp_bg_color ?? null,
     rsvp_bg_opacity: draftConfig.rsvp_bg_opacity ?? null,
+    rsvp_header_font: draftConfig.rsvp_header_font ?? null,
+    rsvp_header_font_en: draftConfig.rsvp_header_font_en ?? null,
+    rsvp_body_font: draftConfig.rsvp_body_font ?? null,
+    rsvp_body_font_en: draftConfig.rsvp_body_font_en ?? null,
+    rsvp_header_effect: draftConfig.rsvp_header_effect ?? null,
+    rsvp_header_effect_color: draftConfig.rsvp_header_effect_color ?? null,
+    rsvp_header_effect_blur: draftConfig.rsvp_header_effect_blur ?? null,
+    rsvp_header_effect_x: draftConfig.rsvp_header_effect_x ?? null,
+    rsvp_header_effect_y: draftConfig.rsvp_header_effect_y ?? null,
+    rsvp_header_effect_opacity: draftConfig.rsvp_header_effect_opacity ?? null,
+    rsvp_card_shadow_type: draftConfig.rsvp_card_shadow_type ?? null,
+    rsvp_card_shadow_color: draftConfig.rsvp_card_shadow_color ?? null,
+    rsvp_card_shadow_blur: draftConfig.rsvp_card_shadow_blur ?? null,
+    rsvp_card_shadow_spread: draftConfig.rsvp_card_shadow_spread ?? null,
+    rsvp_card_shadow_x: draftConfig.rsvp_card_shadow_x ?? null,
+    rsvp_card_shadow_y: draftConfig.rsvp_card_shadow_y ?? null,
+    rsvp_card_shadow_opacity: draftConfig.rsvp_card_shadow_opacity ?? null,
     template_section_visibility: {
       ...(draftConfig.section_visibility as any),
       agenda_style: {
@@ -595,8 +702,46 @@ export default function TemplateDetail() {
       map_button_bg_opacity: draftConfig.map_button_bg_opacity ?? null,
       countdown_bg_color: draftConfig.countdown_bg_color ?? null,
       countdown_bg_opacity: draftConfig.countdown_bg_opacity ?? null,
+      rsvp_style: {
+        bg_color: draftConfig.rsvp_bg_color ?? null,
+        bg_opacity: draftConfig.rsvp_bg_opacity ?? null,
+        header_font: draftConfig.rsvp_header_font ?? null,
+        header_font_en: draftConfig.rsvp_header_font_en ?? null,
+        body_font: draftConfig.rsvp_body_font ?? null,
+        body_font_en: draftConfig.rsvp_body_font_en ?? null,
+        header_effect: draftConfig.rsvp_header_effect ?? "default",
+        header_effect_color: draftConfig.rsvp_header_effect_color ?? null,
+        header_effect_blur: draftConfig.rsvp_header_effect_blur ?? null,
+        header_effect_x: draftConfig.rsvp_header_effect_x ?? null,
+        header_effect_y: draftConfig.rsvp_header_effect_y ?? null,
+        header_effect_opacity: draftConfig.rsvp_header_effect_opacity ?? null,
+        card_shadow_type: draftConfig.rsvp_card_shadow_type ?? "default",
+        card_shadow_color: draftConfig.rsvp_card_shadow_color ?? null,
+        card_shadow_blur: draftConfig.rsvp_card_shadow_blur ?? null,
+        card_shadow_spread: draftConfig.rsvp_card_shadow_spread ?? null,
+        card_shadow_x: draftConfig.rsvp_card_shadow_x ?? null,
+        card_shadow_y: draftConfig.rsvp_card_shadow_y ?? null,
+        card_shadow_opacity: draftConfig.rsvp_card_shadow_opacity ?? null,
+      },
       rsvp_bg_color: draftConfig.rsvp_bg_color ?? null,
       rsvp_bg_opacity: draftConfig.rsvp_bg_opacity ?? null,
+      rsvp_header_font: draftConfig.rsvp_header_font ?? null,
+      rsvp_header_font_en: draftConfig.rsvp_header_font_en ?? null,
+      rsvp_body_font: draftConfig.rsvp_body_font ?? null,
+      rsvp_body_font_en: draftConfig.rsvp_body_font_en ?? null,
+      rsvp_header_effect: draftConfig.rsvp_header_effect ?? null,
+      rsvp_header_effect_color: draftConfig.rsvp_header_effect_color ?? null,
+      rsvp_header_effect_blur: draftConfig.rsvp_header_effect_blur ?? null,
+      rsvp_header_effect_x: draftConfig.rsvp_header_effect_x ?? null,
+      rsvp_header_effect_y: draftConfig.rsvp_header_effect_y ?? null,
+      rsvp_header_effect_opacity: draftConfig.rsvp_header_effect_opacity ?? null,
+      rsvp_card_shadow_type: draftConfig.rsvp_card_shadow_type ?? null,
+      rsvp_card_shadow_color: draftConfig.rsvp_card_shadow_color ?? null,
+      rsvp_card_shadow_blur: draftConfig.rsvp_card_shadow_blur ?? null,
+      rsvp_card_shadow_spread: draftConfig.rsvp_card_shadow_spread ?? null,
+      rsvp_card_shadow_x: draftConfig.rsvp_card_shadow_x ?? null,
+      rsvp_card_shadow_y: draftConfig.rsvp_card_shadow_y ?? null,
+      rsvp_card_shadow_opacity: draftConfig.rsvp_card_shadow_opacity ?? null,
     },
     section_visibility: {},
   };
@@ -1561,14 +1706,55 @@ export default function TemplateDetail() {
 
             <CollapsibleSection title="RSVP card appearance" defaultOpen={false} rightSlot={sectionSave}>
               <div className="pt-2">
-                <ElementStyleEditor
-                  title="RSVP card background & opacity"
-                  description="Customise the background tint and opacity for the RSVP response card on the invitation."
-                  color={draftConfig.rsvp_bg_color}
-                  opacity={draftConfig.rsvp_bg_opacity}
-                  defaultColor="#ffffff"
-                  defaultOpacity={25}
-                  onChange={(c, op) => patchConfig({ rsvp_bg_color: c, rsvp_bg_opacity: op })}
+                <RsvpCardStyleEditor
+                  config={{
+                    bg_color: draftConfig.rsvp_bg_color,
+                    bg_opacity: draftConfig.rsvp_bg_opacity,
+                    header_font: draftConfig.rsvp_header_font,
+                    header_font_en: draftConfig.rsvp_header_font_en,
+                    body_font: draftConfig.rsvp_body_font,
+                    body_font_en: draftConfig.rsvp_body_font_en,
+                    header_effect: draftConfig.rsvp_header_effect,
+                    header_effect_color: draftConfig.rsvp_header_effect_color,
+                    header_effect_blur: draftConfig.rsvp_header_effect_blur,
+                    header_effect_x: draftConfig.rsvp_header_effect_x,
+                    header_effect_y: draftConfig.rsvp_header_effect_y,
+                    header_effect_opacity: draftConfig.rsvp_header_effect_opacity,
+                    card_shadow_type: draftConfig.rsvp_card_shadow_type,
+                    card_shadow_color: draftConfig.rsvp_card_shadow_color,
+                    card_shadow_blur: draftConfig.rsvp_card_shadow_blur,
+                    card_shadow_spread: draftConfig.rsvp_card_shadow_spread,
+                    card_shadow_x: draftConfig.rsvp_card_shadow_x,
+                    card_shadow_y: draftConfig.rsvp_card_shadow_y,
+                    card_shadow_opacity: draftConfig.rsvp_card_shadow_opacity,
+                  }}
+                  accentColor={draftConfig.text_color_accent}
+                  primaryColor={draftConfig.text_color_primary}
+                  globalHeaderFont={draftConfig.header_font}
+                  globalBodyFont={draftConfig.body_font}
+                  onChange={(patch) => {
+                    const p: Partial<TemplateConfig> = {};
+                    if (patch.bg_color !== undefined) p.rsvp_bg_color = patch.bg_color;
+                    if (patch.bg_opacity !== undefined) p.rsvp_bg_opacity = patch.bg_opacity;
+                    if (patch.header_font !== undefined) p.rsvp_header_font = patch.header_font;
+                    if (patch.header_font_en !== undefined) p.rsvp_header_font_en = patch.header_font_en;
+                    if (patch.body_font !== undefined) p.rsvp_body_font = patch.body_font;
+                    if (patch.body_font_en !== undefined) p.rsvp_body_font_en = patch.body_font_en;
+                    if (patch.header_effect !== undefined) p.rsvp_header_effect = patch.header_effect;
+                    if (patch.header_effect_color !== undefined) p.rsvp_header_effect_color = patch.header_effect_color;
+                    if (patch.header_effect_blur !== undefined) p.rsvp_header_effect_blur = patch.header_effect_blur;
+                    if (patch.header_effect_x !== undefined) p.rsvp_header_effect_x = patch.header_effect_x;
+                    if (patch.header_effect_y !== undefined) p.rsvp_header_effect_y = patch.header_effect_y;
+                    if (patch.header_effect_opacity !== undefined) p.rsvp_header_effect_opacity = patch.header_effect_opacity;
+                    if (patch.card_shadow_type !== undefined) p.rsvp_card_shadow_type = patch.card_shadow_type;
+                    if (patch.card_shadow_color !== undefined) p.rsvp_card_shadow_color = patch.card_shadow_color;
+                    if (patch.card_shadow_blur !== undefined) p.rsvp_card_shadow_blur = patch.card_shadow_blur;
+                    if (patch.card_shadow_spread !== undefined) p.rsvp_card_shadow_spread = patch.card_shadow_spread;
+                    if (patch.card_shadow_x !== undefined) p.rsvp_card_shadow_x = patch.card_shadow_x;
+                    if (patch.card_shadow_y !== undefined) p.rsvp_card_shadow_y = patch.card_shadow_y;
+                    if (patch.card_shadow_opacity !== undefined) p.rsvp_card_shadow_opacity = patch.card_shadow_opacity;
+                    patchConfig(p);
+                  }}
                 />
               </div>
             </CollapsibleSection>

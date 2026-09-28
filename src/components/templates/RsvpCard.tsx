@@ -3,6 +3,8 @@ import { Check, X, Heart, Minus, Plus, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { computeRsvpCardShadow, computeRsvpHeaderShadow } from "@/lib/rsvpStyle";
+import { resolveHeaderFont, resolveBodyFont } from "@/lib/fonts";
 
 type Props = {
   guestName: string;
@@ -23,6 +25,33 @@ type Props = {
   bgColor?: string | null;
   /** Custom background opacity (0-100) for the RSVP section card. */
   bgOpacity?: number | null;
+  /** Header font name (Khmer or general) */
+  headerFont?: string | null;
+  /** English header font name */
+  headerFontEn?: string | null;
+  /** Body font name (Khmer or general) */
+  bodyFont?: string | null;
+  /** English body font name */
+  bodyFontEn?: string | null;
+  /** Header text effect preset / type */
+  headerEffect?: string | null;
+  headerEffectColor?: string | null;
+  headerEffectBlur?: number | null;
+  headerEffectX?: number | null;
+  headerEffectY?: number | null;
+  headerEffectOpacity?: number | null;
+  /** Card shadow preset / type */
+  cardShadowType?: string | null;
+  cardShadowColor?: string | null;
+  cardShadowBlur?: number | null;
+  cardShadowSpread?: number | null;
+  cardShadowX?: number | null;
+  cardShadowY?: number | null;
+  cardShadowOpacity?: number | null;
+  /** Pre-computed custom card box-shadow string override */
+  cardShadow?: string | null;
+  /** Pre-computed custom header text-shadow string override */
+  headerTextShadow?: string | null;
   /** Language version: "km" (Khmer, default) or "en" (English) */
   language?: "km" | "en";
 };
@@ -43,6 +72,25 @@ export default function RsvpCard({
   primaryColor,
   bgColor,
   bgOpacity,
+  headerFont,
+  headerFontEn,
+  bodyFont,
+  bodyFontEn,
+  headerEffect,
+  headerEffectColor,
+  headerEffectBlur,
+  headerEffectX,
+  headerEffectY,
+  headerEffectOpacity,
+  cardShadowType,
+  cardShadowColor,
+  cardShadowBlur,
+  cardShadowSpread,
+  cardShadowX,
+  cardShadowY,
+  cardShadowOpacity,
+  cardShadow,
+  headerTextShadow,
   language = "km",
 }: Props) {
   const [partySize, setPartySize] = useState(initialPartySize);
@@ -50,6 +98,7 @@ export default function RsvpCard({
 
   const accent = accentColor || "#db9b0f";
   const primary = primaryColor || "#3a2a00";
+  const isEn = language === "en";
 
   const resolvedRsvpBg = (() => {
     if (bgColor || typeof bgOpacity === "number") {
@@ -68,14 +117,47 @@ export default function RsvpCard({
     return null;
   })();
 
+  const resolvedCardShadow =
+    cardShadow ||
+    computeRsvpCardShadow(
+      {
+        card_shadow_type: cardShadowType,
+        card_shadow_color: cardShadowColor,
+        card_shadow_blur: cardShadowBlur,
+        card_shadow_spread: cardShadowSpread,
+        card_shadow_x: cardShadowX,
+        card_shadow_y: cardShadowY,
+        card_shadow_opacity: cardShadowOpacity,
+      },
+      accent
+    );
+
+  const resolvedHeaderShadow =
+    headerTextShadow ||
+    computeRsvpHeaderShadow(
+      {
+        header_effect: headerEffect,
+        header_effect_color: headerEffectColor,
+        header_effect_blur: headerEffectBlur,
+        header_effect_x: headerEffectX,
+        header_effect_y: headerEffectY,
+        header_effect_opacity: headerEffectOpacity,
+      },
+      accent
+    );
+
+  const rawHeaderFont = isEn ? (headerFontEn || headerFont) : (headerFont || headerFontEn);
+  const resolvedHeaderFont = rawHeaderFont ? resolveHeaderFont(rawHeaderFont, isEn) : undefined;
+
+  const rawBodyFont = isEn ? (bodyFontEn || bodyFont) : (bodyFont || bodyFontEn);
+  const resolvedBodyFont = rawBodyFont ? resolveBodyFont(rawBodyFont, isEn) : undefined;
+
   // Same accent-driven 3-stop gradient used on the cover screens so the
   // guest's name reads as a vibrant gold inside the RSVP card too.
   const nameGradient = `linear-gradient(180deg,
     color-mix(in srgb, ${accent} 35%, #ffffff) 0%,
     color-mix(in srgb, ${accent} 85%, #ffffff) 50%,
     color-mix(in srgb, ${accent} 80%, #ffffff) 100%)`;
-
-  const isEn = language === "en";
 
   const statusLabel = isEn
     ? status === "yes"
@@ -103,7 +185,7 @@ export default function RsvpCard({
         // Override the hard-coded gold border baked into `.kt-section-card`
         // so the RSVP card frame follows the configured accent colour.
         borderColor: accent,
-        boxShadow: `0 0 12px ${accent}40`,
+        boxShadow: resolvedCardShadow,
         ...(resolvedRsvpBg ? { backgroundColor: resolvedRsvpBg, background: resolvedRsvpBg } : {}),
       }}
     >
@@ -113,22 +195,35 @@ export default function RsvpCard({
           <Sparkles className="h-4 w-4" style={{ color: accent }} />
           <span className="h-px w-10" style={{ background: `linear-gradient(to left, transparent, ${accent})` }} />
         </div>
-        <p className="text-[10px] sm:text-xs tracking-[0.4em] uppercase" style={{ color: accent }}>
+        <p
+          className="text-[10px] sm:text-xs tracking-[0.4em] uppercase"
+          style={{
+            color: accent,
+            fontFamily: resolvedHeaderFont,
+          }}
+        >
           R · S · V · P
         </p>
         {/* Heading wraps naturally so the full Khmer question is always visible,
             even on narrow viewports. */}
         <h3
-          className={`leading-snug break-words whitespace-normal px-2 ${isEn ? "font-serif font-bold text-xl sm:text-2xl" : "font-khmer-moul"}`}
+          className={`leading-snug break-words whitespace-normal px-2 ${resolvedHeaderFont ? "font-bold" : (isEn ? "font-serif font-bold text-xl sm:text-2xl" : "font-khmer-moul")}`}
           style={{
-            fontSize: isEn ? undefined : "clamp(0.95rem, 3.2vw, 1.35rem)",
+            fontSize: isEn ? (resolvedHeaderFont ? "1.45rem" : undefined) : "clamp(0.95rem, 3.2vw, 1.35rem)",
             color: accent,
-            textShadow: "1px 1px 0 rgba(255,255,255,0.6), 0 0 6px rgba(255,255,255,0.4)",
+            fontFamily: resolvedHeaderFont,
+            textShadow: resolvedHeaderShadow,
           }}
         >
           {isEn ? "Will you be attending our wedding celebration?" : "តើលោកអ្នកនឹងអញ្ជើញមកចូលរួមដែរឬទេ?"}
         </h3>
-        <p className={`${isEn ? "font-sans" : "font-khmer-siemreap"} text-sm sm:text-base max-w-md mx-auto leading-relaxed`} style={{ color: primary }}>
+        <p
+          className={`${resolvedBodyFont ? "" : (isEn ? "font-sans" : "font-khmer-siemreap")} text-sm sm:text-base max-w-md mx-auto leading-relaxed`}
+          style={{
+            color: primary,
+            fontFamily: resolvedBodyFont,
+          }}
+        >
           {isEn ? (
             <>
               Dear{" "}
@@ -167,7 +262,7 @@ export default function RsvpCard({
         </p>
         <span
           className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-[11px] font-medium border"
-          style={{ background: statusBg, color: statusColor, borderColor: `${statusColor}55` }}
+          style={{ background: statusBg, color: statusColor, borderColor: `${statusColor}55`, fontFamily: resolvedBodyFont }}
         >
           <span className="h-1.5 w-1.5 rounded-full bg-current" />
           {statusLabel}
@@ -181,7 +276,10 @@ export default function RsvpCard({
       </div>
 
       <div className="space-y-3">
-        <Label className={`block text-center text-xs sm:text-sm ${isEn ? "font-medium uppercase tracking-wider" : "font-khmer-koulen"}`} style={{ color: accent }}>
+        <Label
+          className={`block text-center text-xs sm:text-sm ${resolvedBodyFont ? "font-semibold" : (isEn ? "font-medium uppercase tracking-wider" : "font-khmer-koulen")}`}
+          style={{ color: accent, fontFamily: resolvedBodyFont }}
+        >
           {isEn ? "Number of Guests" : "ចំនួនភ្ញៀវ"}
         </Label>
         <div className="flex items-center justify-center gap-4">
@@ -196,10 +294,13 @@ export default function RsvpCard({
             <Minus className="h-4 w-4" />
           </button>
           <div className="min-w-[80px] text-center">
-            <div className={`text-4xl sm:text-5xl leading-none ${isEn ? "font-serif font-bold" : "font-khmer-moul"}`} style={{ color: accent }}>
+            <div className={`text-4xl sm:text-5xl leading-none ${resolvedHeaderFont ? "font-bold" : (isEn ? "font-serif font-bold" : "font-khmer-moul")}`} style={{ color: accent, fontFamily: resolvedHeaderFont }}>
               {partySize.toString().padStart(2, "0")}
             </div>
-            <div className={`text-xs mt-1 ${isEn ? "font-sans uppercase tracking-wider" : "font-khmer-koulen"}`} style={{ color: primary }}>
+            <div
+              className={`text-xs mt-1 ${resolvedBodyFont ? "font-medium" : (isEn ? "font-sans uppercase tracking-wider" : "font-khmer-koulen")}`}
+              style={{ color: primary, fontFamily: resolvedBodyFont }}
+            >
               {isEn ? (partySize > 1 ? "Guests" : "Guest") : "នាក់"}
             </div>
           </div>
@@ -217,7 +318,10 @@ export default function RsvpCard({
       </div>
 
       <div className="mt-6 space-y-2">
-        <Label className={`block text-center text-xs sm:text-sm ${isEn ? "font-medium uppercase tracking-wider" : "font-khmer-koulen"}`} style={{ color: accent }}>
+        <Label
+          className={`block text-center text-xs sm:text-sm ${resolvedBodyFont ? "font-semibold" : (isEn ? "font-medium uppercase tracking-wider" : "font-khmer-koulen")}`}
+          style={{ color: accent, fontFamily: resolvedBodyFont }}
+        >
           {isEn ? "Leave a warm message for the couple" : "សារជូនពរដល់ម្ចាស់ពិធី"}
         </Label>
         <Textarea
@@ -226,11 +330,12 @@ export default function RsvpCard({
           onChange={e => setMessage(e.target.value)}
           readOnly={preview}
           placeholder={isEn ? "Wishing you both a lifetime of love, health, and joy..." : "សូមជូនពរឱ្យមានសុភមង្គល និងសេចក្តីស្រឡាញ់ជារៀងរហូត…"}
-          className={`resize-none text-center ${isEn ? "font-sans" : "font-khmer-siemreap"}`}
+          className={`resize-none text-center ${resolvedBodyFont ? "" : (isEn ? "font-sans" : "font-khmer-siemreap")}`}
           style={{
             background: "rgba(255,255,255,0.55)",
             border: `1px solid ${accent}55`,
             color: primary,
+            fontFamily: resolvedBodyFont,
           }}
         />
       </div>
@@ -241,8 +346,8 @@ export default function RsvpCard({
           type="button"
           onClick={() => onSubmit?.("yes", partySize, message)}
           disabled={preview || submitting}
-          className={`h-12 tracking-wide text-white hover:opacity-95 ${isEn ? "font-semibold" : "font-khmer-koulen"}`}
-          style={{ background: accent, boxShadow: `0 6px 18px ${accent}55` }}
+          className={`h-12 tracking-wide text-white hover:opacity-95 ${resolvedBodyFont ? "font-semibold" : (isEn ? "font-semibold" : "font-khmer-koulen")}`}
+          style={{ background: accent, boxShadow: `0 6px 18px ${accent}55`, fontFamily: resolvedBodyFont }}
         >
           <Check className="h-4 w-4 mr-2" /> {isEn ? "Joyfully Accept" : "យល់ព្រមចូលរួម"}
         </Button>
@@ -252,14 +357,14 @@ export default function RsvpCard({
           variant="outline"
           onClick={() => onSubmit?.("no", partySize, message)}
           disabled={preview || submitting}
-          className={`h-12 tracking-wide bg-transparent hover:bg-white/40 ${isEn ? "font-semibold" : "font-khmer-koulen"}`}
-          style={{ borderColor: `${accent}66`, color: primary }}
+          className={`h-12 tracking-wide bg-transparent hover:bg-white/40 ${resolvedBodyFont ? "font-semibold" : (isEn ? "font-semibold" : "font-khmer-koulen")}`}
+          style={{ borderColor: `${accent}66`, color: primary, fontFamily: resolvedBodyFont }}
         >
           <X className="h-4 w-4 mr-2" /> {isEn ? "Regretfully Decline" : "សុំទោស មិនអាចចូលរួម"}
         </Button>
       </div>
 
-      <p className={`mt-4 text-center text-[11px] ${isEn ? "font-sans" : "font-khmer-siemreap"}`} style={{ color: `${primary}99` }}>
+      <p className={`mt-4 text-center text-[11px] ${resolvedBodyFont ? "" : (isEn ? "font-sans" : "font-khmer-siemreap")}`} style={{ color: `${primary}99`, fontFamily: resolvedBodyFont }}>
         {preview
           ? isEn
             ? "Preview only — guests will click to submit their RSVP"
