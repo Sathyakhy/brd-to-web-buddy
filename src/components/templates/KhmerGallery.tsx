@@ -379,7 +379,7 @@ export default function KhmerGallery({ images, layout = "grid" }: Props) {
           </button>
 
           <div
-            className="absolute inset-0 flex items-center justify-center overflow-hidden px-14 py-20 sm:px-20"
+            className="absolute inset-0 flex items-center justify-center overflow-hidden p-4 sm:p-8"
             onClick={(event) => {
               if (event.target === event.currentTarget) close();
             }}
@@ -389,13 +389,8 @@ export default function KhmerGallery({ images, layout = "grid" }: Props) {
             onWheel={onWheel}
             onDoubleClick={onDoubleClick}
           >
-            {/* Three stacked layers — bottom to top: thumb, preview, full.
-                Each higher tier fades in on top once it's ready, so the
-                user always sees the sharpest version available so far.
-                The transform/zoom is applied to the wrapping container so
-                all three layers stay perfectly aligned. */}
             <div
-              className="relative"
+              className="relative flex items-center justify-center"
               onClick={(event) => event.stopPropagation()}
               style={{
                 transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
@@ -403,62 +398,19 @@ export default function KhmerGallery({ images, layout = "grid" }: Props) {
                 transition: touchState.current.mode === "none" ? "transform 160ms ease-out" : "none",
               }}
             >
-              {/* Tier 1 — instant thumbnail. Already in the browser cache
-                  from the gallery grid, so it paints on the first frame
-                  and dictates the wrapping element's size. */}
-              {thumbSrc && (
-                <img
-                  src={thumbSrc}
-                  alt=""
-                  aria-hidden="true"
-                  draggable={false}
-                  className="block max-h-[100dvh] max-w-[100vw] object-contain select-none"
-                  style={{
-                    filter: previewLoaded || fullLoaded ? "none" : "blur(8px)",
-                    opacity: fullLoaded ? 0 : 1,
-                    transition: "filter 200ms ease, opacity 200ms ease",
-                  }}
-                />
-              )}
-
-              {/* Tier 2 — medium preview. Arrives fast for smooth initial viewing. */}
-              {previewSrc && !fullLoaded && (
-                <img
-                  src={previewSrc}
-                  alt=""
-                  aria-hidden="true"
-                  draggable={false}
-                  decoding="async"
-                  className="absolute inset-0 block h-full w-full object-contain select-none"
-                  onLoad={() => setPreviewLoaded(true)}
-                  style={{
-                    opacity: previewLoaded ? 1 : 0,
-                    transition: "opacity 160ms ease",
-                  }}
-                />
-              )}
-
-              {/* Tier 3 — Original untouched full-resolution upload.
-                  Delivers 100% crystal-clear clarity when zooming in. */}
-              {fullSrc && (
-                <img
-                  src={fullSrc}
-                  alt={`fullscreen-${active + 1}`}
-                  loading="eager"
-                  decoding="async"
-                  draggable={false}
-                  className={fullLoaded ? "block max-h-[100dvh] max-w-[100vw] object-contain select-none" : "absolute inset-0 block h-full w-full object-contain select-none"}
-                  onLoad={() => {
-                    loadedFullCache.add(fullSrc);
-                    setFullLoaded(true);
-                  }}
-                  style={{
-                    opacity: fullLoaded ? 1 : 0,
-                    transition: "opacity 200ms ease",
-                    imageRendering: "auto",
-                  }}
-                />
-              )}
+              <img
+                key={`lightbox-img-${active}`}
+                src={fullLoaded ? fullSrc : (previewLoaded ? previewSrc : thumbSrc || fullSrc)}
+                alt={`fullscreen-${active + 1}`}
+                loading="eager"
+                decoding="async"
+                draggable={false}
+                className="max-h-[85dvh] max-w-[90vw] sm:max-h-[88dvh] sm:max-w-[88vw] object-contain select-none shadow-2xl rounded-sm"
+                style={{
+                  filter: fullLoaded || previewLoaded ? "none" : "blur(4px)",
+                  transition: "filter 200ms ease",
+                }}
+              />
             </div>
           </div>
         </div>,
