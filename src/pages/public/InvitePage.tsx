@@ -49,6 +49,23 @@ export default function InvitePage() {
   const [musicPlayTrigger, setMusicPlayTrigger] = useState(0);
   const [language, setLanguage] = useState<LanguageCode>("km");
 
+  // Prevent background scrolling and rubber-band peek-through on iOS/Safari while the cover is active
+  useEffect(() => {
+    if (!opened) {
+      const origOverflow = document.body.style.overflow;
+      const origDocOverflow = document.documentElement.style.overflow;
+      const origTouch = document.body.style.touchAction;
+      document.body.style.overflow = "hidden";
+      document.documentElement.style.overflow = "hidden";
+      document.body.style.touchAction = "none";
+      return () => {
+        document.body.style.overflow = origOverflow;
+        document.documentElement.style.overflow = origDocOverflow;
+        document.body.style.touchAction = origTouch;
+      };
+    }
+  }, [opened]);
+
   useEffect(() => {
     if (!slug || !token) { setLoading(false); return; }
     (async () => {
@@ -350,22 +367,36 @@ export default function InvitePage() {
 
   return (
     <ErrorBoundary fallbackTitle="Unable to load invitation">
-      <div className="invitation-surface min-h-screen relative">
-        {/* Base layer: The live invitation template is continuously rendered underneath */}
-        <InvitationTemplate
-          template={event.template}
-          event={event}
-          guestName={guest.name}
-          eventVisibility={(event as any).section_visibility}
-          templateVisibility={templateVisibility}
-          templateDefaults={templateDefaults}
-          language={language}
-          onLanguageChange={setLanguage}
-          hideFloatingMusic={true}
-          hideFloatingLanguageSwitch={true}
+      <div
+        className="invitation-surface min-h-screen relative bg-[#fdf5dc]"
+        style={{
+          minHeight: "100vh",
+          maxHeight: !opened ? "100vh" : undefined,
+          overflow: !opened ? "hidden" : undefined,
+        }}
+      >
+        {/* Base layer: The live invitation template is rendered underneath */}
+        <div
+          style={{
+            pointerEvents: !opened ? "none" : undefined,
+            visibility: !opened && !unboxingActive ? "hidden" : "visible",
+          }}
         >
-          {rsvpForm}
-        </InvitationTemplate>
+          <InvitationTemplate
+            template={event.template}
+            event={event}
+            guestName={guest.name}
+            eventVisibility={(event as any).section_visibility}
+            templateVisibility={templateVisibility}
+            templateDefaults={templateDefaults}
+            language={language}
+            onLanguageChange={setLanguage}
+            hideFloatingMusic={true}
+            hideFloatingLanguageSwitch={true}
+          >
+            {rsvpForm}
+          </InvitationTemplate>
+        </div>
 
         {/* Original Cover for Khmer Traditional / Essentials — completely untouched */}
         {isEssentials && !opened && (

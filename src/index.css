@@ -168,6 +168,8 @@
     font-weight: 500;
     font-feature-settings: "ss01", "cv11";
     letter-spacing: -0.01em;
+    min-height: 100vh;
+    min-height: 100dvh;
   }
   h1, h2, h3, h4, h5, h6 {
     font-weight: 600;
@@ -176,6 +178,11 @@
   /* Invitation pages only — slightly opened tracking for the guest-facing
      templates. Scoped via a wrapper class so the admin/customer dashboards
      keep their tighter default spacing. */
+  .invitation-surface {
+    min-height: 100vh;
+    min-height: 100dvh;
+    background-color: #fdf5dc;
+  }
   .invitation-surface,
   .invitation-surface h1,
   .invitation-surface h2,

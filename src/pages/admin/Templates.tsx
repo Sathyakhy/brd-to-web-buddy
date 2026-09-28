@@ -33,7 +33,6 @@ const DEFAULT_CONFIG = {
   gallery_layout: "grid",
   ceremony_time: null,
   reception_time: null,
-  dress_code: null,
   contact_phone: null,
   bride_name: null,
   groom_name: null,

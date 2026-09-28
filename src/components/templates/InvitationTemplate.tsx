@@ -48,7 +48,6 @@ export type TemplateData = {
   gallery_layout?: "grid" | "mosaic" | string | null;
   ceremony_time: string | null;
   reception_time: string | null;
-  dress_code: string | null;
   contact_phone: string | null;
   bride_name: string | null;
   groom_name: string | null;
@@ -467,8 +466,13 @@ export function KhmerTraditionalTemplate({ event, guestName, children, hideBackg
         // PreviewPanel paints a static device-frame background), keep this
         // root transparent so the parent's image shows through.
         backgroundColor: hideBackground ? "transparent" : "#fdf5dc",
+        backgroundImage: hideBackground ? undefined : `url(${inviteBg})`,
+        backgroundSize: "cover",
+        backgroundPosition: "center top",
+        backgroundRepeat: "no-repeat",
         overflowX: "hidden",
         letterSpacing: "0.04em",
+        minHeight: "100vh",
       }}
     >
       {/* Fixed background layer — mirrors the EJS spec:
@@ -486,11 +490,15 @@ export function KhmerTraditionalTemplate({ event, guestName, children, hideBackg
           style={{
             position: "fixed",
             inset: 0,
+            width: "100%",
+            height: "100%",
             zIndex: 0,
             backgroundImage: `url(${inviteBg})`,
             backgroundSize: "cover",
             backgroundPosition: "center top",
             backgroundRepeat: "no-repeat",
+            WebkitTransform: "translate3d(0,0,0)",
+            transform: "translate3d(0,0,0)",
           }}
         />
       )}
@@ -849,11 +857,6 @@ export function KhmerTraditionalTemplate({ event, guestName, children, hideBackg
                   )}
                 </p>
               </>
-            )}
-            {event.dress_code && (
-              <p className="uppercase tracking-widest text-base" style={{ color: colorPrimary, fontFamily: bodyFont }}>
-                Dress code: <span style={{ color: colorAccent }}>{event.dress_code}</span>
-              </p>
             )}
             {mapsOpen && (
               <a
@@ -1955,12 +1958,6 @@ export function ModernLuxuryTemplate({ event, guestName, children }: TemplatePro
                 </div>
               )}
 
-              {event.dress_code && (
-                <p className="text-xs uppercase tracking-widest text-muted-foreground mt-3">
-                  Dress code: <span className="text-gold">{event.dress_code}</span>
-                </p>
-              )}
-
               {event.description && (
                 <p className="text-sm text-muted-foreground mt-6 max-w-md mx-auto leading-relaxed">{event.description}</p>
               )}
@@ -2088,11 +2085,6 @@ export function FloralRomanticTemplate({ event, guestName, children }: TemplateP
 
             {event.venue && (
               <p className="text-sm tracking-wider" style={{ color: "hsl(340 30% 40%)" }}>{event.venue}</p>
-            )}
-            {event.dress_code && (
-              <p className="text-xs uppercase tracking-widest mt-2" style={{ color: "hsl(340 30% 55%)" }}>
-                Dress code: {event.dress_code}
-              </p>
             )}
 
             {event.description && (

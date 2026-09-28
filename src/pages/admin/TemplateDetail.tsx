@@ -70,7 +70,6 @@ type TemplateConfig = {
   gallery_layout: "grid" | "mosaic";
   /** Date-only ISO string (YYYY-MM-DD) used for the live preview countdown. */
   event_date: string | null;
-  dress_code: string | null;
   contact_phone: string | null;
   bride_name: string | null;
   groom_name: string | null;
@@ -184,7 +183,6 @@ const DEFAULT_CONFIG: TemplateConfig = {
   gallery_urls: [],
   gallery_layout: "grid",
   event_date: null,
-  dress_code: null,
   contact_phone: "+855 ",
   bride_name: "លោក|ជា|ស៊ីណា\nលោកស្រី|ស៊ឹម|សុខុម\nជា|វ៉ាន់នី",
   groom_name: "លោក|កែវ|វីរៈ\nលោកស្រី|សោម|សុខា\nកែវ|ពិសិដ្ឋ",
@@ -1086,7 +1084,7 @@ export default function TemplateDetail() {
                           value={draftConfig.body_font_en ?? null}
                           onChange={(val) => patchConfig({ body_font_en: val })}
                           accentColor={draftConfig.text_color_accent}
-                          description="Applied to English invitation wording, countdown, dress code, and agenda items."
+                          description="Applied to English invitation wording, countdown, and agenda items."
                         />
                       </div>
                     </TabsContent>
@@ -1133,7 +1131,7 @@ export default function TemplateDetail() {
                         <Button variant="ghost" size="sm" onClick={() => patchConfig({ text_color_accent: null })}>Reset</Button>
                       )}
                     </div>
-                    <p className="text-xs text-muted-foreground">Used for titles, couple's names, dress code, dividers, icons &amp; borders.</p>
+                    <p className="text-xs text-muted-foreground">Used for titles, couple's names, dividers, icons &amp; borders.</p>
                   </div>
 
                   <div className="space-y-2 md:col-span-2">
@@ -1356,15 +1354,7 @@ export default function TemplateDetail() {
                     onChange={(c, op) => patchConfig({ map_button_bg_color: c, map_button_bg_opacity: op })}
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label>Dress code</Label>
-                  <Input
-                    value={draftConfig.dress_code ?? ""}
-                    onChange={e => patchConfig({ dress_code: e.target.value })}
-                    placeholder="Formal"
-                  />
-                </div>
-                <div className="space-y-2">
+                <div className="space-y-2 md:col-span-2">
                   <Label>Contact phone</Label>
                   <Input
                     value={draftConfig.contact_phone ?? "+855 "}

@@ -89,7 +89,7 @@ type Event = {
   gallery_urls: string[] | null;
   gallery_layout: "grid" | "mosaic";
   ceremony_time: string | null; reception_time: string | null;
-  dress_code: string | null; contact_phone: string | null;
+  contact_phone: string | null;
   bride_name: string | null; groom_name: string | null;
   agenda_days: AgendaDay[];
   agenda_view_style: AgendaViewStyle;
@@ -445,7 +445,6 @@ export default function EventDetail() {
       invite_background_url: event.invite_background_url,
       ceremony_time: event.ceremony_time,
       reception_time: event.reception_time,
-      dress_code: event.dress_code,
       contact_phone: event.contact_phone,
       bride_name: event.bride_name,
       groom_name: event.groom_name,
@@ -1508,7 +1507,7 @@ export default function EventDetail() {
                         value={(event as any).body_font_en ?? null}
                         onChange={(val) => setEvent({ ...event, body_font_en: val } as any)}
                         accentColor={event.text_color_accent}
-                        description="Applied to English invitation wording, countdown, dress code, and agenda items."
+                        description="Applied to English invitation wording, countdown, and agenda items."
                       />
                     </div>
                   </TabsContent>
@@ -1577,7 +1576,7 @@ export default function EventDetail() {
                     <Button variant="ghost" size="sm" onClick={() => setEvent({ ...event, text_color_accent: null })}>Reset</Button>
                   )}
                 </div>
-                <p className="text-xs text-muted-foreground">Used for titles, couple's names, dress code, dividers, icons &amp; borders.</p>
+                <p className="text-xs text-muted-foreground">Used for titles, couple's names, dividers, icons &amp; borders.</p>
               </div>
 
               <div className="space-y-2 md:col-span-2">
@@ -1928,19 +1927,7 @@ export default function EventDetail() {
                 onChange={(c, op) => setEvent({ ...event, map_button_bg_color: c, map_button_bg_opacity: op })}
               />
             </div>
-            <div className="space-y-2">
-              <BilingualInput
-                label="Dress code"
-                isDual={isDual}
-                kmValue={event.dress_code ?? ""}
-                enValue={event.dual_language_config?.en?.dress_code ?? ""}
-                onKmChange={(val) => setEvent({ ...event, dress_code: val })}
-                onEnChange={(val) => updateEnField("dress_code", val)}
-                placeholderKm="សមរម្យ / ប្រពៃណី"
-                placeholderEn="Formal / Traditional"
-              />
-            </div>
-            <div className="space-y-2">
+            <div className="space-y-2 md:col-span-2">
               <Label>Maximum guests (optional)</Label>
               <Input
                 type="number"

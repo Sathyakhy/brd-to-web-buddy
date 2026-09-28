@@ -44,7 +44,7 @@ export const SECTION_DEFINITIONS: { key: SectionKey; label: string; description:
   { key: "honorific",        label: "Honorific invitation", description: "សូមគោរពអញ្ជើញ + invitation paragraph." },
   { key: "description",      label: "Description",          description: "Free-form description paragraph." },
   { key: "couple_names",     label: "Couple names",         description: "Bride & groom names with the cover image." },
-  { key: "details",          label: "Date · venue · dress", description: "Date sentence, venue, dress code & map button." },
+  { key: "details",          label: "Date & venue",         description: "Date sentence, venue & map button." },
   { key: "agenda",           label: "Agenda",               description: "Multi-day program (list / cards)." },
   { key: "gallery",          label: "Photo gallery",        description: "Mosaic of uploaded photos." },
   { key: "countdown",        label: "Countdown",            description: "Days remaining until the event." },

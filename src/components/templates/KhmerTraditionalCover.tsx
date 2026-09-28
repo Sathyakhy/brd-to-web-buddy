@@ -171,19 +171,29 @@ export default function KhmerTraditionalCover({
   return (
     <div
       lang="km"
-      className="relative w-full h-full min-h-full flex flex-col items-center justify-center text-center overflow-hidden px-4 py-[clamp(1rem,5vh,2.5rem)]"
+      className="relative w-full h-full min-h-full min-h-[100dvh] flex flex-col items-center justify-center text-center overflow-hidden px-4 py-[clamp(1rem,5vh,2.5rem)] bg-[#fdf5dc]"
+      style={{
+        minHeight: "100dvh",
+        backgroundColor: "#fdf5dc",
+      }}
     >
       {/* Solid base color shown until the background image is ready, so we
-          never flash a white screen behind the guest name. */}
-      <div aria-hidden className="absolute inset-0 bg-[#1a1a1a]" />
+          never flash a blank screen behind the guest name. */}
+      <div aria-hidden className="absolute inset-0 bg-[#fdf5dc]" />
       {/* Background — fades in once decoded */}
       <img
         src={bg}
         alt=""
         aria-hidden
         decoding="async"
-        className="absolute inset-0 w-full h-full object-cover transition-opacity duration-500"
-        style={{ opacity: bgReady ? 1 : 0 }}
+        className="absolute inset-0 w-full h-full object-cover transition-opacity duration-500 pointer-events-none"
+        style={{
+          opacity: bgReady ? 1 : 0,
+          width: "100%",
+          height: "100%",
+          objectFit: "cover",
+          objectPosition: "center top",
+        }}
         onLoad={() => setBgReady(true)}
       />
       {/* Soft veil for legibility */}

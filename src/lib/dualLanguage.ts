@@ -17,7 +17,6 @@ export type LanguageContent = {
   groom_name?: string | null;
   ceremony_time?: string | null;
   reception_time?: string | null;
-  dress_code?: string | null;
   qr_code_message?: string | null;
   qr_account_name?: string | null;
   apologies_message?: string | null;
@@ -125,7 +124,6 @@ export const EN_TRANSLATIONS: TemplateTranslations = {
   mother: "Mother",
   eventDate: "Date & Time",
   venueTitle: "Venue & Location",
-  dressCodeTitle: "Dress Code",
   viewMap: "View on Google Maps",
   ceremonyTitle: "Wedding Ceremony",
   receptionTitle: "Banquet & Reception",
@@ -190,7 +188,6 @@ export function getDualLanguageConfig(raw: unknown, baseEvent?: any): DualLangua
     groom_name: (baseEvent?.groom_name || obj.km_content?.groom_name || dualObj.km?.groom_name || obj.km?.groom_name) ?? null,
     ceremony_time: (baseEvent?.ceremony_time || obj.km_content?.ceremony_time || dualObj.km?.ceremony_time || obj.km?.ceremony_time) ?? null,
     reception_time: (baseEvent?.reception_time || obj.km_content?.reception_time || dualObj.km?.reception_time || obj.km?.reception_time) ?? null,
-    dress_code: (baseEvent?.dress_code || obj.km_content?.dress_code || dualObj.km?.dress_code || obj.km?.dress_code) ?? null,
     qr_code_message: (baseEvent?.qr_code_message || obj.km_content?.qr_code_message || dualObj.km?.qr_code_message || obj.km?.qr_code_message) ?? null,
     qr_account_name: (baseEvent?.qr_account_name || obj.km_content?.qr_account_name || dualObj.km?.qr_account_name || obj.km?.qr_account_name) ?? null,
     apologies_message: (baseEvent?.apologies_message || obj.km_content?.apologies_message || dualObj.km?.apologies_message || obj.km?.apologies_message) ?? null,
@@ -207,7 +204,6 @@ export function getDualLanguageConfig(raw: unknown, baseEvent?: any): DualLangua
     groom_name: (obj.en_content?.groom_name || dualObj.en?.groom_name || obj.en?.groom_name) ?? null,
     ceremony_time: (obj.en_content?.ceremony_time || dualObj.en?.ceremony_time || obj.en?.ceremony_time) ?? null,
     reception_time: (obj.en_content?.reception_time || dualObj.en?.reception_time || obj.en?.reception_time) ?? null,
-    dress_code: (obj.en_content?.dress_code || dualObj.en?.dress_code || obj.en?.dress_code) ?? null,
     qr_code_message: (obj.en_content?.qr_code_message || dualObj.en?.qr_code_message || obj.en?.qr_code_message) ?? null,
     qr_account_name: (obj.en_content?.qr_account_name || dualObj.en?.qr_account_name || obj.en?.qr_account_name) ?? null,
     apologies_message: (obj.en_content?.apologies_message || dualObj.en?.apologies_message || obj.en?.apologies_message) ?? null,
@@ -238,7 +234,6 @@ export function buildEnglishPresets(base: Partial<TemplateData>): LanguageConten
     groom_name: null,
     ceremony_time: base.ceremony_time ? "7:00 AM - Wedding Ceremony" : null,
     reception_time: base.reception_time ? "6:00 PM - Wedding Reception" : null,
-    dress_code: "Formal / Traditional Attire",
     qr_code_message: "Wedding Gift Transfer",
     qr_account_name: base.qr_account_name || null,
     apologies_message: "We sincerely apologize for any shortcomings or if we were unable to extend our invitation in person. Your blessings and well wishes mean the world to us.",
@@ -273,7 +268,6 @@ export function resolveEventContent(
       groom_name: event.groom_name || km?.groom_name?.trim() || null,
       ceremony_time: event.ceremony_time ?? km?.ceremony_time?.trim() ?? null,
       reception_time: event.reception_time ?? km?.reception_time?.trim() ?? null,
-      dress_code: event.dress_code ?? km?.dress_code?.trim() ?? null,
       qr_code_message: event.qr_code_message ?? km?.qr_code_message?.trim() ?? null,
       qr_account_name: event.qr_account_name ?? km?.qr_account_name?.trim() ?? null,
       apologies_message: event.apologies_message ?? km?.apologies_message?.trim() ?? null,
@@ -329,7 +323,6 @@ export function resolveEventContent(
     groom_name: en.groom_name?.trim() || event.groom_name,
     ceremony_time: en.ceremony_time?.trim() || event.ceremony_time,
     reception_time: en.reception_time?.trim() || event.reception_time,
-    dress_code: en.dress_code?.trim() || presets.dress_code || event.dress_code,
     qr_code_message: en.qr_code_message?.trim() || presets.qr_code_message || event.qr_code_message,
     qr_account_name: en.qr_account_name?.trim() || event.qr_account_name,
     apologies_message: en.apologies_message?.trim() || event.apologies_message,
