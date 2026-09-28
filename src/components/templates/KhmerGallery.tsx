@@ -187,7 +187,7 @@ export default function KhmerGallery({ images, layout = "grid" }: Props) {
     });
   }, [active, visibleImages]);
 
-  const clampZoom = (value: number) => Math.max(1, Math.min(4, value));
+  const clampZoom = (value: number) => Math.max(1, Math.min(5, value));
 
   const changeZoom = (delta: number) => {
     setZoom((current) => {
@@ -395,11 +395,12 @@ export default function KhmerGallery({ images, layout = "grid" }: Props) {
                 The transform/zoom is applied to the wrapping container so
                 all three layers stay perfectly aligned. */}
             <div
-              className="relative will-change-transform"
+              className="relative"
               onClick={(event) => event.stopPropagation()}
               style={{
                 transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
-                transition: touchState.current.mode === "none" ? "transform 160ms ease" : "none",
+                transformOrigin: "center center",
+                transition: touchState.current.mode === "none" ? "transform 160ms ease-out" : "none",
               }}
             >
               {/* Tier 1 — instant thumbnail. Already in the browser cache
@@ -411,25 +412,24 @@ export default function KhmerGallery({ images, layout = "grid" }: Props) {
                   alt=""
                   aria-hidden="true"
                   draggable={false}
-                  className="block max-h-[100dvh] max-w-[100vw] object-contain"
+                  className="block max-h-[100dvh] max-w-[100vw] object-contain select-none"
                   style={{
-                    filter: previewLoaded ? "none" : "blur(8px)",
-                    transition: "filter 200ms ease",
+                    filter: previewLoaded || fullLoaded ? "none" : "blur(8px)",
+                    opacity: fullLoaded ? 0 : 1,
+                    transition: "filter 200ms ease, opacity 200ms ease",
                   }}
                 />
               )}
 
-              {/* Tier 2 — medium preview (~960px). Sharp enough for most
-                  phone screens and arrives much faster than the full HQ
-                  version. Fades in as soon as it's decoded. */}
-              {previewSrc && (
+              {/* Tier 2 — medium preview. Arrives fast for smooth initial viewing. */}
+              {previewSrc && !fullLoaded && (
                 <img
                   src={previewSrc}
                   alt=""
                   aria-hidden="true"
                   draggable={false}
                   decoding="async"
-                  className="absolute inset-0 block h-full w-full object-contain"
+                  className="absolute inset-0 block h-full w-full object-contain select-none"
                   onLoad={() => setPreviewLoaded(true)}
                   style={{
                     opacity: previewLoaded ? 1 : 0,
@@ -438,10 +438,8 @@ export default function KhmerGallery({ images, layout = "grid" }: Props) {
                 />
               )}
 
-              {/* Tier 3 — full high-quality (1920px / q90). Swapped in
-                  silently when ready; visually identical so the user
-                  doesn't notice the swap, but pinch-zoom now reveals the
-                  extra detail. */}
+              {/* Tier 3 — Original untouched full-resolution upload.
+                  Delivers 100% crystal-clear clarity when zooming in. */}
               {fullSrc && (
                 <img
                   src={fullSrc}
@@ -449,7 +447,7 @@ export default function KhmerGallery({ images, layout = "grid" }: Props) {
                   loading="eager"
                   decoding="async"
                   draggable={false}
-                  className="absolute inset-0 block h-full w-full object-contain"
+                  className={fullLoaded ? "block max-h-[100dvh] max-w-[100vw] object-contain select-none" : "absolute inset-0 block h-full w-full object-contain select-none"}
                   onLoad={() => {
                     loadedFullCache.add(fullSrc);
                     setFullLoaded(true);
@@ -457,6 +455,7 @@ export default function KhmerGallery({ images, layout = "grid" }: Props) {
                   style={{
                     opacity: fullLoaded ? 1 : 0,
                     transition: "opacity 200ms ease",
+                    imageRendering: "auto",
                   }}
                 />
               )}

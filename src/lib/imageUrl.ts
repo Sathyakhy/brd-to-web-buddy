@@ -34,8 +34,8 @@ export function previewUrl(url: string, width = 1280) {
   return transformImage(url, { width, quality: 85, resize: "contain" });
 }
 
-/** Convenience: lightbox full view — near-original quality at display size. */
-export function fullUrl(url: string, width = 1920) {
-  return transformImage(url, { width, quality: 95, resize: "contain" });
+/** Convenience: lightbox full view — original full-resolution photo as uploaded without lossy downscaling. */
+export function fullUrl(url: string, _width?: number) {
+  return url || "";
 }
 
