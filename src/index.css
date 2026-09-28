@@ -1,0 +1,314 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+
+/* Khmer OS Moul — self-hosted so it loads reliably on iOS Safari and
+   Android Chrome (some CDN-hosted .ttf files are blocked by mobile
+   browsers due to CORS or MIME issues). */
+@font-face {
+  font-family: 'Khmer OS Moul';
+  src: url('/fonts/KhmerOSmuol.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+1780-17FF, U+19E0-19FF, U+0020-007F;
+}
+@font-face {
+  font-family: 'Khmer OS Moul Light';
+  src: url('/fonts/KhmerOSmuollight.ttf') format('truetype');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+1780-17FF, U+19E0-19FF, U+0020-007F;
+}
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 21Invitation — Dark Luxury Design System
+   All colors HSL. Deep navy + gold. */
+
+@layer base {
+  :root {
+    /* Surfaces */
+    --background: 222 47% 6%;
+    --foreground: 40 30% 92%;
+
+    --card: 222 40% 9%;
+    --card-foreground: 40 30% 92%;
+
+    --popover: 222 45% 8%;
+    --popover-foreground: 40 30% 92%;
+
+    /* Brand: champagne gold */
+    --primary: 41 60% 62%;
+    --primary-foreground: 222 50% 8%;
+    --primary-glow: 44 78% 70%;
+
+    --secondary: 222 30% 14%;
+    --secondary-foreground: 40 25% 88%;
+
+    --muted: 222 25% 13%;
+    --muted-foreground: 40 18% 78%;
+
+    --accent: 41 50% 55%;
+    --accent-foreground: 222 50% 8%;
+
+    --destructive: 0 70% 55%;
+    --destructive-foreground: 40 30% 95%;
+
+    --success: 145 55% 45%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 38 90% 55%;
+    --warning-foreground: 222 50% 8%;
+
+    --border: 222 25% 18%;
+    --input: 222 30% 14%;
+    --ring: 41 60% 62%;
+
+    --radius: 0.625rem;
+
+    /* Sidebar */
+    --sidebar-background: 222 50% 5%;
+    --sidebar-foreground: 40 22% 88%;
+    --sidebar-primary: 41 60% 62%;
+    --sidebar-primary-foreground: 222 50% 8%;
+    --sidebar-accent: 222 35% 11%;
+    --sidebar-accent-foreground: 41 60% 70%;
+    --sidebar-border: 222 30% 14%;
+    --sidebar-ring: 41 60% 62%;
+
+    /* Custom design tokens */
+    --gold: 41 60% 62%;
+    --gold-soft: 44 78% 70%;
+    --gold-deep: 36 50% 45%;
+    --navy-deep: 222 60% 4%;
+    --navy: 222 47% 6%;
+    --ivory: 40 35% 95%;
+
+    --gradient-gold: linear-gradient(135deg, hsl(44 78% 70%), hsl(36 60% 50%));
+    --gradient-radial-gold: radial-gradient(circle at top, hsl(41 60% 62% / 0.18), transparent 60%);
+    --gradient-surface: linear-gradient(180deg, hsl(222 45% 9%), hsl(222 50% 6%));
+    --gradient-hero: radial-gradient(ellipse at top, hsl(222 60% 12%), hsl(222 60% 4%) 70%);
+
+    --shadow-gold: 0 10px 40px -10px hsl(41 60% 50% / 0.35);
+    --shadow-elegant: 0 20px 60px -20px hsl(222 80% 2% / 0.6);
+    --shadow-soft: 0 4px 20px -4px hsl(222 80% 2% / 0.4);
+
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .light {
+    /* Light: ivory + deep gold on warm white */
+    --background: 40 35% 97%;
+    --foreground: 222 45% 12%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 45% 12%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 45% 12%;
+    --primary: 36 55% 42%;
+    --primary-foreground: 40 35% 97%;
+    --primary-glow: 41 70% 55%;
+    --secondary: 40 25% 92%;
+    --secondary-foreground: 222 45% 12%;
+    --muted: 40 20% 93%;
+    --muted-foreground: 222 20% 30%;
+    --accent: 36 55% 42%;
+    --accent-foreground: 40 35% 97%;
+    --destructive: 0 72% 50%;
+    --destructive-foreground: 0 0% 100%;
+    --success: 145 55% 38%;
+    --success-foreground: 0 0% 100%;
+    --warning: 38 90% 45%;
+    --warning-foreground: 0 0% 100%;
+    --border: 40 20% 86%;
+    --input: 40 20% 90%;
+    --ring: 36 55% 42%;
+
+    --sidebar-background: 40 30% 95%;
+    --sidebar-foreground: 222 30% 22%;
+    --sidebar-primary: 36 55% 42%;
+    --sidebar-primary-foreground: 40 35% 97%;
+    --sidebar-accent: 40 25% 90%;
+    --sidebar-accent-foreground: 36 55% 35%;
+    --sidebar-border: 40 20% 84%;
+    --sidebar-ring: 36 55% 42%;
+
+    --gold: 36 55% 42%;
+    --gold-soft: 41 70% 55%;
+    --gold-deep: 30 60% 32%;
+    --navy-deep: 222 45% 12%;
+    --navy: 222 30% 22%;
+    --ivory: 40 35% 97%;
+
+    --gradient-gold: linear-gradient(135deg, hsl(41 70% 50%), hsl(30 60% 35%));
+    --gradient-radial-gold: radial-gradient(circle at top, hsl(36 55% 42% / 0.15), transparent 60%);
+    --gradient-surface: linear-gradient(180deg, hsl(0 0% 100%), hsl(40 30% 95%));
+    --gradient-hero: radial-gradient(ellipse at top, hsl(40 50% 92%), hsl(40 30% 95%) 70%);
+
+    --shadow-gold: 0 10px 40px -10px hsl(36 55% 42% / 0.25);
+    --shadow-elegant: 0 20px 60px -20px hsl(222 30% 30% / 0.15);
+    --shadow-soft: 0 4px 20px -4px hsl(222 30% 30% / 0.08);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  html {
+    color-scheme: dark;
+  }
+  html.light {
+    color-scheme: light;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    font-weight: 500;
+    font-feature-settings: "ss01", "cv11";
+    letter-spacing: -0.01em;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    font-weight: 600;
+    letter-spacing: -0.02em;
+  }
+  /* Invitation pages only — slightly opened tracking for the guest-facing
+     templates. Scoped via a wrapper class so the admin/customer dashboards
+     keep their tighter default spacing. */
+  .invitation-surface,
+  .invitation-surface h1,
+  .invitation-surface h2,
+  .invitation-surface h3,
+  .invitation-surface h4,
+  .invitation-surface h5,
+  .invitation-surface h6 {
+    letter-spacing: 0.02em;
+  }
+}
+
+@layer utilities {
+  .font-serif {
+    /* Note: kept the .font-serif name for backwards compatibility, but the
+       project now uses a modern geometric display sans. */
+    font-family: 'Space Grotesk', 'Plus Jakarta Sans', system-ui, sans-serif;
+    font-weight: 600;
+    letter-spacing: -0.03em;
+  }
+  .font-khmer {
+    font-family: 'Battambang', 'Khmer OS', sans-serif;
+  }
+  .font-khmer-moul {
+    font-family: 'Moul', 'Battambang', serif;
+  }
+  .font-khmer-os-moul {
+    font-family: 'Khmer OS Moul', 'Moul', 'Battambang', serif;
+  }
+  .font-khmer-os-moul-light {
+    font-family: 'Khmer OS Moul Light', 'Khmer OS Moul', 'Moul', 'Battambang', serif;
+    font-weight: 300;
+  }
+  .font-khmer-koulen {
+    font-family: 'Koulen', 'Battambang', sans-serif;
+  }
+  .text-gold {
+    color: hsl(var(--gold));
+  }
+  .text-gradient-gold {
+    background: var(--gradient-gold);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .bg-gradient-gold {
+    background: var(--gradient-gold);
+  }
+  .bg-gradient-surface {
+    background: var(--gradient-surface);
+  }
+  .bg-gradient-hero {
+    background: var(--gradient-hero);
+  }
+  .shadow-gold {
+    box-shadow: var(--shadow-gold);
+  }
+  .shadow-elegant {
+    box-shadow: var(--shadow-elegant);
+  }
+  .ring-gold {
+    --tw-ring-color: hsl(var(--gold) / 0.4);
+  }
+  .gold-divider {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, hsl(var(--gold) / 0.5), transparent);
+  }
+  .font-khmer-bokor {
+    font-family: 'Bokor', 'Battambang', serif;
+  }
+  .font-khmer-siemreap {
+    font-family: 'Siemreap', 'Battambang', sans-serif;
+  }
+  .font-khmer-battambang {
+    font-family: 'Battambang', 'Siemreap', sans-serif;
+  }
+  /* ===== Khmer Traditional invitation tokens ===== */
+  .kt-gold {
+    color: #db9b0f;
+  }
+  .kt-title {
+    font-family: 'Moul', 'Noto Serif Khmer', serif;
+    color: #db9b0f;
+    text-shadow: 1px 1px 0 #decc86, 2px 2px 2px #fdffed, 0 0 6px #f2e4e8;
+    -webkit-text-stroke: 0.2px #b3b3b3;
+    font-weight: 400;
+  }
+  .kt-glow-text {
+    color: #000;
+    text-shadow: 0 0 4px #fff;
+  }
+  .kt-section-card {
+    background-color: rgba(255, 255, 255, 0.25);
+    border: 2px solid #db9b0f;
+    box-shadow: 0 0 12px rgba(219, 155, 15, 0.25);
+    border-radius: 20px;
+  }
+  .kt-bg {
+    background:
+      radial-gradient(1200px 600px at 50% -100px, rgba(255, 220, 150, 0.55), transparent 60%),
+      linear-gradient(180deg, #fff5d8 0%, #f8e3a8 40%, #f2cf78 100%);
+  }
+  .kt-connector {
+    width: 2px;
+    background: linear-gradient(to bottom, transparent, #db9b0f, transparent);
+    border-radius: 2px;
+  }
+  @keyframes kt-float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-6px); }
+  }
+  .kt-float {
+    animation: kt-float 2s ease-in-out infinite;
+  }
+}
+
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.animate-fade-up { animation: fade-up 0.6s ease-out both; }
+
+/* Indeterminate top-bar used by the gallery lightbox while the
+   high-quality image is still downloading. Slides a short white pill
+   left-to-right so the user has a subtle hint that work is in progress. */
+@keyframes gallery-progress {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(400%); }
+}
+
+#lovable-badge {
+  display: none !important;
+}
