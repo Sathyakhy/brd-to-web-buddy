@@ -311,6 +311,9 @@ export default function EventDetail() {
         bg_opacity: event.agenda_bg_opacity ?? null,
         asset_color: event.agenda_asset_color ?? null,
       },
+      agenda_bg_color: event.agenda_bg_color ?? null,
+      agenda_bg_opacity: event.agenda_bg_opacity ?? null,
+      agenda_asset_color: event.agenda_asset_color ?? null,
     };
     const { error } = await supabase.from("events").update({
       title: event.title,
@@ -963,6 +966,9 @@ export default function EventDetail() {
             <PreviewPanel
               event={{
                 ...event,
+                agenda_bg_color: event.agenda_bg_color,
+                agenda_bg_opacity: event.agenda_bg_opacity,
+                agenda_asset_color: event.agenda_asset_color,
                 template_section_visibility: templateVisibilityBySlug[event.template] ?? {},
                 template_cover_music_url: templateDefaultsBySlug[event.template]?.cover_music_url,
                 dual_language_config: event.dual_language_config,
@@ -972,6 +978,14 @@ export default function EventDetail() {
                   ...(event.section_visibility as any),
                   dual_language: event.dual_language_config,
                   envelope_unboxing: event.envelope_unboxing,
+                  agenda_style: {
+                    bg_color: event.agenda_bg_color ?? null,
+                    bg_opacity: event.agenda_bg_opacity ?? null,
+                    asset_color: event.agenda_asset_color ?? null,
+                  },
+                  agenda_bg_color: event.agenda_bg_color ?? null,
+                  agenda_bg_opacity: event.agenda_bg_opacity ?? null,
+                  agenda_asset_color: event.agenda_asset_color ?? null,
                 },
               } as any}
               publicHref={`/${event.slug}`}

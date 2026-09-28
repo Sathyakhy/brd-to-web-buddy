@@ -216,6 +216,9 @@ function normalizeConfig(raw: any): TemplateConfig {
     body_font: r.body_font ?? r.section_visibility?.body_font ?? null,
     body_font_km: r.body_font_km ?? r.section_visibility?.body_font_km ?? r.body_font ?? null,
     body_font_en: r.body_font_en ?? r.section_visibility?.body_font_en ?? null,
+    agenda_bg_color: r.agenda_bg_color ?? r.section_visibility?.agenda_style?.bg_color ?? r.section_visibility?.agenda_bg_color ?? null,
+    agenda_bg_opacity: r.agenda_bg_opacity ?? r.section_visibility?.agenda_style?.bg_opacity ?? r.section_visibility?.agenda_bg_opacity ?? null,
+    agenda_asset_color: r.agenda_asset_color ?? r.section_visibility?.agenda_style?.asset_color ?? r.section_visibility?.agenda_asset_color ?? null,
     music_autoplay_cover: musicSettings.autoPlayCover,
     music_autoplay_invitation: musicSettings.autoPlayInvitation,
     music_autoplay_mode: r.music_autoplay_mode ?? (musicSettings.autoPlayCover && musicSettings.autoPlayInvitation ? "both" : musicSettings.autoPlayCover ? "cover" : musicSettings.autoPlayInvitation ? "invitation" : "none"),
@@ -541,7 +544,17 @@ export default function TemplateDetail() {
     // Feed visibility into the preview the same way the live invite does.
     envelope_unboxing: draftConfig.envelope_unboxing,
     template_envelope_unboxing: draftConfig.envelope_unboxing,
-    template_section_visibility: draftConfig.section_visibility,
+    template_section_visibility: {
+      ...(draftConfig.section_visibility as any),
+      agenda_style: {
+        bg_color: draftConfig.agenda_bg_color ?? null,
+        bg_opacity: draftConfig.agenda_bg_opacity ?? null,
+        asset_color: draftConfig.agenda_asset_color ?? null,
+      },
+      agenda_bg_color: draftConfig.agenda_bg_color ?? null,
+      agenda_bg_opacity: draftConfig.agenda_bg_opacity ?? null,
+      agenda_asset_color: draftConfig.agenda_asset_color ?? null,
+    },
     section_visibility: {},
   };
 

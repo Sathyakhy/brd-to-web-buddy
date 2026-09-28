@@ -799,10 +799,33 @@ export function KhmerTraditionalTemplate({ event, guestName, children, hideBackg
             opacity, and dedicated asset/icon color. */}
         {isVisible("agenda") && agendaDays.length > 0 && (() => {
           const fallbackBg = hexWithOpacity("#fff8e7", 70);
-          const agendaBgColor = event.agenda_bg_color ?? event.letter_bg_color;
-          const agendaBgOpacity = event.agenda_bg_opacity ?? (event.agenda_bg_color ? 70 : (event.letter_bg_opacity ?? 70));
+          const agendaBgColor =
+            (event as any).agenda_bg_color ||
+            (event as any).section_visibility?.agenda_style?.bg_color ||
+            (event as any).section_visibility?.agenda_bg_color ||
+            (event as any).template_section_visibility?.agenda_style?.bg_color ||
+            (event as any).template_section_visibility?.agenda_bg_color ||
+            (event as any).templateDefaults?.agenda_bg_color ||
+            (event as any).letter_bg_color;
+
+          const agendaBgOpacity =
+            (event as any).agenda_bg_opacity ??
+            (event as any).section_visibility?.agenda_style?.bg_opacity ??
+            (event as any).section_visibility?.agenda_bg_opacity ??
+            (event as any).template_section_visibility?.agenda_style?.bg_opacity ??
+            (event as any).template_section_visibility?.agenda_bg_opacity ??
+            (event as any).templateDefaults?.agenda_bg_opacity ??
+            ((event as any).agenda_bg_color ? 70 : ((event as any).letter_bg_opacity ?? 70));
+
           const cardBg = hexWithOpacity(agendaBgColor, agendaBgOpacity) ?? fallbackBg;
-          const agendaAssetColor = event.agenda_asset_color || colorAccent;
+          const agendaAssetColor =
+            (event as any).agenda_asset_color ||
+            (event as any).section_visibility?.agenda_style?.asset_color ||
+            (event as any).section_visibility?.agenda_asset_color ||
+            (event as any).template_section_visibility?.agenda_style?.asset_color ||
+            (event as any).template_section_visibility?.agenda_asset_color ||
+            (event as any).templateDefaults?.agenda_asset_color ||
+            colorAccent;
 
           const agendaCardStyle: React.CSSProperties = {
             background: cardBg ?? undefined,
@@ -1778,7 +1801,11 @@ export function InvitationTemplate({
   templateDefaults?: Partial<Pick<TemplateData,
     "qr_code_url" | "qr_code_message" | "qr_account_name" |
     "apologies_message" | "thank_you_message" |
-    "letter_bg_color" | "letter_bg_opacity" | "frame_url" | "frame_type" |
+    "letter_bg_color" | "letter_bg_opacity" |
+    "agenda_bg_color" | "agenda_bg_opacity" | "agenda_asset_color" |
+    "frame_url" | "frame_type" |
+    "header_font" | "header_font_km" | "header_font_en" |
+    "body_font" | "body_font_km" | "body_font_en" |
     "cover_music_url"
   >>;
 }) {
@@ -1804,6 +1831,15 @@ export function InvitationTemplate({
         thank_you_message: fallback("thank_you_message") as any,
         letter_bg_color: fallback("letter_bg_color") as any,
         letter_bg_opacity: fallback("letter_bg_opacity") as any,
+        agenda_bg_color: fallback("agenda_bg_color") as any,
+        agenda_bg_opacity: fallback("agenda_bg_opacity") as any,
+        agenda_asset_color: fallback("agenda_asset_color") as any,
+        header_font: fallback("header_font") as any,
+        header_font_km: fallback("header_font_km") as any,
+        header_font_en: fallback("header_font_en") as any,
+        body_font: fallback("body_font") as any,
+        body_font_km: fallback("body_font_km") as any,
+        body_font_en: fallback("body_font_en") as any,
         frame_url: fallback("frame_url") as any,
         frame_type: fallback("frame_type") as any,
         cover_music_url: fallback("cover_music_url") as any,

@@ -57,9 +57,9 @@ export default function InvitePage() {
       });
       const ev = Array.isArray(evRows) ? evRows[0] : evRows;
       if (!ev) { setLoading(false); return; }
-      const agenda_bg_color = (ev as any).agenda_bg_color ?? (ev as any).section_visibility?.agenda_style?.bg_color ?? null;
-      const agenda_bg_opacity = (ev as any).agenda_bg_opacity ?? (ev as any).section_visibility?.agenda_style?.bg_opacity ?? null;
-      const agenda_asset_color = (ev as any).agenda_asset_color ?? (ev as any).section_visibility?.agenda_style?.asset_color ?? null;
+      const agenda_bg_color = (ev as any).agenda_bg_color ?? (ev as any).section_visibility?.agenda_style?.bg_color ?? (ev as any).section_visibility?.agenda_bg_color ?? null;
+      const agenda_bg_opacity = (ev as any).agenda_bg_opacity ?? (ev as any).section_visibility?.agenda_style?.bg_opacity ?? (ev as any).section_visibility?.agenda_bg_opacity ?? null;
+      const agenda_asset_color = (ev as any).agenda_asset_color ?? (ev as any).section_visibility?.agenda_style?.asset_color ?? (ev as any).section_visibility?.agenda_asset_color ?? null;
       const side_frame_config = (ev as any).side_frame_config ?? (ev as any).section_visibility?.side_frame_config ?? null;
       setEvent({
         ...ev,
