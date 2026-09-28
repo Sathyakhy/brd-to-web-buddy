@@ -1079,7 +1079,14 @@ export function KhmerTraditionalTemplate({ event, guestName, children, hideBackg
             >
               {isEn ? "Photo Gallery" : "វិចិត្រសាល"}
             </h3>
-            <p className="font-khmer-siemreap text-center text-sm mb-5 kt-glow-text" style={{ fontFamily: isEn ? undefined : bodyFont }}>
+            <p
+              className={`text-center text-sm mb-5 ${bodyFont ? "" : (isEn ? "font-sans" : "font-khmer-siemreap")}`}
+              style={{
+                color: colorPrimary,
+                fontFamily: bodyFont,
+                textShadow: bodyShadow,
+              }}
+            >
               {isEn ? "Click any photo to enlarge" : "ចុចលើរូបភាពដើម្បីពង្រីកធំ"}
             </p>
             <KhmerGallery
