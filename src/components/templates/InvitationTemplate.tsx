@@ -912,12 +912,13 @@ export function KhmerTraditionalTemplate({ event, guestName, children, hideBackg
 
           const agendaCardStyle: React.CSSProperties = {
             backgroundColor: cardBg,
-            border: `1px solid ${agendaAssetColor}33`,
-            borderRadius: 12,
+            border: `2px solid ${agendaAssetColor}`,
+            borderRadius: 20,
+            boxShadow: `0 0 12px ${agendaAssetColor}40`,
             backdropFilter: safeOpacity > 0 ? "blur(2px)" : "none",
           };
           return (
-          <section className="p-5 sm:p-6 my-8 w-full transition-all" style={agendaCardStyle}>
+          <section className="kt-section-card p-5 sm:p-6 my-8 w-full transition-all" style={agendaCardStyle}>
             {/* Day tabs (only when more than one day) */}
             {agendaDays.length > 1 && (
               <div className="flex flex-wrap justify-center gap-2 mb-4">
@@ -1107,10 +1108,18 @@ export function KhmerTraditionalTemplate({ event, guestName, children, hideBackg
             style={{
               borderColor: colorAccent,
               boxShadow: `0 0 12px ${colorAccent}40`,
+              backdropFilter: (countdownBgOpacity ?? 25) > 0 ? "blur(2px)" : "none",
               ...(resolvedCountdownBg ? { backgroundColor: resolvedCountdownBg, background: resolvedCountdownBg } : {}),
             }}
           >
-            <span className={`text-base ${isEn ? "font-serif uppercase tracking-wider font-semibold text-sm sm:text-base" : "font-khmer-koulen"}`} style={{ color: colorAccent, textShadow: headingShadow }}>
+            <span
+              className={`block text-base ${bodyFont ? "" : (isEn ? "font-serif uppercase tracking-wider font-semibold text-sm sm:text-base" : "font-khmer-siemreap")}`}
+              style={{
+                color: colorPrimary,
+                fontFamily: bodyFont,
+                textShadow: bodyShadow,
+              }}
+            >
               {(event.countdown_message?.trim()) ||
                 (isEn
                   ? "You are cordially invited to celebrate our wedding day!"
@@ -1119,13 +1128,35 @@ export function KhmerTraditionalTemplate({ event, guestName, children, hideBackg
 
             {daysLeft > 0 && (
               <>
-                <div className={`text-sm mt-3 ${isEn ? "font-serif uppercase tracking-widest font-semibold" : "font-khmer-koulen"}`} style={{ color: colorAccent, textShadow: headingShadow }}>
+                <div
+                  className={`text-sm mt-3 ${bodyFont ? "" : (isEn ? "font-serif uppercase tracking-widest font-semibold" : "font-khmer-siemreap")}`}
+                  style={{
+                    color: colorPrimary,
+                    fontFamily: bodyFont,
+                    textShadow: bodyShadow,
+                  }}
+                >
                   {isEn ? "Countdown" : "នៅសល់"}
                 </div>
-                <div className={`${isEn ? "font-serif font-bold" : ""} text-6xl sm:text-7xl my-1`} style={{ fontFamily: headerFont, color: colorAccent, textShadow: headingShadow, lineHeight: 1 }}>
+                <div
+                  className={`${isEn ? "font-serif font-bold" : ""} text-6xl sm:text-7xl my-1`}
+                  style={{
+                    fontFamily: headerFont,
+                    color: colorAccent,
+                    textShadow: headingShadow,
+                    lineHeight: 1,
+                  }}
+                >
                   {daysLeft}
                 </div>
-                <span className={`text-sm ${isEn ? "font-serif uppercase tracking-wider font-semibold" : "font-khmer-koulen"}`} style={{ color: colorAccent, textShadow: headingShadow }}>
+                <span
+                  className={`block text-sm ${bodyFont ? "" : (isEn ? "font-serif uppercase tracking-wider font-semibold" : "font-khmer-siemreap")}`}
+                  style={{
+                    color: colorPrimary,
+                    fontFamily: bodyFont,
+                    textShadow: bodyShadow,
+                  }}
+                >
                   {isEn
                     ? (daysLeft === 1 ? "Day until our wedding" : "Days until our wedding")
                     : "ថ្ងៃទៀតដល់ថ្ងៃរៀបអាពាហ៍ពិពាហ៍"}
@@ -1134,13 +1165,29 @@ export function KhmerTraditionalTemplate({ event, guestName, children, hideBackg
             )}
 
             {daysLeft === 0 && (
-              <div className={`${isEn ? "font-serif font-bold text-2xl sm:text-3xl" : "text-3xl sm:text-4xl"} mt-4`} style={{ fontFamily: headerFont, color: colorAccent, textShadow: headingShadow, lineHeight: 1.2 }}>
+              <div
+                className={`${isEn ? "font-serif font-bold text-2xl sm:text-3xl" : "text-3xl sm:text-4xl"} mt-4`}
+                style={{
+                  fontFamily: headerFont,
+                  color: colorAccent,
+                  textShadow: headingShadow,
+                  lineHeight: 1.2,
+                }}
+              >
                 {isEn ? "Today is our Wedding Day!" : "ថ្ងៃនេះ​ជាថ្ងៃរៀបអាពាហ៍ពិពាហ៍"}
               </div>
             )}
 
             {daysLeft < 0 && (
-              <div className={`${isEn ? "font-serif font-bold text-xl sm:text-2xl" : "text-2xl sm:text-3xl"} mt-4`} style={{ fontFamily: headerFont, color: colorAccent, textShadow: headingShadow, lineHeight: 1.3 }}>
+              <div
+                className={`${isEn ? "font-serif font-bold text-xl sm:text-2xl" : "text-2xl sm:text-3xl"} mt-4`}
+                style={{
+                  fontFamily: headerFont,
+                  color: colorAccent,
+                  textShadow: headingShadow,
+                  lineHeight: 1.3,
+                }}
+              >
                 {isEn ? "Thank you for celebrating with us!" : "សូមអរគុណ​ដែលបានចូលរួម​ក្នុងពិធីរបស់យើងខ្ញុំ"}
               </div>
             )}
@@ -1212,8 +1259,9 @@ export function KhmerTraditionalTemplate({ event, guestName, children, hideBackg
           const cardBg = hexWithOpacity(safeColor, safeOpacity) || `rgba(255, 248, 231, ${safeOpacity / 100})`;
           const cardStyle: React.CSSProperties = {
             backgroundColor: cardBg,
-            border: `1px solid ${colorAccent}33`,
-            borderRadius: 12,
+            border: `2px solid ${colorAccent}`,
+            borderRadius: 20,
+            boxShadow: `0 0 12px ${colorAccent}40`,
             backdropFilter: safeOpacity > 0 ? "blur(2px)" : "none",
           };
 
@@ -1225,7 +1273,7 @@ export function KhmerTraditionalTemplate({ event, guestName, children, hideBackg
                   : "យើងខ្ញុំជាមាតាបិតា​ កូនប្រុស កូនស្រី សូមអភ័យទោសដោយពុំបានជួបអញ្ជើញដោយផ្ទាល់ និង ការសរសេរឈ្មោះរបស់ ភ្ញៀវកិត្តិយសមិនបានត្រឹមត្រូវ ឬ ពុំបានសរសេរឈ្មោះ។ វត្តមានរបស់ ឯកឧត្តម លោកជំទាវ លោកឧកញ៉ា លោក លោកស្រី អ្នកនាងកញ្ញា នឹង ប្រិយមិត្តទាំងអស់ គឺជាកិត្តិយសដ៏ឧត្តុងឧត្តមសម្រាប់ ក្រុមគ្រួសារយើងខ្ញុំ។";
                 const body = (event.apologies_message?.trim()) || DEFAULT_APOLOGY;
                 return (
-                  <section className="text-center p-5 sm:p-6 my-8 w-full" style={cardStyle}>
+                  <section className="kt-section-card text-center p-5 sm:p-6 my-8 w-full" style={cardStyle}>
                     <h3
                       className={`text-2xl sm:text-3xl mb-2 ${isEn ? "font-serif font-bold" : ""}`}
                       style={{ fontFamily: headerFont, color: colorAccent, textShadow: headingShadow }}
@@ -1257,7 +1305,7 @@ export function KhmerTraditionalTemplate({ event, guestName, children, hideBackg
                   : "យើងខ្ញុំជាមាតាបិតា កូនប្រុស កូនស្រី សូមថ្លែងអំណរគុណយ៉ាងជ្រាលជ្រៅចំពោះការអញ្ជើញចូលរួមជាភ្ញៀវកិត្តិយសដ៏ឧត្ដុងឧត្ដមក្នុង ពីធីរៀបអាពាហ៍ពីពាហ៍កូនប្រុស កូនស្រី របស់យើងខ្ញុំ។ សូមជូនពរឯកឧត្តម លោកជំទាវ លោកឧកញ៉ា លោក លោកស្រី អ្នកនាង កញ្ញា និងភ្ញៀវកិត្តិយសទាំងអស់មាន សុខភាពល្អ និងទទួលជោកជ័យគ្រប់ភារៈកិច្ចជានិរន្តន៍។ សូមអរគុណ !";
                 const body = (event.thank_you_message?.trim()) || DEFAULT_THANKS;
                 return (
-                  <section className="text-center p-5 sm:p-6 my-8 w-full" style={cardStyle}>
+                  <section className="kt-section-card text-center p-5 sm:p-6 my-8 w-full" style={cardStyle}>
                     <h3
                       className={`text-2xl sm:text-3xl mb-2 ${isEn ? "font-serif font-bold" : ""}`}
                       style={{ fontFamily: headerFont, color: colorAccent, textShadow: headingShadow }}
@@ -1295,9 +1343,18 @@ export function KhmerTraditionalTemplate({ event, guestName, children, hideBackg
             >
               {isEn ? "Location & Map" : "ទីតាំងកម្មវិធី"}
             </h3>
-            <p className="text-base mb-3 mt-2 kt-glow-text px-3 font-bold">{venueDisplay}</p>
+            <p
+              className={`text-base mb-3 mt-2 px-3 font-bold ${bodyFont ? "" : (isEn ? "font-sans" : "font-khmer-siemreap")}`}
+              style={{
+                color: colorPrimary,
+                fontFamily: bodyFont,
+                textShadow: bodyShadow,
+              }}
+            >
+              {venueDisplay}
+            </p>
             {mapsEmbed && (
-              <div className="rounded-xl overflow-hidden shadow-md w-full" style={{ border: `2px solid ${colorAccent}66` }}>
+              <div className="rounded-2xl overflow-hidden shadow-md w-full" style={{ border: `2px solid ${colorAccent}`, boxShadow: `0 0 12px ${colorAccent}40` }}>
                 <iframe
                   src={mapsEmbed}
                   title="venue map"
@@ -1311,8 +1368,8 @@ export function KhmerTraditionalTemplate({ event, guestName, children, hideBackg
               <button
                 type="button"
                 onClick={() => setMapZoomOpen(true)}
-                className="mt-3 block w-full rounded-xl overflow-hidden shadow-md cursor-zoom-in group"
-                style={{ border: `2px solid ${colorAccent}66` }}
+                className="mt-3 block w-full rounded-2xl overflow-hidden shadow-md cursor-zoom-in group"
+                style={{ border: `2px solid ${colorAccent}`, boxShadow: `0 0 12px ${colorAccent}40` }}
                 aria-label="View map full screen"
               >
                 <img
