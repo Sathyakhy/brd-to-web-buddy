@@ -115,6 +115,18 @@ export type TemplateData = {
   agenda_bg_opacity?: number | null;
   /** Custom asset color (hex) for agenda icons, dividers, day badges, and timeline accents. */
   agenda_asset_color?: string | null;
+  /** Background color (hex) for the Open Google Maps button. */
+  map_button_bg_color?: string | null;
+  /** Opacity 0–100 applied to {@link map_button_bg_color}. */
+  map_button_bg_opacity?: number | null;
+  /** Background color (hex) for the Countdown timer section card. */
+  countdown_bg_color?: string | null;
+  /** Opacity 0–100 applied to {@link countdown_bg_color}. */
+  countdown_bg_opacity?: number | null;
+  /** Background color (hex) for the RSVP response section card. */
+  rsvp_bg_color?: string | null;
+  /** Opacity 0–100 applied to {@link rsvp_bg_color}. */
+  rsvp_bg_opacity?: number | null;
   /** Optional admin-uploaded ornamental frame (Signature Package). */
   frame_url?: string | null;
   /** "image" or "video" — tells the renderer which element to use. */
@@ -336,6 +348,50 @@ export function KhmerTraditionalTemplate({ event, guestName, children, hideBackg
       : mapsQuery
         ? `https://www.google.com/maps?q=${mapsQuery}&output=embed`
         : null);
+
+  // Resolve configurable background and opacity for Open Map button
+  const mapButtonBgColor =
+    (event as any).map_button_bg_color ||
+    (event as any).section_visibility?.map_button_bg_color ||
+    (event as any).template_section_visibility?.map_button_bg_color ||
+    (event as any).templateDefaults?.map_button_bg_color ||
+    null;
+  const mapButtonBgOpacity =
+    typeof (event as any).map_button_bg_opacity === "number" ? (event as any).map_button_bg_opacity :
+    typeof (event as any).section_visibility?.map_button_bg_opacity === "number" ? (event as any).section_visibility?.map_button_bg_opacity :
+    typeof (event as any).template_section_visibility?.map_button_bg_opacity === "number" ? (event as any).template_section_visibility?.map_button_bg_opacity :
+    typeof (event as any).templateDefaults?.map_button_bg_opacity === "number" ? (event as any).templateDefaults?.map_button_bg_opacity :
+    null;
+  const resolvedMapButtonBg = (() => {
+    if (mapButtonBgColor || typeof mapButtonBgOpacity === "number") {
+      const base = mapButtonBgColor && /^#[0-9a-fA-F]{3,6}$/.test(mapButtonBgColor.replace("#", "")) ? mapButtonBgColor : "#ffffff";
+      const op = typeof mapButtonBgOpacity === "number" ? Math.max(0, Math.min(100, mapButtonBgOpacity)) : 85;
+      return hexWithOpacity(base, op);
+    }
+    return null;
+  })();
+
+  // Resolve configurable background and opacity for Countdown timer card
+  const countdownBgColor =
+    (event as any).countdown_bg_color ||
+    (event as any).section_visibility?.countdown_bg_color ||
+    (event as any).template_section_visibility?.countdown_bg_color ||
+    (event as any).templateDefaults?.countdown_bg_color ||
+    null;
+  const countdownBgOpacity =
+    typeof (event as any).countdown_bg_opacity === "number" ? (event as any).countdown_bg_opacity :
+    typeof (event as any).section_visibility?.countdown_bg_opacity === "number" ? (event as any).section_visibility?.countdown_bg_opacity :
+    typeof (event as any).template_section_visibility?.countdown_bg_opacity === "number" ? (event as any).template_section_visibility?.countdown_bg_opacity :
+    typeof (event as any).templateDefaults?.countdown_bg_opacity === "number" ? (event as any).templateDefaults?.countdown_bg_opacity :
+    null;
+  const resolvedCountdownBg = (() => {
+    if (countdownBgColor || typeof countdownBgOpacity === "number") {
+      const base = countdownBgColor && /^#[0-9a-fA-F]{3,6}$/.test(countdownBgColor.replace("#", "")) ? countdownBgColor : "#ffffff";
+      const op = typeof countdownBgOpacity === "number" ? Math.max(0, Math.min(100, countdownBgOpacity)) : 25;
+      return hexWithOpacity(base, op);
+    }
+    return null;
+  })();
 
   // Build agenda from saved jsonb (or legacy ceremony/reception fallback)
   const agendaDays: AgendaDay[] = useMemo(() => {
@@ -785,7 +841,7 @@ export function KhmerTraditionalTemplate({ event, guestName, children, hideBackg
                 style={{
                   color: colorAccent,
                   border: `2px solid ${colorAccent}`,
-                  background: "rgba(255,255,255,0.36)",
+                  background: resolvedMapButtonBg || "rgba(255,255,255,0.36)",
                   fontSize: "1rem",
                 }}
               >
@@ -1016,7 +1072,14 @@ export function KhmerTraditionalTemplate({ event, guestName, children, hideBackg
             • daysLeft < 0  → "សូមអរគុណ​ដែលបានចូលរួម" (Thanks for joining) — no number
             The headline above is editable per event via `countdown_message`. */}
         {isVisible("countdown") && daysLeft !== null && (
-          <section className="kt-section-card text-center p-5 sm:p-6 my-8 w-full" style={{ borderColor: colorAccent, boxShadow: `0 0 12px ${colorAccent}40` }}>
+          <section
+            className="kt-section-card text-center p-5 sm:p-6 my-8 w-full"
+            style={{
+              borderColor: colorAccent,
+              boxShadow: `0 0 12px ${colorAccent}40`,
+              ...(resolvedCountdownBg ? { backgroundColor: resolvedCountdownBg, background: resolvedCountdownBg } : {}),
+            }}
+          >
             <span className={`text-base ${isEn ? "font-serif uppercase tracking-wider font-semibold text-sm sm:text-base" : "font-khmer-koulen"}`} style={{ color: colorAccent, textShadow: headingShadow }}>
               {(event.countdown_message?.trim()) ||
                 (isEn
@@ -1236,7 +1299,11 @@ export function KhmerTraditionalTemplate({ event, guestName, children, hideBackg
                 target="_blank"
                 rel="noreferrer"
                 className="inline-flex items-center gap-2 mt-4 px-5 py-2 rounded-lg font-semibold text-sm hover:bg-white transition-colors"
-                style={{ color: colorAccent, border: `2px solid ${colorAccent}`, background: "rgba(255,255,255,0.85)" }}
+                style={{
+                  color: colorAccent,
+                  border: `2px solid ${colorAccent}`,
+                  background: resolvedMapButtonBg || "rgba(255,255,255,0.85)",
+                }}
               >
                 <MapPin className="h-4 w-4" /> {isEn ? "Open Google Maps" : "បើកផែនទី"}
               </a>
@@ -1245,7 +1312,29 @@ export function KhmerTraditionalTemplate({ event, guestName, children, hideBackg
         )}
 
         {/* RSVP slot — RsvpCard provides its own kt-section-card framing. */}
-        {isVisible("rsvp") && (React.isValidElement(children) ? React.cloneElement(children as React.ReactElement<any>, { language }) : children)}
+        {isVisible("rsvp") && (() => {
+          const rsvpBgColor =
+            (event as any).rsvp_bg_color ||
+            (event as any).section_visibility?.rsvp_bg_color ||
+            (event as any).template_section_visibility?.rsvp_bg_color ||
+            (event as any).templateDefaults?.rsvp_bg_color ||
+            null;
+          const rsvpBgOpacity =
+            typeof (event as any).rsvp_bg_opacity === "number" ? (event as any).rsvp_bg_opacity :
+            typeof (event as any).section_visibility?.rsvp_bg_opacity === "number" ? (event as any).section_visibility?.rsvp_bg_opacity :
+            typeof (event as any).template_section_visibility?.rsvp_bg_opacity === "number" ? (event as any).template_section_visibility?.rsvp_bg_opacity :
+            typeof (event as any).templateDefaults?.rsvp_bg_opacity === "number" ? (event as any).templateDefaults?.rsvp_bg_opacity :
+            null;
+
+          if (React.isValidElement(children)) {
+            return React.cloneElement(children as React.ReactElement<any>, {
+              language,
+              bgColor: (children.props as any).bgColor ?? rsvpBgColor,
+              bgOpacity: typeof (children.props as any).bgOpacity === "number" ? (children.props as any).bgOpacity : rsvpBgOpacity,
+            });
+          }
+          return children;
+        })()}
 
         {/* Brand footer — driven by global Site Settings (logo + footer
             text + social links). Falls back to sensible defaults so legacy
@@ -1821,6 +1910,9 @@ export function InvitationTemplate({
     "apologies_message" | "thank_you_message" |
     "letter_bg_color" | "letter_bg_opacity" |
     "agenda_bg_color" | "agenda_bg_opacity" | "agenda_asset_color" |
+    "map_button_bg_color" | "map_button_bg_opacity" |
+    "countdown_bg_color" | "countdown_bg_opacity" |
+    "rsvp_bg_color" | "rsvp_bg_opacity" |
     "frame_url" | "frame_type" |
     "header_font" | "header_font_km" | "header_font_en" |
     "body_font" | "body_font_km" | "body_font_en" |
@@ -1852,6 +1944,12 @@ export function InvitationTemplate({
         agenda_bg_color: fallback("agenda_bg_color") as any,
         agenda_bg_opacity: fallback("agenda_bg_opacity") as any,
         agenda_asset_color: fallback("agenda_asset_color") as any,
+        map_button_bg_color: fallback("map_button_bg_color") as any,
+        map_button_bg_opacity: fallback("map_button_bg_opacity") as any,
+        countdown_bg_color: fallback("countdown_bg_color") as any,
+        countdown_bg_opacity: fallback("countdown_bg_opacity") as any,
+        rsvp_bg_color: fallback("rsvp_bg_color") as any,
+        rsvp_bg_opacity: fallback("rsvp_bg_opacity") as any,
         header_font: fallback("header_font") as any,
         header_font_km: fallback("header_font_km") as any,
         header_font_en: fallback("header_font_en") as any,

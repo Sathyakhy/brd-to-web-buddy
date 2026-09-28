@@ -14,6 +14,7 @@ import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import CollapsibleSection from "@/components/admin/CollapsibleSection";
 import LetterCardStyleEditor from "@/components/admin/LetterCardStyleEditor";
+import ElementStyleEditor from "@/components/admin/ElementStyleEditor";
 import MusicEditor from "@/components/admin/MusicEditor";
 import PreviewPanel from "@/components/admin/PreviewPanel";
 import FrameLibraryPicker from "@/components/admin/FrameLibraryPicker";
@@ -103,6 +104,12 @@ type TemplateConfig = {
   agenda_bg_opacity?: number | null;
   /** Custom asset color (hex) for agenda icons, dividers, day badges, and timeline accents. */
   agenda_asset_color?: string | null;
+  map_button_bg_color?: string | null;
+  map_button_bg_opacity?: number | null;
+  countdown_bg_color?: string | null;
+  countdown_bg_opacity?: number | null;
+  rsvp_bg_color?: string | null;
+  rsvp_bg_opacity?: number | null;
   /** Optional ornamental frame overlay (Signature Package). PNG/SVG with
       transparent center, OR a video (MP4/WebM) — chosen from the Asset
       Library and identified by URL. `frame_type` tells the renderer
@@ -182,6 +189,12 @@ const DEFAULT_CONFIG: TemplateConfig = {
   agenda_bg_color: null,
   agenda_bg_opacity: null,
   agenda_asset_color: null,
+  map_button_bg_color: null,
+  map_button_bg_opacity: null,
+  countdown_bg_color: null,
+  countdown_bg_opacity: null,
+  rsvp_bg_color: null,
+  rsvp_bg_opacity: null,
   frame_url: null,
   frame_type: "image",
   side_frame_config: normalizeSideFrameConfig(null),
@@ -219,6 +232,12 @@ function normalizeConfig(raw: any): TemplateConfig {
     agenda_bg_color: r.agenda_bg_color ?? r.section_visibility?.agenda_style?.bg_color ?? r.section_visibility?.agenda_bg_color ?? null,
     agenda_bg_opacity: r.agenda_bg_opacity ?? r.section_visibility?.agenda_style?.bg_opacity ?? r.section_visibility?.agenda_bg_opacity ?? null,
     agenda_asset_color: r.agenda_asset_color ?? r.section_visibility?.agenda_style?.asset_color ?? r.section_visibility?.agenda_asset_color ?? null,
+    map_button_bg_color: r.map_button_bg_color ?? r.section_visibility?.map_button_bg_color ?? null,
+    map_button_bg_opacity: typeof r.map_button_bg_opacity === "number" ? r.map_button_bg_opacity : (typeof r.section_visibility?.map_button_bg_opacity === "number" ? r.section_visibility?.map_button_bg_opacity : null),
+    countdown_bg_color: r.countdown_bg_color ?? r.section_visibility?.countdown_bg_color ?? null,
+    countdown_bg_opacity: typeof r.countdown_bg_opacity === "number" ? r.countdown_bg_opacity : (typeof r.section_visibility?.countdown_bg_opacity === "number" ? r.section_visibility?.countdown_bg_opacity : null),
+    rsvp_bg_color: r.rsvp_bg_color ?? r.section_visibility?.rsvp_bg_color ?? null,
+    rsvp_bg_opacity: typeof r.rsvp_bg_opacity === "number" ? r.rsvp_bg_opacity : (typeof r.section_visibility?.rsvp_bg_opacity === "number" ? r.section_visibility?.rsvp_bg_opacity : null),
     music_autoplay_cover: musicSettings.autoPlayCover,
     music_autoplay_invitation: musicSettings.autoPlayInvitation,
     music_autoplay_mode: r.music_autoplay_mode ?? (musicSettings.autoPlayCover && musicSettings.autoPlayInvitation ? "both" : musicSettings.autoPlayCover ? "cover" : musicSettings.autoPlayInvitation ? "invitation" : "none"),
@@ -438,13 +457,25 @@ export default function TemplateDetail() {
   const handleSave = async () => {
     if (!draft || !dirty || saving) return;
     setSaving(true);
+    const nextVis = {
+      ...(draftConfig.section_visibility as any),
+      map_button_bg_color: draftConfig.map_button_bg_color ?? null,
+      map_button_bg_opacity: draftConfig.map_button_bg_opacity ?? null,
+      countdown_bg_color: draftConfig.countdown_bg_color ?? null,
+      countdown_bg_opacity: draftConfig.countdown_bg_opacity ?? null,
+      rsvp_bg_color: draftConfig.rsvp_bg_color ?? null,
+      rsvp_bg_opacity: draftConfig.rsvp_bg_opacity ?? null,
+    };
     const payload = {
       label: draft.label.trim() || "Untitled template",
       description: draft.description?.trim() || null,
       slug: draft.slug.trim(),
       base_renderer: draft.base_renderer,
       is_active: draft.is_active,
-      config: draftConfig as any,
+      config: {
+        ...draftConfig,
+        section_visibility: nextVis,
+      } as any,
     };
     // Two-step: update without single(), then re-fetch the canonical row.
     // Using .single() on the update can throw "Cannot coerce the result to a
@@ -544,6 +575,12 @@ export default function TemplateDetail() {
     // Feed visibility into the preview the same way the live invite does.
     envelope_unboxing: draftConfig.envelope_unboxing,
     template_envelope_unboxing: draftConfig.envelope_unboxing,
+    map_button_bg_color: draftConfig.map_button_bg_color ?? null,
+    map_button_bg_opacity: draftConfig.map_button_bg_opacity ?? null,
+    countdown_bg_color: draftConfig.countdown_bg_color ?? null,
+    countdown_bg_opacity: draftConfig.countdown_bg_opacity ?? null,
+    rsvp_bg_color: draftConfig.rsvp_bg_color ?? null,
+    rsvp_bg_opacity: draftConfig.rsvp_bg_opacity ?? null,
     template_section_visibility: {
       ...(draftConfig.section_visibility as any),
       agenda_style: {
@@ -554,6 +591,12 @@ export default function TemplateDetail() {
       agenda_bg_color: draftConfig.agenda_bg_color ?? null,
       agenda_bg_opacity: draftConfig.agenda_bg_opacity ?? null,
       agenda_asset_color: draftConfig.agenda_asset_color ?? null,
+      map_button_bg_color: draftConfig.map_button_bg_color ?? null,
+      map_button_bg_opacity: draftConfig.map_button_bg_opacity ?? null,
+      countdown_bg_color: draftConfig.countdown_bg_color ?? null,
+      countdown_bg_opacity: draftConfig.countdown_bg_opacity ?? null,
+      rsvp_bg_color: draftConfig.rsvp_bg_color ?? null,
+      rsvp_bg_opacity: draftConfig.rsvp_bg_opacity ?? null,
     },
     section_visibility: {},
   };
@@ -968,6 +1011,36 @@ export default function TemplateDetail() {
                     </div>
                     <p className="text-xs text-muted-foreground">Dedicated colour for the "Open Invitation" (បើកលិខិត) button on cover screens. Defaults to accent colour if unset.</p>
                   </div>
+
+                  <div className="space-y-4 md:col-span-2 pt-2 border-t border-border/40">
+                    <ElementStyleEditor
+                      title="Open map button background & opacity"
+                      description="Customise the background colour and opacity for the 'Open Google Maps' button on the invitation."
+                      color={draftConfig.map_button_bg_color}
+                      opacity={draftConfig.map_button_bg_opacity}
+                      defaultColor="#ffffff"
+                      defaultOpacity={85}
+                      onChange={(c, op) => patchConfig({ map_button_bg_color: c, map_button_bg_opacity: op })}
+                    />
+                    <ElementStyleEditor
+                      title="Countdown card background & opacity"
+                      description="Customise the background tint and opacity for the countdown timer card."
+                      color={draftConfig.countdown_bg_color}
+                      opacity={draftConfig.countdown_bg_opacity}
+                      defaultColor="#ffffff"
+                      defaultOpacity={25}
+                      onChange={(c, op) => patchConfig({ countdown_bg_color: c, countdown_bg_opacity: op })}
+                    />
+                    <ElementStyleEditor
+                      title="RSVP card background & opacity"
+                      description="Customise the background tint and opacity for the RSVP response card."
+                      color={draftConfig.rsvp_bg_color}
+                      opacity={draftConfig.rsvp_bg_opacity}
+                      defaultColor="#ffffff"
+                      defaultOpacity={25}
+                      onChange={(c, op) => patchConfig({ rsvp_bg_color: c, rsvp_bg_opacity: op })}
+                    />
+                  </div>
                 </div>
 
                 {/* 3. Text Effects & Drop Shadows */}
@@ -1127,6 +1200,17 @@ export default function TemplateDetail() {
                     className="font-mono text-xs"
                   />
                 </div>
+                <div className="space-y-2 md:col-span-2 pt-2">
+                  <ElementStyleEditor
+                    title="Open map button appearance & background"
+                    description="Customise the background colour and opacity for the 'Open Google Maps' button."
+                    color={draftConfig.map_button_bg_color}
+                    opacity={draftConfig.map_button_bg_opacity}
+                    defaultColor="#ffffff"
+                    defaultOpacity={85}
+                    onChange={(c, op) => patchConfig({ map_button_bg_color: c, map_button_bg_opacity: op })}
+                  />
+                </div>
                 <div className="space-y-2">
                   <Label>Dress code</Label>
                   <Input
@@ -1170,6 +1254,17 @@ export default function TemplateDetail() {
                   <p className="text-xs text-muted-foreground">
                     Auto-populated with the default Khmer headline — clear or edit to customise.
                   </p>
+                </div>
+                <div className="space-y-2 md:col-span-2 pt-1">
+                  <ElementStyleEditor
+                    title="Countdown card appearance & background"
+                    description="Customise the background tint and opacity for the countdown timer section."
+                    color={draftConfig.countdown_bg_color}
+                    opacity={draftConfig.countdown_bg_opacity}
+                    defaultColor="#ffffff"
+                    defaultOpacity={25}
+                    onChange={(c, op) => patchConfig({ countdown_bg_color: c, countdown_bg_opacity: op })}
+                  />
                 </div>
                 <div className="space-y-2 md:col-span-2">
                   <Label>Description</Label>
@@ -1460,6 +1555,20 @@ export default function TemplateDetail() {
                   color={draftConfig.letter_bg_color}
                   opacity={draftConfig.letter_bg_opacity}
                   onChange={(patch) => patchConfig(patch)}
+                />
+              </div>
+            </CollapsibleSection>
+
+            <CollapsibleSection title="RSVP card appearance" defaultOpen={false} rightSlot={sectionSave}>
+              <div className="pt-2">
+                <ElementStyleEditor
+                  title="RSVP card background & opacity"
+                  description="Customise the background tint and opacity for the RSVP response card on the invitation."
+                  color={draftConfig.rsvp_bg_color}
+                  opacity={draftConfig.rsvp_bg_opacity}
+                  defaultColor="#ffffff"
+                  defaultOpacity={25}
+                  onChange={(c, op) => patchConfig({ rsvp_bg_color: c, rsvp_bg_opacity: op })}
                 />
               </div>
             </CollapsibleSection>

@@ -19,6 +19,10 @@ type Props = {
       configured accent rather than being hard-coded. */
   accentColor?: string;
   primaryColor?: string;
+  /** Custom background color (hex) for the RSVP section card. */
+  bgColor?: string | null;
+  /** Custom background opacity (0-100) for the RSVP section card. */
+  bgOpacity?: number | null;
   /** Language version: "km" (Khmer, default) or "en" (English) */
   language?: "km" | "en";
 };
@@ -37,6 +41,8 @@ export default function RsvpCard({
   onSubmit,
   accentColor,
   primaryColor,
+  bgColor,
+  bgOpacity,
   language = "km",
 }: Props) {
   const [partySize, setPartySize] = useState(initialPartySize);
@@ -44,6 +50,23 @@ export default function RsvpCard({
 
   const accent = accentColor || "#db9b0f";
   const primary = primaryColor || "#3a2a00";
+
+  const resolvedRsvpBg = (() => {
+    if (bgColor || typeof bgOpacity === "number") {
+      const base = bgColor && /^#[0-9a-fA-F]{3,6}$/.test(bgColor.replace("#", "")) ? bgColor : "#ffffff";
+      const op = typeof bgOpacity === "number" ? Math.max(0, Math.min(100, bgOpacity)) : 25;
+      const m = base.replace("#", "");
+      const full = m.length === 3 ? m.split("").map((c) => c + c).join("") : m;
+      if (/^[0-9a-fA-F]{6}$/.test(full)) {
+        const r = parseInt(full.slice(0, 2), 16);
+        const g = parseInt(full.slice(2, 4), 16);
+        const b = parseInt(full.slice(4, 6), 16);
+        return `rgba(${r}, ${g}, ${b}, ${op / 100})`;
+      }
+      return base;
+    }
+    return null;
+  })();
 
   // Same accent-driven 3-stop gradient used on the cover screens so the
   // guest's name reads as a vibrant gold inside the RSVP card too.
@@ -81,6 +104,7 @@ export default function RsvpCard({
         // so the RSVP card frame follows the configured accent colour.
         borderColor: accent,
         boxShadow: `0 0 12px ${accent}40`,
+        ...(resolvedRsvpBg ? { backgroundColor: resolvedRsvpBg, background: resolvedRsvpBg } : {}),
       }}
     >
       <div className="text-center space-y-3">

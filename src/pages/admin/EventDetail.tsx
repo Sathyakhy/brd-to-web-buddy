@@ -48,6 +48,7 @@ import { ContactItem, normalizeContacts, buildLegacyContacts } from "@/lib/conta
 import ParentsEditor from "@/components/admin/ParentsEditor";
 import CollapsibleSection from "@/components/admin/CollapsibleSection";
 import LetterCardStyleEditor from "@/components/admin/LetterCardStyleEditor";
+import ElementStyleEditor from "@/components/admin/ElementStyleEditor";
 import MusicEditor from "@/components/admin/MusicEditor";
 import PreviewPanel from "@/components/admin/PreviewPanel";
 import EventBillingTab from "@/components/admin/EventBillingTab";
@@ -117,6 +118,12 @@ type Event = {
   agenda_bg_color?: string | null;
   agenda_bg_opacity?: number | null;
   agenda_asset_color?: string | null;
+  map_button_bg_color?: string | null;
+  map_button_bg_opacity?: number | null;
+  countdown_bg_color?: string | null;
+  countdown_bg_opacity?: number | null;
+  rsvp_bg_color?: string | null;
+  rsvp_bg_opacity?: number | null;
   side_frame_config?: SideFrameConfig;
   envelope_unboxing?: EnvelopeUnboxingConfig;
   cover_music_url: string | null;
@@ -215,6 +222,12 @@ export default function EventDetail() {
       const agenda_bg_color = (raw as any).agenda_bg_color ?? rawVis.agenda_style?.bg_color ?? rawVis.agenda_bg_color ?? null;
       const agenda_bg_opacity = (raw as any).agenda_bg_opacity ?? rawVis.agenda_style?.bg_opacity ?? rawVis.agenda_bg_opacity ?? null;
       const agenda_asset_color = (raw as any).agenda_asset_color ?? rawVis.agenda_style?.asset_color ?? rawVis.agenda_asset_color ?? null;
+      const map_button_bg_color = (raw as any).map_button_bg_color ?? rawVis.map_button_bg_color ?? null;
+      const map_button_bg_opacity = typeof (raw as any).map_button_bg_opacity === "number" ? (raw as any).map_button_bg_opacity : (typeof rawVis.map_button_bg_opacity === "number" ? rawVis.map_button_bg_opacity : null);
+      const countdown_bg_color = (raw as any).countdown_bg_color ?? rawVis.countdown_bg_color ?? null;
+      const countdown_bg_opacity = typeof (raw as any).countdown_bg_opacity === "number" ? (raw as any).countdown_bg_opacity : (typeof rawVis.countdown_bg_opacity === "number" ? rawVis.countdown_bg_opacity : null);
+      const rsvp_bg_color = (raw as any).rsvp_bg_color ?? rawVis.rsvp_bg_color ?? null;
+      const rsvp_bg_opacity = typeof (raw as any).rsvp_bg_opacity === "number" ? (raw as any).rsvp_bg_opacity : (typeof rawVis.rsvp_bg_opacity === "number" ? rawVis.rsvp_bg_opacity : null);
       const side_frame_config = normalizeSideFrameConfig(
         raw.side_frame_config ?? rawVis.side_frame_config ?? rawVis.side_frame
       );
@@ -237,6 +250,12 @@ export default function EventDetail() {
         agenda_bg_color,
         agenda_bg_opacity,
         agenda_asset_color,
+        map_button_bg_color,
+        map_button_bg_opacity,
+        countdown_bg_color,
+        countdown_bg_opacity,
+        rsvp_bg_color,
+        rsvp_bg_opacity,
         side_frame_config,
         envelope_unboxing,
         gallery_layout: galleryLayout,
@@ -314,6 +333,12 @@ export default function EventDetail() {
       agenda_bg_color: event.agenda_bg_color ?? null,
       agenda_bg_opacity: event.agenda_bg_opacity ?? null,
       agenda_asset_color: event.agenda_asset_color ?? null,
+      map_button_bg_color: event.map_button_bg_color ?? null,
+      map_button_bg_opacity: event.map_button_bg_opacity ?? null,
+      countdown_bg_color: event.countdown_bg_color ?? null,
+      countdown_bg_opacity: event.countdown_bg_opacity ?? null,
+      rsvp_bg_color: event.rsvp_bg_color ?? null,
+      rsvp_bg_opacity: event.rsvp_bg_opacity ?? null,
     };
     const { error } = await supabase.from("events").update({
       title: event.title,
@@ -975,6 +1000,12 @@ export default function EventDetail() {
                 agenda_bg_color: event.agenda_bg_color,
                 agenda_bg_opacity: event.agenda_bg_opacity,
                 agenda_asset_color: event.agenda_asset_color,
+                map_button_bg_color: event.map_button_bg_color,
+                map_button_bg_opacity: event.map_button_bg_opacity,
+                countdown_bg_color: event.countdown_bg_color,
+                countdown_bg_opacity: event.countdown_bg_opacity,
+                rsvp_bg_color: event.rsvp_bg_color,
+                rsvp_bg_opacity: event.rsvp_bg_opacity,
                 template_section_visibility: templateVisibilityBySlug[event.template] ?? {},
                 template_cover_music_url: templateDefaultsBySlug[event.template]?.cover_music_url,
                 dual_language_config: event.dual_language_config,
@@ -992,6 +1023,12 @@ export default function EventDetail() {
                   agenda_bg_color: event.agenda_bg_color ?? null,
                   agenda_bg_opacity: event.agenda_bg_opacity ?? null,
                   agenda_asset_color: event.agenda_asset_color ?? null,
+                  map_button_bg_color: event.map_button_bg_color ?? null,
+                  map_button_bg_opacity: event.map_button_bg_opacity ?? null,
+                  countdown_bg_color: event.countdown_bg_color ?? null,
+                  countdown_bg_opacity: event.countdown_bg_opacity ?? null,
+                  rsvp_bg_color: event.rsvp_bg_color ?? null,
+                  rsvp_bg_opacity: event.rsvp_bg_opacity ?? null,
                 },
               } as any}
               publicHref={`/${event.slug}`}
@@ -1473,6 +1510,36 @@ export default function EventDetail() {
                 </div>
                 <p className="text-xs text-muted-foreground">Dedicated colour for the "Open Invitation" (បើកលិខិត) button on cover screens. Defaults to accent colour if unset.</p>
               </div>
+
+              <div className="space-y-4 md:col-span-2 pt-2 border-t border-border/40">
+                <ElementStyleEditor
+                  title="Open map button background & opacity"
+                  description="Customize the background colour and opacity for the 'Open Google Maps' button on the invitation."
+                  color={event.map_button_bg_color}
+                  opacity={event.map_button_bg_opacity}
+                  defaultColor="#ffffff"
+                  defaultOpacity={85}
+                  onChange={(c, op) => setEvent({ ...event, map_button_bg_color: c, map_button_bg_opacity: op })}
+                />
+                <ElementStyleEditor
+                  title="Countdown card background & opacity"
+                  description="Customize the background tint and opacity for the countdown timer card."
+                  color={event.countdown_bg_color}
+                  opacity={event.countdown_bg_opacity}
+                  defaultColor="#ffffff"
+                  defaultOpacity={25}
+                  onChange={(c, op) => setEvent({ ...event, countdown_bg_color: c, countdown_bg_opacity: op })}
+                />
+                <ElementStyleEditor
+                  title="RSVP card background & opacity"
+                  description="Customize the background tint and opacity for the RSVP response card."
+                  color={event.rsvp_bg_color}
+                  opacity={event.rsvp_bg_opacity}
+                  defaultColor="#ffffff"
+                  defaultOpacity={25}
+                  onChange={(c, op) => setEvent({ ...event, rsvp_bg_color: c, rsvp_bg_opacity: op })}
+                />
+              </div>
             </div>
 
             {/* 3. Text & Monogram Drop Shadows */}
@@ -1760,6 +1827,17 @@ export default function EventDetail() {
                 Shown below the embedded map at the same width. Guests can tap to view full-screen and zoom in.
               </p>
             </div>
+            <div className="space-y-2 md:col-span-2 pt-2">
+              <ElementStyleEditor
+                title="Open map button appearance & background"
+                description="Customise the background colour and opacity for the 'Open Google Maps' button."
+                color={event.map_button_bg_color}
+                opacity={event.map_button_bg_opacity}
+                defaultColor="#ffffff"
+                defaultOpacity={85}
+                onChange={(c, op) => setEvent({ ...event, map_button_bg_color: c, map_button_bg_opacity: op })}
+              />
+            </div>
             <div className="space-y-2">
               <BilingualInput
                 label="Dress code"
@@ -1843,6 +1921,17 @@ export default function EventDetail() {
                 placeholderKm="អ្នកត្រូវបានអញ្ជើញមកចូលរួមក្នុងពិធីអាពាហ៍ពិពាហ៍របស់យើងខ្ញុំ!"
                 placeholderEn="You are cordially invited to celebrate our wedding day!"
                 inputClassName="text-center"
+              />
+            </div>
+            <div className="space-y-2 md:col-span-2 pt-1">
+              <ElementStyleEditor
+                title="Countdown card appearance & background"
+                description="Customise the background tint and opacity for the countdown timer card."
+                color={event.countdown_bg_color}
+                opacity={event.countdown_bg_opacity}
+                defaultColor="#ffffff"
+                defaultOpacity={25}
+                onChange={(c, op) => setEvent({ ...event, countdown_bg_color: c, countdown_bg_opacity: op })}
               />
             </div>
             <div className="space-y-2 md:col-span-2">
@@ -1973,6 +2062,21 @@ export default function EventDetail() {
               color={event.letter_bg_color}
               opacity={event.letter_bg_opacity}
               onChange={(patch) => setEvent({ ...event, ...patch })}
+            />
+          </div>
+        </CollapsibleSection>
+
+        {/* RSVP card appearance */}
+        <CollapsibleSection title="RSVP card appearance" defaultOpen={false} rightSlot={sectionSave}>
+          <div className="pt-2">
+            <ElementStyleEditor
+              title="RSVP card background & opacity"
+              description="Customise the background tint and opacity for the RSVP response card on the invitation."
+              color={event.rsvp_bg_color}
+              opacity={event.rsvp_bg_opacity}
+              defaultColor="#ffffff"
+              defaultOpacity={25}
+              onChange={(c, op) => setEvent({ ...event, rsvp_bg_color: c, rsvp_bg_opacity: op })}
             />
           </div>
         </CollapsibleSection>

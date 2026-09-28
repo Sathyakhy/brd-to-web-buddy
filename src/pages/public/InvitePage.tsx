@@ -101,6 +101,12 @@ export default function InvitePage() {
         agenda_bg_color: cfg.agenda_bg_color ?? cfg.section_visibility?.agenda_style?.bg_color ?? null,
         agenda_bg_opacity: cfg.agenda_bg_opacity ?? cfg.section_visibility?.agenda_style?.bg_opacity ?? null,
         agenda_asset_color: cfg.agenda_asset_color ?? cfg.section_visibility?.agenda_style?.asset_color ?? null,
+        map_button_bg_color: cfg.map_button_bg_color ?? cfg.section_visibility?.map_button_bg_color ?? null,
+        map_button_bg_opacity: typeof cfg.map_button_bg_opacity === "number" ? cfg.map_button_bg_opacity : (typeof cfg.section_visibility?.map_button_bg_opacity === "number" ? cfg.section_visibility?.map_button_bg_opacity : null),
+        countdown_bg_color: cfg.countdown_bg_color ?? cfg.section_visibility?.countdown_bg_color ?? null,
+        countdown_bg_opacity: typeof cfg.countdown_bg_opacity === "number" ? cfg.countdown_bg_opacity : (typeof cfg.section_visibility?.countdown_bg_opacity === "number" ? cfg.section_visibility?.countdown_bg_opacity : null),
+        rsvp_bg_color: cfg.rsvp_bg_color ?? cfg.section_visibility?.rsvp_bg_color ?? null,
+        rsvp_bg_opacity: typeof cfg.rsvp_bg_opacity === "number" ? cfg.rsvp_bg_opacity : (typeof cfg.section_visibility?.rsvp_bg_opacity === "number" ? cfg.section_visibility?.rsvp_bg_opacity : null),
         side_frame_config: cfg.side_frame_config ?? cfg.section_visibility?.side_frame_config ?? null,
         frame_url: cfg.frame_url ?? null,
         frame_type: (cfg.frame_type as "image" | "video") ?? "image",
@@ -224,6 +230,8 @@ export default function InvitePage() {
       submitting={submitting}
       accentColor={(event as any).text_color_accent ?? undefined}
       primaryColor={(event as any).text_color_primary ?? undefined}
+      bgColor={(event as any).rsvp_bg_color ?? (event as any).section_visibility?.rsvp_bg_color ?? (templateDefaults as any)?.rsvp_bg_color ?? null}
+      bgOpacity={typeof (event as any).rsvp_bg_opacity === "number" ? (event as any).rsvp_bg_opacity : (typeof (event as any).section_visibility?.rsvp_bg_opacity === "number" ? (event as any).section_visibility?.rsvp_bg_opacity : (templateDefaults as any)?.rsvp_bg_opacity ?? null)}
       language={language}
       onSubmit={(s, p, m) => {
         setPartySize(p);

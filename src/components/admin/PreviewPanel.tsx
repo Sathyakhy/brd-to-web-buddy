@@ -354,6 +354,8 @@ export default function PreviewPanel({
                   preview
                   accentColor={(event as any).text_color_accent ?? undefined}
                   primaryColor={(event as any).text_color_primary ?? undefined}
+                  bgColor={(event as any).rsvp_bg_color ?? (event as any).section_visibility?.rsvp_bg_color ?? null}
+                  bgOpacity={typeof (event as any).rsvp_bg_opacity === "number" ? (event as any).rsvp_bg_opacity : (typeof (event as any).section_visibility?.rsvp_bg_opacity === "number" ? (event as any).section_visibility?.rsvp_bg_opacity : null)}
                 />
               </InvitationTemplate>
             </div>
