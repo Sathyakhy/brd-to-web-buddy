@@ -14,6 +14,7 @@ import { getDualLanguageConfig, LanguageCode } from "@/lib/dualLanguage";
 import { normalizeMusicSettings } from "@/lib/musicSettings";
 import { normalizeTextEffectConfig } from "@/lib/textEffects";
 import { normalizeEnvelopeConfig } from "@/lib/envelopeUnboxing";
+import { normalizeCoverInvitationStyle } from "@/lib/coverInvitationStyle";
 import Interactive3DEnvelopeUnboxing from "@/components/templates/Interactive3DEnvelopeUnboxing";
 import ErrorBoundary from "@/components/common/ErrorBoundary";
 
@@ -71,6 +72,14 @@ export default function PreviewPanel({
     (event as any).template_envelope_unboxing ??
     (event as any).templateDefaults?.envelope_unboxing ??
     (event as any).template_section_visibility?.envelope_unboxing
+  );
+
+  const coverInvitationStyle = normalizeCoverInvitationStyle(
+    (event as any).cover_invitation_style ??
+    (event as any).section_visibility?.cover_invitation_style ??
+    (event as any).section_visibility?.cover_invitation ??
+    (event as any).templateDefaults?.cover_invitation_style ??
+    (event as any).template_section_visibility?.cover_invitation_style
   );
 
   const [view, setView] = useState<"cover" | "invitation">(hasCover ? "cover" : "invitation");
@@ -426,6 +435,7 @@ export default function PreviewPanel({
                         (event as any).text_effect_config ?? (event as any).section_visibility?.text_effects
                       ).monogram
                     }
+                    coverInvitationStyle={coverInvitationStyle}
                     onOpen={() => {
                       if (envelopeConfig.enabled) {
                         setUnboxingActive(true);
@@ -468,6 +478,7 @@ export default function PreviewPanel({
                       (event as any).text_effect_config ?? (event as any).section_visibility?.text_effects
                     ).monogram
                   }
+                  coverInvitationStyle={coverInvitationStyle}
                   onOpen={() => {
                     if (envelopeConfig.enabled) {
                       setUnboxingActive(true);

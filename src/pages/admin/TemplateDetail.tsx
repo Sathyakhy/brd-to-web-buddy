@@ -15,6 +15,11 @@ import { toast } from "sonner";
 import CollapsibleSection from "@/components/admin/CollapsibleSection";
 import LetterCardStyleEditor from "@/components/admin/LetterCardStyleEditor";
 import ElementStyleEditor from "@/components/admin/ElementStyleEditor";
+import CoverInvitationStyleEditor from "@/components/admin/CoverInvitationStyleEditor";
+import {
+  CoverInvitationStyle,
+  normalizeCoverInvitationStyle,
+} from "@/lib/coverInvitationStyle";
 import RsvpCardStyleEditor from "@/components/admin/RsvpCardStyleEditor";
 import MusicEditor from "@/components/admin/MusicEditor";
 import PreviewPanel from "@/components/admin/PreviewPanel";
@@ -131,6 +136,7 @@ type TemplateConfig = {
   rsvp_card_shadow_x?: number | null;
   rsvp_card_shadow_y?: number | null;
   rsvp_card_shadow_opacity?: number | null;
+  cover_invitation_style?: CoverInvitationStyle;
   /** Optional ornamental frame overlay (Signature Package). PNG/SVG with
       transparent center, OR a video (MP4/WebM) — chosen from the Asset
       Library and identified by URL. `frame_type` tells the renderer
@@ -307,6 +313,7 @@ function normalizeConfig(raw: any): TemplateConfig {
     contact_phone: r.contact_phone ?? "+855 ",
     section_visibility: normalizeVisibility(r.section_visibility),
     open_button_color: r.open_button_color ?? null,
+    cover_invitation_style: normalizeCoverInvitationStyle(r.cover_invitation_style ?? r.section_visibility?.cover_invitation_style ?? r.section_visibility?.cover_invitation),
     text_effect_config: normalizeTextEffectConfig(r.text_effect_config ?? r.text_effects),
     side_frame_config: normalizeSideFrameConfig(r.side_frame_config ?? r.section_visibility?.side_frame_config ?? r.side_frame),
     envelope_unboxing: normalizeEnvelopeConfig(r.envelope_unboxing ?? r.section_visibility?.envelope_unboxing),
@@ -1202,6 +1209,21 @@ export default function TemplateDetail() {
                     headerFont={draftConfig.header_font}
                     bodyFont={draftConfig.body_font}
                     monogramUrl={draftConfig.cover_image_url}
+                  />
+                </div>
+
+                {/* 4. Cover Page Invitation Title (សូមគោរពអញ្ជើញ / INVITATION) */}
+                <div className="pt-4 border-t border-border/50">
+                  <CoverInvitationStyleEditor
+                    config={normalizeCoverInvitationStyle(draftConfig.cover_invitation_style)}
+                    onChange={(patch) => {
+                      const updated = {
+                        ...normalizeCoverInvitationStyle(draftConfig.cover_invitation_style),
+                        ...patch,
+                      };
+                      patchConfig({ cover_invitation_style: updated });
+                    }}
+                    defaultAccentColor={draftConfig.text_color_accent}
                   />
                 </div>
               </div>

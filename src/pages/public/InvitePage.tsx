@@ -12,6 +12,7 @@ import FloatingLanguageSwitch from "@/components/templates/FloatingLanguageSwitc
 import { LanguageCode, getDualLanguageConfig } from "@/lib/dualLanguage";
 import { normalizeMusicSettings } from "@/lib/musicSettings";
 import { normalizeEnvelopeConfig } from "@/lib/envelopeUnboxing";
+import { normalizeCoverInvitationStyle } from "@/lib/coverInvitationStyle";
 import Interactive3DEnvelopeUnboxing from "@/components/templates/Interactive3DEnvelopeUnboxing";
 import ErrorBoundary from "@/components/common/ErrorBoundary";
 
@@ -327,6 +328,14 @@ export default function InvitePage() {
     (templateVisibility as any)?.envelope_unboxing
   );
 
+  const coverInvitationStyle = normalizeCoverInvitationStyle(
+    (event as any).cover_invitation_style ??
+    (event as any).section_visibility?.cover_invitation_style ??
+    (event as any).section_visibility?.cover_invitation ??
+    (templateDefaults as any)?.cover_invitation_style ??
+    (templateVisibility as any)?.cover_invitation_style
+  );
+
   const shouldDisableAutoPlay = isCoverActive
     ? !musicSettings.autoPlayCover
     : !musicSettings.autoPlayInvitation;
@@ -419,6 +428,7 @@ export default function InvitePage() {
               openButtonColor={(event as any).open_button_color ?? (event as any).section_visibility?.open_button_color ?? (templateDefaults as any)?.open_button_color ?? null}
               language={language}
               monogramEffectConfig={(event as any).text_effect_config ?? (event as any).section_visibility?.text_effects ?? templateDefaults.text_effect_config ?? null}
+              coverInvitationStyle={coverInvitationStyle}
               onOpen={handleOpenInvitation}
             />
           </div>
@@ -446,6 +456,7 @@ export default function InvitePage() {
               openButtonColor={(event as any).open_button_color ?? (event as any).section_visibility?.open_button_color ?? (templateDefaults as any)?.open_button_color ?? null}
               language={language}
               monogramEffectConfig={(event as any).text_effect_config ?? (event as any).section_visibility?.text_effects ?? templateDefaults.text_effect_config ?? null}
+              coverInvitationStyle={coverInvitationStyle}
               onOpen={handleOpenInvitation}
               closing={opened || unboxingActive}
             />

@@ -64,6 +64,11 @@ import TextEffectsEditor from "@/components/admin/TextEffectsEditor";
 import MonogramEffectEditor from "@/components/admin/MonogramEffectEditor";
 import FontSelector from "@/components/admin/FontSelector";
 import SideFrameEditor from "@/components/admin/SideFrameEditor";
+import CoverInvitationStyleEditor from "@/components/admin/CoverInvitationStyleEditor";
+import {
+  CoverInvitationStyle,
+  normalizeCoverInvitationStyle,
+} from "@/lib/coverInvitationStyle";
 import {
   SideFrameConfig,
   normalizeSideFrameConfig,
@@ -148,6 +153,7 @@ type Event = {
   side_frame_config?: SideFrameConfig;
   envelope_unboxing?: EnvelopeUnboxingConfig;
   cover_music_url: string | null;
+  cover_invitation_style?: CoverInvitationStyle;
   share_preview_index: number | null;
   header_font?: string | null;
   header_font_km?: string | null;
@@ -273,6 +279,9 @@ export default function EventDetail() {
       const side_frame_config = normalizeSideFrameConfig(
         raw.side_frame_config ?? rawVis.side_frame_config ?? rawVis.side_frame
       );
+      const cover_invitation_style = normalizeCoverInvitationStyle(
+        (raw as any).cover_invitation_style ?? rawVis.cover_invitation_style ?? rawVis.cover_invitation
+      );
       const envelope_unboxing = normalizeEnvelopeConfig(
         (raw as any).envelope_unboxing ?? rawVis.envelope_unboxing
       );
@@ -320,6 +329,7 @@ export default function EventDetail() {
         rsvp_card_shadow_y,
         rsvp_card_shadow_opacity,
         side_frame_config,
+        cover_invitation_style,
         envelope_unboxing,
         gallery_layout: galleryLayout,
         contacts,
@@ -446,6 +456,7 @@ export default function EventDetail() {
       rsvp_card_shadow_x: event.rsvp_card_shadow_x ?? null,
       rsvp_card_shadow_y: event.rsvp_card_shadow_y ?? null,
       rsvp_card_shadow_opacity: event.rsvp_card_shadow_opacity ?? null,
+      cover_invitation_style: event.cover_invitation_style ?? null,
     };
     const { error } = await supabase.from("events").update({
       title: event.title,
@@ -1658,6 +1669,24 @@ export default function EventDetail() {
                 headerFont={event.header_font}
                 bodyFont={event.body_font}
                 monogramUrl={event.cover_image_url}
+              />
+            </div>
+
+            {/* 4. Cover Page Invitation Title (សូមគោរពអញ្ជើញ / INVITATION) */}
+            <div className="pt-4 border-t border-border/50">
+              <CoverInvitationStyleEditor
+                config={normalizeCoverInvitationStyle(event.cover_invitation_style)}
+                onChange={(patch) => {
+                  const updated = {
+                    ...normalizeCoverInvitationStyle(event.cover_invitation_style),
+                    ...patch,
+                  };
+                  setEvent({
+                    ...event,
+                    cover_invitation_style: updated,
+                  } as any);
+                }}
+                defaultAccentColor={event.text_color_accent}
               />
             </div>
           </div>

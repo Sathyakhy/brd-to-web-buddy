@@ -31,6 +31,7 @@ import {
   type TextEffectConfig,
 } from "@/lib/textEffects";
 import { resolveHeaderFont, resolveBodyFont } from "@/lib/fonts";
+import { renderFormattedText } from "@/lib/formatText";
 
 export type TemplateData = {
   title: string;
@@ -696,7 +697,7 @@ export function KhmerTraditionalTemplate({ event, guestName, children, hideBackg
             className="font-khmer-siemreap text-center leading-[1.9] mb-2 w-full text-base"
             style={{ color: colorPrimary, fontFamily: bodyFont, textShadow: bodyShadow }}
           >
-            {event.description}
+            {renderFormattedText(event.description, { boldStyle: { color: colorPrimary, fontFamily: bodyFont } })}
           </p>
         )}
 
@@ -806,11 +807,11 @@ export function KhmerTraditionalTemplate({ event, guestName, children, hideBackg
             {isEn ? (
               <>
                 <p className="italic font-semibold text-lg" style={{ color: colorAccent, fontFamily: bodyFont }}>
-                  {(event.reception_title?.trim()) || "Banquet & Reception"}
+                  {renderFormattedText((event.reception_title?.trim()) || "Banquet & Reception", { boldStyle: { color: colorAccent, fontFamily: bodyFont } })}
                 </p>
                 {event.details_message?.trim() ? (
                   <p className="whitespace-pre-line leading-[1.8]">
-                    {event.details_message.trim()}
+                    {renderFormattedText(event.details_message.trim(), { boldStyle: { color: colorPrimary, fontFamily: bodyFont, fontWeight: 700 } })}
                   </p>
                 ) : (
                   <p>
@@ -841,10 +842,12 @@ export function KhmerTraditionalTemplate({ event, guestName, children, hideBackg
               </>
             ) : (
               <>
-                <p className="font-semibold text-lg" style={{ color: colorAccent, fontFamily: bodyFont }}>{(event.reception_title?.trim()) || "និងពិសារភោជនាអាហារ"}</p>
+                <p className="font-semibold text-lg" style={{ color: colorAccent, fontFamily: bodyFont }}>
+                  {renderFormattedText((event.reception_title?.trim()) || "និងពិសារភោជនាអាហារ", { boldStyle: { color: colorAccent, fontFamily: bodyFont } })}
+                </p>
                 {event.details_message?.trim() ? (
                   <p className="whitespace-pre-line leading-[1.8]">
-                    {event.details_message.trim()}
+                    {renderFormattedText(event.details_message.trim(), { boldStyle: { color: colorPrimary, fontFamily: bodyFont, fontWeight: 700 } })}
                   </p>
                 ) : (
                   <p>
@@ -1312,7 +1315,7 @@ export function KhmerTraditionalTemplate({ event, guestName, children, hideBackg
                       className="font-khmer-siemreap text-base leading-[1.9] whitespace-pre-line text-center"
                       style={{ color: colorPrimary, fontFamily: bodyFont, textShadow: bodyShadow }}
                     >
-                      {body}
+                      {renderFormattedText(body, { boldStyle: { color: colorPrimary, fontFamily: bodyFont } })}
                     </p>
                   </section>
                 );
@@ -1344,7 +1347,7 @@ export function KhmerTraditionalTemplate({ event, guestName, children, hideBackg
                       className="font-khmer-siemreap text-base leading-[1.9] whitespace-pre-line text-center"
                       style={{ color: colorPrimary, fontFamily: bodyFont, textShadow: bodyShadow }}
                     >
-                      {body}
+                      {renderFormattedText(body, { boldStyle: { color: colorPrimary, fontFamily: bodyFont } })}
                     </p>
                   </section>
                 );

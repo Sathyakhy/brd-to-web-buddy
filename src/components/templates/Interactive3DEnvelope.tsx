@@ -6,6 +6,11 @@ import {
   normalizeEnvelopeConfig,
 } from "@/lib/envelopeConfig";
 import { LanguageCode } from "@/lib/dualLanguage";
+import {
+  CoverInvitationStyle,
+  getCoverInvitationFontSizeStyle,
+  resolveCoverInvitationFont,
+} from "@/lib/coverInvitationStyle";
 
 // Web Audio API organic sound synthesizer for zero-dependency unboxing audio cues
 function playUnboxSounds(enabled: boolean) {
@@ -82,6 +87,8 @@ type Props = {
   venue?: string | null;
   config?: Partial<EnvelopeConfig> | null;
   language?: LanguageCode;
+  /** Optional custom styling for the cover invitation title (សូមគោរពអញ្ជើញ / INVITATION) */
+  coverInvitationStyle?: CoverInvitationStyle | null;
   onOpen: () => void;
   positionMode?: "fixed" | "absolute";
   /** Allows preview resetting */
@@ -95,6 +102,7 @@ export default function Interactive3DEnvelope({
   venue,
   config,
   language = "km",
+  coverInvitationStyle,
   onOpen,
   positionMode = "fixed",
   allowReplay = false,
@@ -335,8 +343,25 @@ export default function Interactive3DEnvelope({
                 boxShadow: "0 6px 16px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.15)",
               }}
             >
-              <span className={`text-[10px] sm:text-[11px] text-amber-200/90 tracking-wider ${isEn ? "uppercase font-semibold" : "font-khmer-koulen"}`}>
-                {isEn ? "INVITATION" : "សូមគោរពអញ្ជើញ"}
+              <span
+                className={`tracking-wider ${
+                  coverInvitationStyle?.show_underline ? "underline underline-offset-2" : ""
+                } ${
+                  coverInvitationStyle?.is_bold ? "font-bold" : (isEn ? "uppercase font-semibold" : "font-normal")
+                } ${coverInvitationStyle?.is_italic ? "italic" : ""} ${
+                  !resolveCoverInvitationFont(isEn ? coverInvitationStyle?.font_en : coverInvitationStyle?.font_km, isEn)
+                    ? (isEn ? "uppercase font-semibold" : "font-khmer-koulen")
+                    : ""
+                }`}
+                style={{
+                  fontSize: getCoverInvitationFontSizeStyle(coverInvitationStyle?.font_size, isEn).fontSize || (isEn ? "10px" : "11px"),
+                  color: coverInvitationStyle?.color || "rgba(253, 230, 138, 0.9)",
+                  fontFamily: resolveCoverInvitationFont(isEn ? coverInvitationStyle?.font_en : coverInvitationStyle?.font_km, isEn),
+                }}
+              >
+                {isEn
+                  ? (coverInvitationStyle?.text_en?.trim() || "INVITATION")
+                  : (coverInvitationStyle?.text_km?.trim() || "សូមគោរពអញ្ជើញ")}
               </span>
               <span
                 className="text-sm sm:text-base font-bold text-amber-300 font-khmer-moul truncate max-w-full px-1"
