@@ -237,14 +237,14 @@ export default function SignaturePackageCover({
         {/* Bottom invite block */}
         <div className="w-full flex flex-col items-center gap-3 pointer-events-auto">
           <p
-            className={`text-center ${isEn ? "font-serif tracking-widest uppercase font-semibold text-sm sm:text-base" : "font-khmer-moul"}`}
+            className={`text-center ${isEn ? "tracking-widest uppercase font-semibold text-sm sm:text-base" : "font-khmer-moul"}`}
             style={{
               fontSize: isEn ? undefined : "clamp(1.1rem, 4vw, 1.5rem)",
               color: "#fff8dc",
               textShadow: "0 2px 6px rgba(0,0,0,0.6), 0 0 10px rgba(245,215,110,0.5)",
             }}
           >
-            {isEn ? "Cordially Invites You" : "សូមគោរពអញ្ជើញ"}
+            {isEn ? "INVITATION" : "សូមគោរពអញ្ជើញ"}
           </p>
 
           {/* Gold name ribbon */}

@@ -17,6 +17,8 @@ export type LanguageContent = {
   groom_name?: string | null;
   ceremony_time?: string | null;
   reception_time?: string | null;
+  reception_title?: string | null;
+  details_message?: string | null;
   qr_code_message?: string | null;
   qr_account_name?: string | null;
   apologies_message?: string | null;
@@ -114,7 +116,7 @@ export const KM_TRANSLATIONS: TemplateTranslations = {
 
 export const EN_TRANSLATIONS: TemplateTranslations = {
   openInvitation: "Open Invitation",
-  cordiallyInvites: "Cordially Invites You",
+  cordiallyInvites: "INVITATION",
   honoredGuest: "Distinguished Guests, Family & Friends",
   weddingInvitation: "Wedding Invitation",
   parentsTitle: "Our Beloved Parents",
@@ -188,6 +190,8 @@ export function getDualLanguageConfig(raw: unknown, baseEvent?: any): DualLangua
     groom_name: (baseEvent?.groom_name || obj.km_content?.groom_name || dualObj.km?.groom_name || obj.km?.groom_name) ?? null,
     ceremony_time: (baseEvent?.ceremony_time || obj.km_content?.ceremony_time || dualObj.km?.ceremony_time || obj.km?.ceremony_time) ?? null,
     reception_time: (baseEvent?.reception_time || obj.km_content?.reception_time || dualObj.km?.reception_time || obj.km?.reception_time) ?? null,
+    reception_title: (baseEvent?.reception_title || obj.km_content?.reception_title || dualObj.km?.reception_title || obj.km?.reception_title) ?? null,
+    details_message: (baseEvent?.details_message || obj.km_content?.details_message || dualObj.km?.details_message || obj.km?.details_message) ?? null,
     qr_code_message: (baseEvent?.qr_code_message || obj.km_content?.qr_code_message || dualObj.km?.qr_code_message || obj.km?.qr_code_message) ?? null,
     qr_account_name: (baseEvent?.qr_account_name || obj.km_content?.qr_account_name || dualObj.km?.qr_account_name || obj.km?.qr_account_name) ?? null,
     apologies_message: (baseEvent?.apologies_message || obj.km_content?.apologies_message || dualObj.km?.apologies_message || obj.km?.apologies_message) ?? null,
@@ -204,6 +208,8 @@ export function getDualLanguageConfig(raw: unknown, baseEvent?: any): DualLangua
     groom_name: (obj.en_content?.groom_name || dualObj.en?.groom_name || obj.en?.groom_name) ?? null,
     ceremony_time: (obj.en_content?.ceremony_time || dualObj.en?.ceremony_time || obj.en?.ceremony_time) ?? null,
     reception_time: (obj.en_content?.reception_time || dualObj.en?.reception_time || obj.en?.reception_time) ?? null,
+    reception_title: (obj.en_content?.reception_title || dualObj.en?.reception_title || obj.en?.reception_title) ?? null,
+    details_message: (obj.en_content?.details_message || dualObj.en?.details_message || obj.en?.details_message) ?? null,
     qr_code_message: (obj.en_content?.qr_code_message || dualObj.en?.qr_code_message || obj.en?.qr_code_message) ?? null,
     qr_account_name: (obj.en_content?.qr_account_name || dualObj.en?.qr_account_name || obj.en?.qr_account_name) ?? null,
     apologies_message: (obj.en_content?.apologies_message || dualObj.en?.apologies_message || obj.en?.apologies_message) ?? null,
@@ -234,6 +240,8 @@ export function buildEnglishPresets(base: Partial<TemplateData>): LanguageConten
     groom_name: null,
     ceremony_time: base.ceremony_time ? "7:00 AM - Wedding Ceremony" : null,
     reception_time: base.reception_time ? "6:00 PM - Wedding Reception" : null,
+    reception_title: "Banquet & Reception",
+    details_message: null,
     qr_code_message: "Wedding Gift Transfer",
     qr_account_name: base.qr_account_name || null,
     apologies_message: "We sincerely apologize for any shortcomings or if we were unable to extend our invitation in person. Your blessings and well wishes mean the world to us.",
@@ -268,6 +276,8 @@ export function resolveEventContent(
       groom_name: event.groom_name || km?.groom_name?.trim() || null,
       ceremony_time: event.ceremony_time ?? km?.ceremony_time?.trim() ?? null,
       reception_time: event.reception_time ?? km?.reception_time?.trim() ?? null,
+      reception_title: event.reception_title ?? km?.reception_title?.trim() ?? null,
+      details_message: event.details_message ?? km?.details_message?.trim() ?? null,
       qr_code_message: event.qr_code_message ?? km?.qr_code_message?.trim() ?? null,
       qr_account_name: event.qr_account_name ?? km?.qr_account_name?.trim() ?? null,
       apologies_message: event.apologies_message ?? km?.apologies_message?.trim() ?? null,
@@ -323,6 +333,8 @@ export function resolveEventContent(
     groom_name: en.groom_name?.trim() || event.groom_name,
     ceremony_time: en.ceremony_time?.trim() || event.ceremony_time,
     reception_time: en.reception_time?.trim() || event.reception_time,
+    reception_title: en.reception_title?.trim() || event.reception_title,
+    details_message: en.details_message?.trim() || event.details_message,
     qr_code_message: en.qr_code_message?.trim() || presets.qr_code_message || event.qr_code_message,
     qr_account_name: en.qr_account_name?.trim() || event.qr_account_name,
     apologies_message: en.apologies_message?.trim() || event.apologies_message,

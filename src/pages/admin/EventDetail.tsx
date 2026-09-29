@@ -89,6 +89,7 @@ type Event = {
   gallery_urls: string[] | null;
   gallery_layout: "grid" | "mosaic";
   ceremony_time: string | null; reception_time: string | null;
+  reception_title?: string | null; details_message?: string | null;
   contact_phone: string | null;
   bride_name: string | null; groom_name: string | null;
   agenda_days: AgendaDay[];
@@ -237,6 +238,8 @@ export default function EventDetail() {
       const text_effect_config = normalizeTextEffectConfig(
         raw.text_effect_config ?? rawVis.text_effects ?? rawVis.text_effect_config ?? raw
       );
+      const reception_title = (raw as any).reception_title ?? rawVis.reception_title ?? null;
+      const details_message = (raw as any).details_message ?? rawVis.details_message ?? null;
       const agenda_bg_color = (raw as any).agenda_bg_color ?? rawVis.agenda_style?.bg_color ?? rawVis.agenda_bg_color ?? null;
       const agenda_bg_opacity = (raw as any).agenda_bg_opacity ?? rawVis.agenda_style?.bg_opacity ?? rawVis.agenda_bg_opacity ?? null;
       const agenda_asset_color = (raw as any).agenda_asset_color ?? rawVis.agenda_style?.asset_color ?? rawVis.agenda_asset_color ?? null;
@@ -285,6 +288,8 @@ export default function EventDetail() {
         agenda_bg_color,
         agenda_bg_opacity,
         agenda_asset_color,
+        reception_title,
+        details_message,
         map_button_bg_color,
         map_button_bg_opacity,
         countdown_bg_color,
@@ -385,6 +390,8 @@ export default function EventDetail() {
       agenda_bg_color: event.agenda_bg_color ?? null,
       agenda_bg_opacity: event.agenda_bg_opacity ?? null,
       agenda_asset_color: event.agenda_asset_color ?? null,
+      reception_title: event.reception_title ?? null,
+      details_message: event.details_message ?? null,
       map_button_bg_color: event.map_button_bg_color ?? null,
       map_button_bg_opacity: event.map_button_bg_opacity ?? null,
       countdown_bg_color: event.countdown_bg_color ?? null,
@@ -1837,6 +1844,33 @@ export default function EventDetail() {
                 onEnChange={(val) => updateEnField("reception_time", val)}
                 placeholderKm="6:00 ល្ងាច"
                 placeholderEn="6:00 PM"
+              />
+            </div>
+            <div className="space-y-2 md:col-span-2">
+              <BilingualInput
+                label="Reception / Banquet headline"
+                description="Header above the celebration time & venue sentence. Defaults to 'និងពិសារភោជនាអាហារ' (KM) / 'Banquet & Reception' (EN)."
+                isDual={isDual}
+                kmValue={event.reception_title ?? ""}
+                enValue={event.dual_language_config?.en?.reception_title ?? ""}
+                onKmChange={(val) => setEvent({ ...event, reception_title: val || null })}
+                onEnChange={(val) => updateEnField("reception_title", val || null)}
+                placeholderKm="និងពិសារភោជនាអាហារ"
+                placeholderEn="Banquet & Reception"
+              />
+            </div>
+            <div className="space-y-2 md:col-span-2">
+              <BilingualTextarea
+                label="Celebration details sentence (Customizable)"
+                description="Custom text for the event celebration time & location. When left empty, automatically generated from event date, reception time, and venue name in both languages."
+                rows={2}
+                isDual={isDual}
+                kmValue={event.details_message ?? ""}
+                enValue={event.dual_language_config?.en?.details_message ?? ""}
+                onKmChange={(val) => setEvent({ ...event, details_message: val || null })}
+                onEnChange={(val) => updateEnField("details_message", val || null)}
+                placeholderKm="ដែលនឹងប្រព្រឹត្តទៅនៅ ថ្ងៃចន្ទ ទី១៦ ខែវិច្ឆិកា ឆ្នាំ២០២៦ វេលាម៉ោង ៥:០០ ល្ងាច នៅ ដីព្រេមៀសេនធ័រ សែនសុខ (អគារ H)"
+                placeholderEn="To be celebrated on Monday, November 16, 2026 at 5:00 PM at The Premier Centre Sen Sok (Building H)"
               />
             </div>
             <div className="space-y-2 md:col-span-2">

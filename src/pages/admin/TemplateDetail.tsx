@@ -63,6 +63,8 @@ type TemplateConfig = {
   countdown_message: string | null;
   description: string | null;
   venue: string | null;
+  reception_title?: string | null;
+  details_message?: string | null;
   cover_image_url: string | null;
   cover_background_url: string | null;
   invite_background_url: string | null;
@@ -1307,6 +1309,29 @@ export default function TemplateDetail() {
                   />
                   <p className="text-xs text-muted-foreground">
                     Drives the countdown in the preview. Stored as a date only — no time of day.
+                  </p>
+                </div>
+                <div className="space-y-2 md:col-span-2">
+                  <Label>Reception / Banquet headline</Label>
+                  <Input
+                    value={draftConfig.reception_title ?? ""}
+                    onChange={e => patchConfig({ reception_title: e.target.value || null })}
+                    placeholder="និងពិសារភោជនាអាហារ"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Header above the celebration time &amp; venue sentence. Defaults to 'និងពិសារភោជនាអាហារ' (KM) / 'Banquet &amp; Reception' (EN).
+                  </p>
+                </div>
+                <div className="space-y-2 md:col-span-2">
+                  <Label>Celebration details sentence (Customizable)</Label>
+                  <Textarea
+                    rows={2}
+                    value={draftConfig.details_message ?? ""}
+                    onChange={e => patchConfig({ details_message: e.target.value || null })}
+                    placeholder="ដែលនឹងប្រព្រឹត្តទៅនៅ ថ្ងៃចន្ទ ទី១៦ ខែវិច្ឆិកា ឆ្នាំ២០២៦ វេលាម៉ោង ៥:០០ ល្ងាច នៅ ដីព្រេមៀសេនធ័រ សែនសុខ (អគារ H)"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Custom text for the event celebration time &amp; location. When left empty, automatically generated from event date, reception time, and venue name.
                   </p>
                 </div>
                 <div className="space-y-2 md:col-span-2">

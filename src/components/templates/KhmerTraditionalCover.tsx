@@ -222,17 +222,17 @@ export default function KhmerTraditionalCover({
         />
       </div>
 
-      {/* "សូមគោរពអញ្ជើញ" / "Cordially Invites You" */}
+      {/* "សូមគោរពអញ្ជើញ" / "INVITATION" */}
       <p
         className={`relative z-10 text-xl sm:text-2xl mt-0 mb-3 sm:mb-4 underline underline-offset-[6px] decoration-2 ${
-          isEn ? "font-serif tracking-widest uppercase font-semibold text-sm sm:text-base" : "font-khmer-koulen"
+          isEn ? "tracking-widest uppercase font-semibold text-sm sm:text-base" : "font-khmer-koulen"
         }`}
         style={{
           color: "#1a1a1a",
           textDecorationColor: "#1a1a1a",
         }}
       >
-        {isEn ? "Cordially Invites You" : "សូមគោរពអញ្ជើញ"}
+        {isEn ? "INVITATION" : "សូមគោរពអញ្ជើញ"}
       </p>
 
       {/* Name plate using the gold plate graphic */}

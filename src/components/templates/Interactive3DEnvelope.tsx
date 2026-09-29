@@ -335,8 +335,8 @@ export default function Interactive3DEnvelope({
                 boxShadow: "0 6px 16px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.15)",
               }}
             >
-              <span className="text-[10px] sm:text-[11px] text-amber-200/90 font-khmer-koulen tracking-wider">
-                {isEn ? "CORDIALLY INVITED" : "សូមគោរពអញ្ជើញ"}
+              <span className={`text-[10px] sm:text-[11px] text-amber-200/90 tracking-wider ${isEn ? "uppercase font-semibold" : "font-khmer-koulen"}`}>
+                {isEn ? "INVITATION" : "សូមគោរពអញ្ជើញ"}
               </span>
               <span
                 className="text-sm sm:text-base font-bold text-amber-300 font-khmer-moul truncate max-w-full px-1"
