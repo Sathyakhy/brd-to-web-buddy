@@ -16,6 +16,7 @@ import CollapsibleSection from "@/components/admin/CollapsibleSection";
 import LetterCardStyleEditor from "@/components/admin/LetterCardStyleEditor";
 import ElementStyleEditor from "@/components/admin/ElementStyleEditor";
 import CoverInvitationStyleEditor from "@/components/admin/CoverInvitationStyleEditor";
+import TitleAndCoupleSizeEditor from "@/components/admin/TitleAndCoupleSizeEditor";
 import {
   CoverInvitationStyle,
   normalizeCoverInvitationStyle,
@@ -72,6 +73,10 @@ type TemplateConfig = {
   details_message?: string | null;
   rsvp_title?: string | null;
   rsvp_title_en?: string | null;
+  page_title_font_size_km?: string | null;
+  page_title_font_size_en?: string | null;
+  couple_font_size_km?: string | null;
+  couple_font_size_en?: string | null;
   cover_image_url: string | null;
   cover_background_url: string | null;
   invite_background_url: string | null;
@@ -281,6 +286,10 @@ function normalizeConfig(raw: any): TemplateConfig {
     countdown_bg_opacity: typeof r.countdown_bg_opacity === "number" ? r.countdown_bg_opacity : (typeof r.section_visibility?.countdown_bg_opacity === "number" ? r.section_visibility?.countdown_bg_opacity : null),
     rsvp_title: r.rsvp_title ?? r.section_visibility?.rsvp_title ?? r.section_visibility?.rsvp_style?.rsvp_title ?? null,
     rsvp_title_en: r.rsvp_title_en ?? r.section_visibility?.rsvp_title_en ?? r.section_visibility?.rsvp_style?.rsvp_title_en ?? null,
+    page_title_font_size_km: r.page_title_font_size_km ?? r.section_visibility?.page_title_font_size_km ?? null,
+    page_title_font_size_en: r.page_title_font_size_en ?? r.section_visibility?.page_title_font_size_en ?? null,
+    couple_font_size_km: r.couple_font_size_km ?? r.section_visibility?.couple_font_size_km ?? null,
+    couple_font_size_en: r.couple_font_size_en ?? r.section_visibility?.couple_font_size_en ?? null,
     rsvp_bg_color: r.rsvp_bg_color ?? r.section_visibility?.rsvp_bg_color ?? r.section_visibility?.rsvp_style?.bg_color ?? null,
     rsvp_bg_opacity: typeof r.rsvp_bg_opacity === "number" ? r.rsvp_bg_opacity : (typeof r.section_visibility?.rsvp_bg_opacity === "number" ? r.section_visibility?.rsvp_bg_opacity : (typeof r.section_visibility?.rsvp_style?.bg_opacity === "number" ? r.section_visibility?.rsvp_style?.bg_opacity : null)),
     rsvp_header_font: r.rsvp_header_font ?? r.section_visibility?.rsvp_header_font ?? r.section_visibility?.rsvp_style?.header_font ?? null,
@@ -566,6 +575,10 @@ export default function TemplateDetail() {
       rsvp_card_shadow_x: draftConfig.rsvp_card_shadow_x ?? null,
       rsvp_card_shadow_y: draftConfig.rsvp_card_shadow_y ?? null,
       rsvp_card_shadow_opacity: draftConfig.rsvp_card_shadow_opacity ?? null,
+      page_title_font_size_km: draftConfig.page_title_font_size_km ?? null,
+      page_title_font_size_en: draftConfig.page_title_font_size_en ?? null,
+      couple_font_size_km: draftConfig.couple_font_size_km ?? null,
+      couple_font_size_en: draftConfig.couple_font_size_en ?? null,
     };
     const payload = {
       label: draft.label.trim() || "Untitled template",
@@ -753,6 +766,10 @@ export default function TemplateDetail() {
       rsvp_card_shadow_x: draftConfig.rsvp_card_shadow_x ?? null,
       rsvp_card_shadow_y: draftConfig.rsvp_card_shadow_y ?? null,
       rsvp_card_shadow_opacity: draftConfig.rsvp_card_shadow_opacity ?? null,
+      page_title_font_size_km: draftConfig.page_title_font_size_km ?? null,
+      page_title_font_size_en: draftConfig.page_title_font_size_en ?? null,
+      couple_font_size_km: draftConfig.couple_font_size_km ?? null,
+      couple_font_size_en: draftConfig.couple_font_size_en ?? null,
     },
     section_visibility: {},
   };
@@ -1224,6 +1241,24 @@ export default function TemplateDetail() {
                       patchConfig({ cover_invitation_style: updated });
                     }}
                     defaultAccentColor={draftConfig.text_color_accent}
+                  />
+                </div>
+
+                {/* 5. Invitation Page Title & Groom/Bride Names Sizing */}
+                <div className="pt-4 border-t border-border/50">
+                  <TitleAndCoupleSizeEditor
+                    config={{
+                      page_title_font_size_km: draftConfig.page_title_font_size_km,
+                      page_title_font_size_en: draftConfig.page_title_font_size_en,
+                      couple_font_size_km: draftConfig.couple_font_size_km,
+                      couple_font_size_en: draftConfig.couple_font_size_en,
+                    }}
+                    onChange={(patch) => patchConfig(patch)}
+                    headerFont={draftConfig.header_font}
+                    accentColor={draftConfig.text_color_accent}
+                    primaryColor={draftConfig.text_color_primary}
+                    sampleTitleKm={draftConfig.title || "សិរីសួស្តី អាពាហ៍ពិពាហ៍"}
+                    sampleTitleEn="Wedding Celebration"
                   />
                 </div>
               </div>

@@ -32,6 +32,10 @@ import {
 } from "@/lib/textEffects";
 import { resolveHeaderFont, resolveBodyFont } from "@/lib/fonts";
 import { renderFormattedText } from "@/lib/formatText";
+import {
+  resolvePageTitleFontSize,
+  resolveCoupleFontSize,
+} from "@/lib/titleAndCoupleSize";
 
 export type TemplateData = {
   title: string;
@@ -53,6 +57,10 @@ export type TemplateData = {
   details_message?: string | null;
   rsvp_title?: string | null;
   rsvp_title_en?: string | null;
+  page_title_font_size_km?: string | null;
+  page_title_font_size_en?: string | null;
+  couple_font_size_km?: string | null;
+  couple_font_size_en?: string | null;
   contact_phone: string | null;
   bride_name: string | null;
   groom_name: string | null;
@@ -346,6 +354,17 @@ export function KhmerTraditionalTemplate({ event, guestName, children, hideBackg
     ? resolveBodyFont(rawBodyFont, isEn)
     : (isEn ? resolveBodyFont(undefined, true) : undefined);
 
+  // Title & Couple Name font size scaling (configured separately for Khmer and English)
+  const pageTitleSizeSetting = isEn
+    ? ((event as any).page_title_font_size_en ?? (event as any).section_visibility?.page_title_font_size_en ?? (event as any).templateDefaults?.page_title_font_size_en)
+    : ((event as any).page_title_font_size_km ?? (event as any).section_visibility?.page_title_font_size_km ?? (event as any).templateDefaults?.page_title_font_size_km);
+  const pageTitleFontSize = resolvePageTitleFontSize(pageTitleSizeSetting, isEn);
+
+  const coupleSizeSetting = isEn
+    ? ((event as any).couple_font_size_en ?? (event as any).section_visibility?.couple_font_size_en ?? (event as any).templateDefaults?.couple_font_size_en)
+    : ((event as any).couple_font_size_km ?? (event as any).section_visibility?.couple_font_size_km ?? (event as any).templateDefaults?.couple_font_size_km);
+  const coupleFontSizeConfig = resolveCoupleFontSize(coupleSizeSetting, isEn);
+
   // Venue is stored as "Name|URL" — split into a display name + optional link.
   const [venueName, ...venueRest] = (event.venue ?? "").split("|");
   const venueDisplay = (venueName ?? "").trim();
@@ -531,7 +550,7 @@ export function KhmerTraditionalTemplate({ event, guestName, children, hideBackg
               fontFamily: headerFont,
               fontWeight: isEn ? 600 : 400,
               color: colorAccent,
-              fontSize: "clamp(1.8rem, 4vw, 2.8rem)",
+              fontSize: pageTitleFontSize,
               marginTop: "2rem",
               marginBottom: "1rem",
               textShadow: headingShadow,
@@ -755,8 +774,8 @@ export function KhmerTraditionalTemplate({ event, guestName, children, hideBackg
                 {p.first && (
                   <FitText
                     as="div"
-                    maxPx={22}
-                    minPx={10}
+                    maxPx={coupleFontSizeConfig.maxPx}
+                    minPx={coupleFontSizeConfig.minPx}
                     groupId={coupleGroupId}
                     style={{ paddingTop: "0.3em", lineHeight: 1.5 }}
                   >
@@ -766,8 +785,8 @@ export function KhmerTraditionalTemplate({ event, guestName, children, hideBackg
                 {p.last && (
                   <FitText
                     as="div"
-                    maxPx={22}
-                    minPx={10}
+                    maxPx={coupleFontSizeConfig.maxPx}
+                    minPx={coupleFontSizeConfig.minPx}
                     groupId={coupleGroupId}
                     style={{ paddingTop: "0.3em", lineHeight: 1.5 }}
                   >
@@ -786,7 +805,7 @@ export function KhmerTraditionalTemplate({ event, guestName, children, hideBackg
                   <span>{isEn ? "Bride" : "កូនស្រីនាម"}</span>
                 </div>
                 <div
-                  className={`grid grid-cols-2 gap-x-4 sm:gap-x-12 w-full ${isEn ? "font-bold text-lg sm:text-xl" : ""}`}
+                  className={`grid grid-cols-2 gap-x-4 sm:gap-x-12 w-full ${isEn ? (coupleFontSizeConfig.fontClass || "font-bold text-lg sm:text-xl") : ""}`}
                   style={{ fontFamily: headerFont, color: colorAccent, textShadow: headingShadow }}
                 >
                   {renderName(groomParts, "g")}
@@ -2166,7 +2185,9 @@ export function InvitationTemplate({
     "body_font" | "body_font_km" | "body_font_en" |
     "cover_music_url" |
     "reception_title" | "details_message" |
-    "rsvp_title" | "rsvp_title_en"
+    "rsvp_title" | "rsvp_title_en" |
+    "page_title_font_size_km" | "page_title_font_size_en" |
+    "couple_font_size_km" | "couple_font_size_en"
   >>;
 }) {
   const visibility = mergeVisibility(templateVisibility, eventVisibility);
@@ -2230,6 +2251,10 @@ export function InvitationTemplate({
         details_message: fallback("details_message") as any,
         rsvp_title: fallback("rsvp_title") as any,
         rsvp_title_en: fallback("rsvp_title_en") as any,
+        page_title_font_size_km: fallback("page_title_font_size_km") as any,
+        page_title_font_size_en: fallback("page_title_font_size_en") as any,
+        couple_font_size_km: fallback("couple_font_size_km") as any,
+        couple_font_size_en: fallback("couple_font_size_en") as any,
       }
     : ev;
 

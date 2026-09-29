@@ -65,6 +65,7 @@ import MonogramEffectEditor from "@/components/admin/MonogramEffectEditor";
 import FontSelector from "@/components/admin/FontSelector";
 import SideFrameEditor from "@/components/admin/SideFrameEditor";
 import CoverInvitationStyleEditor from "@/components/admin/CoverInvitationStyleEditor";
+import TitleAndCoupleSizeEditor from "@/components/admin/TitleAndCoupleSizeEditor";
 import {
   CoverInvitationStyle,
   normalizeCoverInvitationStyle,
@@ -154,6 +155,10 @@ type Event = {
   envelope_unboxing?: EnvelopeUnboxingConfig;
   cover_music_url: string | null;
   cover_invitation_style?: CoverInvitationStyle;
+  page_title_font_size_km?: string | null;
+  page_title_font_size_en?: string | null;
+  couple_font_size_km?: string | null;
+  couple_font_size_en?: string | null;
   share_preview_index: number | null;
   header_font?: string | null;
   header_font_km?: string | null;
@@ -282,6 +287,10 @@ export default function EventDetail() {
       const cover_invitation_style = normalizeCoverInvitationStyle(
         (raw as any).cover_invitation_style ?? rawVis.cover_invitation_style ?? rawVis.cover_invitation
       );
+      const page_title_font_size_km = (raw as any).page_title_font_size_km ?? rawVis.page_title_font_size_km ?? null;
+      const page_title_font_size_en = (raw as any).page_title_font_size_en ?? rawVis.page_title_font_size_en ?? null;
+      const couple_font_size_km = (raw as any).couple_font_size_km ?? rawVis.couple_font_size_km ?? null;
+      const couple_font_size_en = (raw as any).couple_font_size_en ?? rawVis.couple_font_size_en ?? null;
       const envelope_unboxing = normalizeEnvelopeConfig(
         (raw as any).envelope_unboxing ?? rawVis.envelope_unboxing
       );
@@ -330,6 +339,10 @@ export default function EventDetail() {
         rsvp_card_shadow_opacity,
         side_frame_config,
         cover_invitation_style,
+        page_title_font_size_km,
+        page_title_font_size_en,
+        couple_font_size_km,
+        couple_font_size_en,
         envelope_unboxing,
         gallery_layout: galleryLayout,
         contacts,
@@ -457,6 +470,10 @@ export default function EventDetail() {
       rsvp_card_shadow_y: event.rsvp_card_shadow_y ?? null,
       rsvp_card_shadow_opacity: event.rsvp_card_shadow_opacity ?? null,
       cover_invitation_style: event.cover_invitation_style ?? null,
+      page_title_font_size_km: (event as any).page_title_font_size_km ?? null,
+      page_title_font_size_en: (event as any).page_title_font_size_en ?? null,
+      couple_font_size_km: (event as any).couple_font_size_km ?? null,
+      couple_font_size_en: (event as any).couple_font_size_en ?? null,
     };
     const { error } = await supabase.from("events").update({
       title: event.title,
@@ -1687,6 +1704,29 @@ export default function EventDetail() {
                   } as any);
                 }}
                 defaultAccentColor={event.text_color_accent}
+              />
+            </div>
+
+            {/* 5. Invitation Page Title & Groom/Bride Names Sizing */}
+            <div className="pt-4 border-t border-border/50">
+              <TitleAndCoupleSizeEditor
+                config={{
+                  page_title_font_size_km: (event as any).page_title_font_size_km,
+                  page_title_font_size_en: (event as any).page_title_font_size_en,
+                  couple_font_size_km: (event as any).couple_font_size_km,
+                  couple_font_size_en: (event as any).couple_font_size_en,
+                }}
+                onChange={(patch) => {
+                  setEvent({
+                    ...event,
+                    ...patch,
+                  } as any);
+                }}
+                headerFont={event.header_font}
+                accentColor={event.text_color_accent}
+                primaryColor={event.text_color_primary}
+                sampleTitleKm={event.title || "សិរីសួស្តី អាពាហ៍ពិពាហ៍"}
+                sampleTitleEn={(event as any).dual_language_config?.en?.title || "Wedding Celebration"}
               />
             </div>
           </div>
