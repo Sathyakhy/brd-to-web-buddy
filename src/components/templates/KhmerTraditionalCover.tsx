@@ -2,8 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { computeMonogramFilter, MonogramShadowSettings, TextEffectConfig } from "@/lib/textEffects";
 import {
   CoverInvitationStyle,
-  getCoverInvitationFontSizeStyle,
-  resolveCoverInvitationFont,
+  getResolvedCoverTitleStyle,
 } from "@/lib/coverInvitationStyle";
 
 function isKhmerChar(ch: string): boolean {
@@ -176,18 +175,8 @@ export default function KhmerTraditionalCover({
     };
   }, [guestName, bgReady]);
 
-  // Cover invitation title custom styling
-  const coverTitleText = isEn
-    ? (coverInvitationStyle?.text_en?.trim() || "INVITATION")
-    : (coverInvitationStyle?.text_km?.trim() || "សូមគោរពអញ្ជើញ");
-  const coverTitleColor = coverInvitationStyle?.color || "#1a1a1a";
-  const coverTitleFont = isEn
-    ? resolveCoverInvitationFont(coverInvitationStyle?.font_en, true)
-    : resolveCoverInvitationFont(coverInvitationStyle?.font_km, false);
-  const coverTitleFontSize = getCoverInvitationFontSizeStyle(coverInvitationStyle?.font_size, isEn);
-  const coverTitleBold = coverInvitationStyle?.is_bold ?? (isEn ? true : false);
-  const coverTitleItalic = coverInvitationStyle?.is_italic ?? false;
-  const coverTitleUnderline = coverInvitationStyle?.show_underline !== false;
+  // Cover invitation title custom styling (independent for Khmer & English)
+  const coverTitleStyle = getResolvedCoverTitleStyle(coverInvitationStyle, isEn, "#1a1a1a");
 
   return (
     <div
@@ -246,20 +235,20 @@ export default function KhmerTraditionalCover({
       {/* "សូមគោរពអញ្ជើញ" / "INVITATION" */}
       <p
         className={`relative z-10 mt-0 mb-3 sm:mb-4 ${
-          coverTitleUnderline ? "underline underline-offset-[6px] decoration-2" : ""
-        } ${coverTitleBold ? "font-bold" : (isEn ? "font-semibold" : "font-normal")} ${
-          coverTitleItalic ? "italic" : ""
+          coverTitleStyle.showUnderline ? "underline underline-offset-[6px] decoration-2" : ""
+        } ${coverTitleStyle.isBold ? "font-bold" : (isEn ? "font-semibold" : "font-normal")} ${
+          coverTitleStyle.isItalic ? "italic" : ""
         } ${
-          !coverTitleFont ? (isEn ? "tracking-widest uppercase" : "font-khmer-koulen") : ""
+          !coverTitleStyle.font ? (isEn ? "tracking-widest uppercase" : "font-khmer-koulen") : ""
         }`}
         style={{
-          color: coverTitleColor,
-          fontFamily: coverTitleFont,
-          textDecorationColor: coverTitleColor,
-          fontSize: coverTitleFontSize.fontSize || (isEn ? "clamp(0.9rem, 3.5vw, 1.1rem)" : "clamp(1.1rem, 4vw, 1.5rem)"),
+          color: coverTitleStyle.color,
+          fontFamily: coverTitleStyle.font,
+          textDecorationColor: coverTitleStyle.color,
+          fontSize: coverTitleStyle.fontSize.fontSize || (isEn ? "clamp(0.9rem, 3.5vw, 1.1rem)" : "clamp(1.1rem, 4vw, 1.5rem)"),
         }}
       >
-        {coverTitleText}
+        {coverTitleStyle.text}
       </p>
 
       {/* Name plate using the gold plate graphic */}

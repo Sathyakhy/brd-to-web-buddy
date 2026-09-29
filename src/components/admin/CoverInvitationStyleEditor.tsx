@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   Select,
   SelectContent,
@@ -12,9 +13,7 @@ import {
 import {
   CoverInvitationStyle,
   CoverInvitationFontSize,
-  DEFAULT_COVER_INVITATION_STYLE,
-  getCoverInvitationFontSizeStyle,
-  resolveCoverInvitationFont,
+  getResolvedCoverTitleStyle,
 } from "@/lib/coverInvitationStyle";
 import {
   HEADER_FONT_OPTIONS,
@@ -26,9 +25,9 @@ import {
   Bold,
   Italic,
   Underline as UnderlineIcon,
-  Globe,
   Type,
   Palette,
+  Eye,
 } from "lucide-react";
 
 export type CoverInvitationStyleEditorProps = {
@@ -38,14 +37,14 @@ export type CoverInvitationStyleEditorProps = {
   className?: string;
 };
 
-const FONT_SIZE_OPTIONS: { value: CoverInvitationFontSize; label: string; enDesc: string }[] = [
-  { value: "xs", label: "Extra Small (XS)", enDesc: "0.75rem / 0.9rem" },
-  { value: "sm", label: "Small (SM)", enDesc: "0.875rem / 1.05rem" },
-  { value: "base", label: "Standard / Medium (Default)", enDesc: "1.0rem / 1.25rem" },
-  { value: "lg", label: "Large (LG)", enDesc: "1.15rem / 1.45rem" },
-  { value: "xl", label: "Extra Large (XL)", enDesc: "1.35rem / 1.7rem" },
-  { value: "2xl", label: "2X Large (2XL)", enDesc: "1.6rem / 2.0rem" },
-  { value: "3xl", label: "3X Large (3XL)", enDesc: "1.9rem / 2.4rem" },
+const FONT_SIZE_OPTIONS: { value: CoverInvitationFontSize; label: string; kmDesc: string; enDesc: string }[] = [
+  { value: "xs", label: "Extra Small (XS)", kmDesc: "0.9rem", enDesc: "0.75rem" },
+  { value: "sm", label: "Small (SM)", kmDesc: "1.05rem", enDesc: "0.875rem" },
+  { value: "base", label: "Standard / Medium (Default)", kmDesc: "1.25rem", enDesc: "1.0rem" },
+  { value: "lg", label: "Large (LG)", kmDesc: "1.45rem", enDesc: "1.15rem" },
+  { value: "xl", label: "Extra Large (XL)", kmDesc: "1.7rem", enDesc: "1.35rem" },
+  { value: "2xl", label: "2X Large (2XL)", kmDesc: "2.0rem", enDesc: "1.6rem" },
+  { value: "3xl", label: "3X Large (3XL)", kmDesc: "2.4rem", enDesc: "1.9rem" },
 ];
 
 export default function CoverInvitationStyleEditor({
@@ -54,42 +53,73 @@ export default function CoverInvitationStyleEditor({
   defaultAccentColor = "#1a1a1a",
   className = "",
 }: CoverInvitationStyleEditorProps) {
-  const [previewLang, setPreviewLang] = useState<"km" | "en">("km");
-  const isEn = previewLang === "en";
+  const [activeTab, setActiveTab] = useState<"km" | "en">("km");
 
-  const safeColor = config.color || (defaultAccentColor ?? "#1a1a1a");
-  const activeText = isEn
-    ? (config.text_en?.trim() || "INVITATION")
-    : (config.text_km?.trim() || "សូមគោរពអញ្ជើញ");
+  const safeDefaultAccent = defaultAccentColor || "#1a1a1a";
 
-  const resolvedFont = isEn
-    ? resolveCoverInvitationFont(config.font_en, true)
-    : resolveCoverInvitationFont(config.font_km, false);
-
-  const fontSizeStyle = getCoverInvitationFontSizeStyle(config.font_size, isEn);
-
-  const isBold = config.is_bold ?? (isEn ? true : false);
-  const isItalic = config.is_italic ?? false;
-  const isUnderline = config.show_underline ?? true;
+  const resolvedKm = getResolvedCoverTitleStyle(config, false, safeDefaultAccent);
+  const resolvedEn = getResolvedCoverTitleStyle(config, true, safeDefaultAccent);
 
   const isCustomized =
     Boolean(config.text_km) ||
     Boolean(config.text_en) ||
+    Boolean(config.color_km) ||
+    Boolean(config.color_en) ||
     Boolean(config.color) ||
     Boolean(config.font_km) ||
     Boolean(config.font_en) ||
-    (config.font_size && config.font_size !== "base") ||
-    config.is_bold !== null ||
-    config.is_italic !== null ||
-    config.show_underline === false;
+    (config.font_size_km && config.font_size_km !== "base") ||
+    (config.font_size_en && config.font_size_en !== "base") ||
+    config.is_bold_km !== null ||
+    config.is_bold_en !== null ||
+    config.is_italic_km !== null ||
+    config.is_italic_en !== null ||
+    config.show_underline_km === false ||
+    config.show_underline_en === false;
 
-  const handleReset = () => {
+  const handleResetKm = () => {
     onChange({
       text_km: null,
-      text_en: null,
-      color: null,
+      color_km: null,
       font_km: null,
+      font_size_km: "base",
+      is_bold_km: null,
+      is_italic_km: null,
+      show_underline_km: true,
+    });
+  };
+
+  const handleResetEn = () => {
+    onChange({
+      text_en: null,
+      color_en: null,
       font_en: null,
+      font_size_en: "base",
+      is_bold_en: null,
+      is_italic_en: null,
+      show_underline_en: true,
+    });
+  };
+
+  const handleResetAll = () => {
+    onChange({
+      text_km: null,
+      color_km: null,
+      font_km: null,
+      font_size_km: "base",
+      is_bold_km: null,
+      is_italic_km: null,
+      show_underline_km: true,
+
+      text_en: null,
+      color_en: null,
+      font_en: null,
+      font_size_en: "base",
+      is_bold_en: null,
+      is_italic_en: null,
+      show_underline_en: true,
+
+      color: null,
       font_size: "base",
       is_bold: null,
       is_italic: null,
@@ -111,7 +141,7 @@ export default function CoverInvitationStyleEditor({
             </h4>
           </div>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Customize the font family, color, size, bold, italic, and underline styling on the cover screen for both Khmer and English.
+            Configure separate, independent font types, colors, sizes, and styling (bold/italic/underline) for the Khmer and English cover screens.
           </p>
         </div>
 
@@ -121,248 +151,393 @@ export default function CoverInvitationStyleEditor({
             variant="ghost"
             size="sm"
             className="h-8 px-2.5 text-xs text-muted-foreground hover:text-foreground"
-            onClick={handleReset}
+            onClick={handleResetAll}
           >
             <RotateCcw className="h-3.5 w-3.5 mr-1.5" />
-            Reset styling
+            Reset all cover styles
           </Button>
         )}
       </div>
 
-      {/* Live Preview Box */}
-      <div className="rounded-lg p-3.5 bg-secondary/30 border border-border/50 space-y-2">
-        <div className="flex items-center justify-between">
-          <span className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">
-            Live Cover Title Preview
-          </span>
-          <div className="flex items-center gap-1 bg-background/80 p-0.5 rounded-md border border-border/60">
-            <button
-              type="button"
-              onClick={() => setPreviewLang("km")}
-              className={`px-2 py-0.5 text-xs rounded font-medium transition-all ${
-                !isEn ? "bg-gold text-white shadow-xs" : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              Khmer
-            </button>
-            <button
-              type="button"
-              onClick={() => setPreviewLang("en")}
-              className={`px-2 py-0.5 text-xs rounded font-medium transition-all ${
-                isEn ? "bg-gold text-white shadow-xs" : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              English
-            </button>
-          </div>
-        </div>
+      {/* Language Tabs */}
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="w-full">
+        <TabsList className="grid grid-cols-2 w-full h-10">
+          <TabsTrigger value="km" className="text-xs font-medium flex items-center justify-center gap-2">
+            <span className="text-base">🇰🇭</span>
+            <span>Khmer Title Style (សូមគោរពអញ្ជើញ)</span>
+          </TabsTrigger>
+          <TabsTrigger value="en" className="text-xs font-medium flex items-center justify-center gap-2">
+            <span className="text-base">🇬🇧</span>
+            <span>English Title Style (INVITATION)</span>
+          </TabsTrigger>
+        </TabsList>
 
-        <div className="p-5 rounded-md bg-[#fdf5dc] border border-[#d4af37]/30 text-center flex flex-col items-center justify-center min-h-[90px]">
-          <p
-            className={`transition-all ${isBold ? "font-bold" : (isEn ? "font-semibold" : "font-normal")} ${
-              isItalic ? "italic" : ""
-            } ${isUnderline ? "underline underline-offset-[6px] decoration-2" : ""} ${
-              !resolvedFont ? (isEn ? "tracking-widest uppercase" : "font-khmer-koulen") : ""
-            }`}
-            style={{
-              color: safeColor,
-              fontFamily: resolvedFont,
-              textDecorationColor: safeColor,
-              fontSize: fontSizeStyle.fontSize,
-              lineHeight: 1.4,
-            }}
-          >
-            {activeText}
-          </p>
-          <span className="text-[10px] text-muted-foreground/70 mt-2 font-mono">
-            {isEn ? "Previewing English Cover Title" : "Previewing Khmer Cover Title"}
-          </span>
-        </div>
-      </div>
+        {/* 🇰🇭 KHMER TAB */}
+        <TabsContent value="km" className="space-y-4 pt-3">
+          {/* Khmer Live Preview */}
+          <div className="rounded-lg p-3.5 bg-secondary/30 border border-border/50 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider flex items-center gap-1.5">
+                <Eye className="h-3.5 w-3.5 text-gold" />
+                <span>Khmer Cover Title Live Preview</span>
+              </span>
+              {(config.text_km || config.color_km || config.font_km || (config.font_size_km && config.font_size_km !== "base") || config.is_bold_km !== null || config.is_italic_km !== null || config.show_underline_km === false) && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 px-2 text-[11px]"
+                  onClick={handleResetKm}
+                >
+                  <RotateCcw className="h-3 w-3 mr-1" />
+                  Reset Khmer Style
+                </Button>
+              )}
+            </div>
 
-      {/* Editor Controls */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Khmer Custom Text */}
-        <div className="space-y-1.5">
-          <Label className="text-xs font-medium flex items-center gap-1.5">
-            <span>Khmer Title Text</span>
-          </Label>
-          <Input
-            value={config.text_km ?? ""}
-            onChange={(e) => onChange({ text_km: e.target.value || null })}
-            placeholder="សូមគោរពអញ្ជើញ"
-            className="text-sm font-khmer-siemreap"
-          />
-          <p className="text-[11px] text-muted-foreground">Default: សូមគោរពអញ្ជើញ</p>
-        </div>
-
-        {/* English Custom Text */}
-        <div className="space-y-1.5">
-          <Label className="text-xs font-medium flex items-center gap-1.5">
-            <span>English Title Text</span>
-          </Label>
-          <Input
-            value={config.text_en ?? ""}
-            onChange={(e) => onChange({ text_en: e.target.value || null })}
-            placeholder="INVITATION"
-            className="text-sm uppercase tracking-wider"
-          />
-          <p className="text-[11px] text-muted-foreground">Default: INVITATION</p>
-        </div>
-
-        {/* Khmer Font Family */}
-        <div className="space-y-1.5">
-          <Label className="text-xs font-medium flex items-center gap-1.5">
-            <Type className="h-3.5 w-3.5 text-muted-foreground" />
-            <span>Khmer Font Family</span>
-          </Label>
-          <Select
-            value={config.font_km || "default"}
-            onValueChange={(val) => onChange({ font_km: val === "default" ? null : val })}
-          >
-            <SelectTrigger className="h-9 text-xs">
-              <SelectValue placeholder="Default Khmer Font (Koulen / Moul)" />
-            </SelectTrigger>
-            <SelectContent className="max-h-60">
-              <SelectItem value="default">Default Khmer Font (Koulen / Moul)</SelectItem>
-              {HEADER_FONT_OPTIONS.filter((f) => f.category === "khmer").map((f) => (
-                <SelectItem key={f.value} value={f.value}>
-                  {f.label}
-                </SelectItem>
-              ))}
-              {BODY_FONT_OPTIONS.filter((f) => f.category === "khmer").map((f) => (
-                <SelectItem key={f.value} value={f.value}>
-                  {f.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* English Font Family */}
-        <div className="space-y-1.5">
-          <Label className="text-xs font-medium flex items-center gap-1.5">
-            <Type className="h-3.5 w-3.5 text-muted-foreground" />
-            <span>English Font Family</span>
-          </Label>
-          <Select
-            value={config.font_en || "default"}
-            onValueChange={(val) => onChange({ font_en: val === "default" ? null : val })}
-          >
-            <SelectTrigger className="h-9 text-xs">
-              <SelectValue placeholder="Default English Font (Cinzel / Sans)" />
-            </SelectTrigger>
-            <SelectContent className="max-h-60">
-              <SelectItem value="default">Default English Font (Cinzel / Sans)</SelectItem>
-              {HEADER_FONT_OPTIONS.filter((f) => f.category === "latin").map((f) => (
-                <SelectItem key={f.value} value={f.value}>
-                  {f.label}
-                </SelectItem>
-              ))}
-              {BODY_FONT_OPTIONS.filter((f) => f.category === "latin").map((f) => (
-                <SelectItem key={f.value} value={f.value}>
-                  {f.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* Color Picker */}
-        <div className="space-y-1.5">
-          <Label className="text-xs font-medium flex items-center gap-1.5">
-            <Palette className="h-3.5 w-3.5 text-muted-foreground" />
-            <span>Title &amp; Underline Colour</span>
-          </Label>
-          <div className="flex items-center gap-2">
-            <input
-              type="color"
-              value={config.color && /^#[0-9a-fA-F]{3,6}$/.test(config.color.replace("#", "")) ? config.color : defaultAccentColor || "#1a1a1a"}
-              onChange={(e) => onChange({ color: e.target.value })}
-              className="h-9 w-12 cursor-pointer rounded-md border border-input bg-background p-1"
-              aria-label="Pick cover title color"
-            />
-            <Input
-              value={config.color ?? ""}
-              onChange={(e) => onChange({ color: e.target.value || null })}
-              placeholder={defaultAccentColor || "#1a1a1a"}
-              className="font-mono text-sm"
-            />
-            {config.color && (
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="h-9 px-2 text-xs"
-                onClick={() => onChange({ color: null })}
+            <div className="p-5 rounded-md bg-[#fdf5dc] border border-[#d4af37]/30 text-center flex flex-col items-center justify-center min-h-[95px]">
+              <p
+                className={`transition-all ${resolvedKm.isBold ? "font-bold" : "font-normal"} ${
+                  resolvedKm.isItalic ? "italic" : ""
+                } ${resolvedKm.showUnderline ? "underline underline-offset-[6px] decoration-2" : ""} ${
+                  !resolvedKm.font ? "font-khmer-koulen" : ""
+                }`}
+                style={{
+                  color: resolvedKm.color,
+                  fontFamily: resolvedKm.font,
+                  textDecorationColor: resolvedKm.color,
+                  fontSize: resolvedKm.fontSize.fontSize,
+                  lineHeight: 1.4,
+                }}
               >
-                Reset
-              </Button>
-            )}
+                {resolvedKm.text}
+              </p>
+              <span className="text-[10px] text-muted-foreground/70 mt-2 font-mono">
+                Font: {config.font_km || "Default (Koulen)"} • Color: {resolvedKm.color} • Size: {config.font_size_km || "base"}
+              </span>
+            </div>
           </div>
-        </div>
 
-        {/* Font Size */}
-        <div className="space-y-1.5">
-          <Label className="text-xs font-medium">Font Size</Label>
-          <Select
-            value={config.font_size || "base"}
-            onValueChange={(val) => onChange({ font_size: val as CoverInvitationFontSize })}
-          >
-            <SelectTrigger className="h-9 text-xs">
-              <SelectValue placeholder="Standard / Medium (Default)" />
-            </SelectTrigger>
-            <SelectContent>
-              {FONT_SIZE_OPTIONS.map((opt) => (
-                <SelectItem key={opt.value} value={opt.value}>
-                  {opt.label} ({opt.enDesc})
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
+          {/* Khmer Controls */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Custom Khmer Text */}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium">Khmer Title Text</Label>
+              <Input
+                value={config.text_km ?? ""}
+                onChange={(e) => onChange({ text_km: e.target.value || null })}
+                placeholder="សូមគោរពអញ្ជើញ"
+                className="text-sm font-khmer-siemreap"
+              />
+              <p className="text-[11px] text-muted-foreground">Default: សូមគោរពអញ្ជើញ</p>
+            </div>
 
-      {/* Formatting Toggles: Bold, Italic, Underline */}
-      <div className="pt-2 border-t border-border/50 flex flex-wrap items-center gap-3">
-        <Label className="text-xs font-medium mr-1 text-muted-foreground">Style Formatting:</Label>
+            {/* Khmer Font Family */}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium flex items-center gap-1.5">
+                <Type className="h-3.5 w-3.5 text-muted-foreground" />
+                <span>Khmer Font Family</span>
+              </Label>
+              <Select
+                value={config.font_km || "default"}
+                onValueChange={(val) => onChange({ font_km: val === "default" ? null : val })}
+              >
+                <SelectTrigger className="h-9 text-xs">
+                  <SelectValue placeholder="Default Khmer Font (Koulen / Moul)" />
+                </SelectTrigger>
+                <SelectContent className="max-h-60">
+                  <SelectItem value="default">Default Khmer Font (Koulen / Moul)</SelectItem>
+                  {HEADER_FONT_OPTIONS.filter((f) => f.category === "khmer").map((f) => (
+                    <SelectItem key={f.value} value={f.value}>
+                      {f.label}
+                    </SelectItem>
+                  ))}
+                  {BODY_FONT_OPTIONS.filter((f) => f.category === "khmer").map((f) => (
+                    <SelectItem key={f.value} value={f.value}>
+                      {f.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-        {/* Bold Toggle */}
-        <Button
-          type="button"
-          size="sm"
-          variant={isBold ? "default" : "outline"}
-          className={`h-8 px-3 text-xs gap-1.5 ${isBold ? "bg-gold text-white hover:bg-gold/90" : ""}`}
-          onClick={() => onChange({ is_bold: isBold ? false : true })}
-        >
-          <Bold className="h-3.5 w-3.5" />
-          <span>Bold</span>
-        </Button>
+            {/* Khmer Color */}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium flex items-center gap-1.5">
+                <Palette className="h-3.5 w-3.5 text-muted-foreground" />
+                <span>Khmer Title &amp; Underline Colour</span>
+              </Label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="color"
+                  value={config.color_km && /^#[0-9a-fA-F]{3,6}$/.test(config.color_km.replace("#", "")) ? config.color_km : safeDefaultAccent}
+                  onChange={(e) => onChange({ color_km: e.target.value })}
+                  className="h-9 w-12 cursor-pointer rounded-md border border-input bg-background p-1"
+                  aria-label="Pick Khmer cover title color"
+                />
+                <Input
+                  value={config.color_km ?? ""}
+                  onChange={(e) => onChange({ color_km: e.target.value || null })}
+                  placeholder={safeDefaultAccent}
+                  className="font-mono text-sm"
+                />
+                {config.color_km && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-9 px-2 text-xs"
+                    onClick={() => onChange({ color_km: null })}
+                  >
+                    Reset
+                  </Button>
+                )}
+              </div>
+            </div>
 
-        {/* Italic Toggle */}
-        <Button
-          type="button"
-          size="sm"
-          variant={isItalic ? "default" : "outline"}
-          className={`h-8 px-3 text-xs gap-1.5 ${isItalic ? "bg-gold text-white hover:bg-gold/90" : ""}`}
-          onClick={() => onChange({ is_italic: !isItalic })}
-        >
-          <Italic className="h-3.5 w-3.5" />
-          <span>Italic</span>
-        </Button>
+            {/* Khmer Font Size */}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium">Khmer Font Size</Label>
+              <Select
+                value={config.font_size_km || "base"}
+                onValueChange={(val) => onChange({ font_size_km: val as CoverInvitationFontSize })}
+              >
+                <SelectTrigger className="h-9 text-xs">
+                  <SelectValue placeholder="Standard / Medium (Default)" />
+                </SelectTrigger>
+                <SelectContent>
+                  {FONT_SIZE_OPTIONS.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {opt.label} ({opt.kmDesc})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
 
-        {/* Underline Toggle */}
-        <Button
-          type="button"
-          size="sm"
-          variant={isUnderline ? "default" : "outline"}
-          className={`h-8 px-3 text-xs gap-1.5 ${isUnderline ? "bg-gold text-white hover:bg-gold/90" : ""}`}
-          onClick={() => onChange({ show_underline: !isUnderline })}
-        >
-          <UnderlineIcon className="h-3.5 w-3.5" />
-          <span>Underline</span>
-        </Button>
-      </div>
+          {/* Khmer Formatting Toggles */}
+          <div className="pt-2 border-t border-border/50 flex flex-wrap items-center gap-3">
+            <Label className="text-xs font-medium mr-1 text-muted-foreground">Khmer Style Formatting:</Label>
+
+            <Button
+              type="button"
+              size="sm"
+              variant={resolvedKm.isBold ? "default" : "outline"}
+              className={`h-8 px-3 text-xs gap-1.5 ${resolvedKm.isBold ? "bg-gold text-white hover:bg-gold/90" : ""}`}
+              onClick={() => onChange({ is_bold_km: !resolvedKm.isBold })}
+            >
+              <Bold className="h-3.5 w-3.5" />
+              <span>Bold</span>
+            </Button>
+
+            <Button
+              type="button"
+              size="sm"
+              variant={resolvedKm.isItalic ? "default" : "outline"}
+              className={`h-8 px-3 text-xs gap-1.5 ${resolvedKm.isItalic ? "bg-gold text-white hover:bg-gold/90" : ""}`}
+              onClick={() => onChange({ is_italic_km: !resolvedKm.isItalic })}
+            >
+              <Italic className="h-3.5 w-3.5" />
+              <span>Italic</span>
+            </Button>
+
+            <Button
+              type="button"
+              size="sm"
+              variant={resolvedKm.showUnderline ? "default" : "outline"}
+              className={`h-8 px-3 text-xs gap-1.5 ${resolvedKm.showUnderline ? "bg-gold text-white hover:bg-gold/90" : ""}`}
+              onClick={() => onChange({ show_underline_km: !resolvedKm.showUnderline })}
+            >
+              <UnderlineIcon className="h-3.5 w-3.5" />
+              <span>Underline</span>
+            </Button>
+          </div>
+        </TabsContent>
+
+        {/* 🇬🇧 ENGLISH TAB */}
+        <TabsContent value="en" className="space-y-4 pt-3">
+          {/* English Live Preview */}
+          <div className="rounded-lg p-3.5 bg-secondary/30 border border-border/50 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider flex items-center gap-1.5">
+                <Eye className="h-3.5 w-3.5 text-gold" />
+                <span>English Cover Title Live Preview</span>
+              </span>
+              {(config.text_en || config.color_en || config.font_en || (config.font_size_en && config.font_size_en !== "base") || config.is_bold_en !== null || config.is_italic_en !== null || config.show_underline_en === false) && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 px-2 text-[11px]"
+                  onClick={handleResetEn}
+                >
+                  <RotateCcw className="h-3 w-3 mr-1" />
+                  Reset English Style
+                </Button>
+              )}
+            </div>
+
+            <div className="p-5 rounded-md bg-[#fdf5dc] border border-[#d4af37]/30 text-center flex flex-col items-center justify-center min-h-[95px]">
+              <p
+                className={`transition-all ${resolvedEn.isBold ? "font-bold" : "font-normal"} ${
+                  resolvedEn.isItalic ? "italic" : ""
+                } ${resolvedEn.showUnderline ? "underline underline-offset-[6px] decoration-2" : ""} ${
+                  !resolvedEn.font ? "tracking-widest uppercase font-semibold" : ""
+                }`}
+                style={{
+                  color: resolvedEn.color,
+                  fontFamily: resolvedEn.font,
+                  textDecorationColor: resolvedEn.color,
+                  fontSize: resolvedEn.fontSize.fontSize,
+                  lineHeight: 1.4,
+                }}
+              >
+                {resolvedEn.text}
+              </p>
+              <span className="text-[10px] text-muted-foreground/70 mt-2 font-mono">
+                Font: {config.font_en || "Default (Cinzel/Sans)"} • Color: {resolvedEn.color} • Size: {config.font_size_en || "base"}
+              </span>
+            </div>
+          </div>
+
+          {/* English Controls */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Custom English Text */}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium">English Title Text</Label>
+              <Input
+                value={config.text_en ?? ""}
+                onChange={(e) => onChange({ text_en: e.target.value || null })}
+                placeholder="INVITATION"
+                className="text-sm uppercase tracking-wider"
+              />
+              <p className="text-[11px] text-muted-foreground">Default: INVITATION</p>
+            </div>
+
+            {/* English Font Family */}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium flex items-center gap-1.5">
+                <Type className="h-3.5 w-3.5 text-muted-foreground" />
+                <span>English Font Family</span>
+              </Label>
+              <Select
+                value={config.font_en || "default"}
+                onValueChange={(val) => onChange({ font_en: val === "default" ? null : val })}
+              >
+                <SelectTrigger className="h-9 text-xs">
+                  <SelectValue placeholder="Default English Font (Cinzel / Sans)" />
+                </SelectTrigger>
+                <SelectContent className="max-h-60">
+                  <SelectItem value="default">Default English Font (Cinzel / Sans)</SelectItem>
+                  {HEADER_FONT_OPTIONS.filter((f) => f.category === "latin").map((f) => (
+                    <SelectItem key={f.value} value={f.value}>
+                      {f.label}
+                    </SelectItem>
+                  ))}
+                  {BODY_FONT_OPTIONS.filter((f) => f.category === "latin").map((f) => (
+                    <SelectItem key={f.value} value={f.value}>
+                      {f.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* English Color */}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium flex items-center gap-1.5">
+                <Palette className="h-3.5 w-3.5 text-muted-foreground" />
+                <span>English Title &amp; Underline Colour</span>
+              </Label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="color"
+                  value={config.color_en && /^#[0-9a-fA-F]{3,6}$/.test(config.color_en.replace("#", "")) ? config.color_en : safeDefaultAccent}
+                  onChange={(e) => onChange({ color_en: e.target.value })}
+                  className="h-9 w-12 cursor-pointer rounded-md border border-input bg-background p-1"
+                  aria-label="Pick English cover title color"
+                />
+                <Input
+                  value={config.color_en ?? ""}
+                  onChange={(e) => onChange({ color_en: e.target.value || null })}
+                  placeholder={safeDefaultAccent}
+                  className="font-mono text-sm"
+                />
+                {config.color_en && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-9 px-2 text-xs"
+                    onClick={() => onChange({ color_en: null })}
+                  >
+                    Reset
+                  </Button>
+                )}
+              </div>
+            </div>
+
+            {/* English Font Size */}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium">English Font Size</Label>
+              <Select
+                value={config.font_size_en || "base"}
+                onValueChange={(val) => onChange({ font_size_en: val as CoverInvitationFontSize })}
+              >
+                <SelectTrigger className="h-9 text-xs">
+                  <SelectValue placeholder="Standard / Medium (Default)" />
+                </SelectTrigger>
+                <SelectContent>
+                  {FONT_SIZE_OPTIONS.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {opt.label} ({opt.enDesc})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* English Formatting Toggles */}
+          <div className="pt-2 border-t border-border/50 flex flex-wrap items-center gap-3">
+            <Label className="text-xs font-medium mr-1 text-muted-foreground">English Style Formatting:</Label>
+
+            <Button
+              type="button"
+              size="sm"
+              variant={resolvedEn.isBold ? "default" : "outline"}
+              className={`h-8 px-3 text-xs gap-1.5 ${resolvedEn.isBold ? "bg-gold text-white hover:bg-gold/90" : ""}`}
+              onClick={() => onChange({ is_bold_en: !resolvedEn.isBold })}
+            >
+              <Bold className="h-3.5 w-3.5" />
+              <span>Bold</span>
+            </Button>
+
+            <Button
+              type="button"
+              size="sm"
+              variant={resolvedEn.isItalic ? "default" : "outline"}
+              className={`h-8 px-3 text-xs gap-1.5 ${resolvedEn.isItalic ? "bg-gold text-white hover:bg-gold/90" : ""}`}
+              onClick={() => onChange({ is_italic_en: !resolvedEn.isItalic })}
+            >
+              <Italic className="h-3.5 w-3.5" />
+              <span>Italic</span>
+            </Button>
+
+            <Button
+              type="button"
+              size="sm"
+              variant={resolvedEn.showUnderline ? "default" : "outline"}
+              className={`h-8 px-3 text-xs gap-1.5 ${resolvedEn.showUnderline ? "bg-gold text-white hover:bg-gold/90" : ""}`}
+              onClick={() => onChange({ show_underline_en: !resolvedEn.showUnderline })}
+            >
+              <UnderlineIcon className="h-3.5 w-3.5" />
+              <span>Underline</span>
+            </Button>
+          </div>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

@@ -8,8 +8,7 @@ import {
 import { LanguageCode } from "@/lib/dualLanguage";
 import {
   CoverInvitationStyle,
-  getCoverInvitationFontSizeStyle,
-  resolveCoverInvitationFont,
+  getResolvedCoverTitleStyle,
 } from "@/lib/coverInvitationStyle";
 
 // Web Audio API organic sound synthesizer for zero-dependency unboxing audio cues
@@ -110,6 +109,7 @@ export default function Interactive3DEnvelope({
   const isEn = language === "en";
   const cfg = normalizeEnvelopeConfig(config);
   const theme = SILK_THEMES.find((t) => t.id === cfg.silk_theme) || SILK_THEMES[0];
+  const coverTitleStyle = getResolvedCoverTitleStyle(coverInvitationStyle, isEn, "rgba(253, 230, 138, 0.9)");
 
   // Unboxing ritual states:
   // "sealed" -> "breaking" (seal cracked, ribbon peeling) -> "opening_flap" -> "card_rising" -> "completed"
@@ -345,23 +345,21 @@ export default function Interactive3DEnvelope({
             >
               <span
                 className={`tracking-wider ${
-                  coverInvitationStyle?.show_underline ? "underline underline-offset-2" : ""
+                  coverTitleStyle.showUnderline ? "underline underline-offset-2" : ""
                 } ${
-                  coverInvitationStyle?.is_bold ? "font-bold" : (isEn ? "uppercase font-semibold" : "font-normal")
-                } ${coverInvitationStyle?.is_italic ? "italic" : ""} ${
-                  !resolveCoverInvitationFont(isEn ? coverInvitationStyle?.font_en : coverInvitationStyle?.font_km, isEn)
+                  coverTitleStyle.isBold ? "font-bold" : (isEn ? "uppercase font-semibold" : "font-normal")
+                } ${coverTitleStyle.isItalic ? "italic" : ""} ${
+                  !coverTitleStyle.font
                     ? (isEn ? "uppercase font-semibold" : "font-khmer-koulen")
                     : ""
                 }`}
                 style={{
-                  fontSize: getCoverInvitationFontSizeStyle(coverInvitationStyle?.font_size, isEn).fontSize || (isEn ? "10px" : "11px"),
-                  color: coverInvitationStyle?.color || "rgba(253, 230, 138, 0.9)",
-                  fontFamily: resolveCoverInvitationFont(isEn ? coverInvitationStyle?.font_en : coverInvitationStyle?.font_km, isEn),
+                  fontSize: coverTitleStyle.fontSize.fontSize || (isEn ? "10px" : "11px"),
+                  color: coverTitleStyle.color,
+                  fontFamily: coverTitleStyle.font,
                 }}
               >
-                {isEn
-                  ? (coverInvitationStyle?.text_en?.trim() || "INVITATION")
-                  : (coverInvitationStyle?.text_km?.trim() || "សូមគោរពអញ្ជើញ")}
+                {coverTitleStyle.text}
               </span>
               <span
                 className="text-sm sm:text-base font-bold text-amber-300 font-khmer-moul truncate max-w-full px-1"

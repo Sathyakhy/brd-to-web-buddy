@@ -3,8 +3,7 @@ import { Volume2, VolumeX, Play } from "lucide-react";
 import { computeMonogramFilter, MonogramShadowSettings, TextEffectConfig } from "@/lib/textEffects";
 import {
   CoverInvitationStyle,
-  getCoverInvitationFontSizeStyle,
-  resolveCoverInvitationFont,
+  getResolvedCoverTitleStyle,
 } from "@/lib/coverInvitationStyle";
 
 type Props = {
@@ -79,18 +78,8 @@ export default function SignaturePackageCover({
 }: Props) {
   const isEn = language === "en";
 
-  // Cover invitation title custom styling
-  const coverTitleText = isEn
-    ? (coverInvitationStyle?.text_en?.trim() || "INVITATION")
-    : (coverInvitationStyle?.text_km?.trim() || "សូមគោរពអញ្ជើញ");
-  const coverTitleColor = coverInvitationStyle?.color || "#fff8dc";
-  const coverTitleFont = isEn
-    ? resolveCoverInvitationFont(coverInvitationStyle?.font_en, true)
-    : resolveCoverInvitationFont(coverInvitationStyle?.font_km, false);
-  const coverTitleFontSize = getCoverInvitationFontSizeStyle(coverInvitationStyle?.font_size, isEn);
-  const coverTitleBold = coverInvitationStyle?.is_bold ?? (isEn ? true : false);
-  const coverTitleItalic = coverInvitationStyle?.is_italic ?? false;
-  const coverTitleUnderline = coverInvitationStyle?.show_underline ?? false;
+  // Cover invitation title custom styling (independent for Khmer & English)
+  const coverTitleStyle = getResolvedCoverTitleStyle(coverInvitationStyle, isEn, "#fff8dc");
 
   const resolvedMonogramFilter = monogramFilter !== undefined
     ? (monogramFilter || "none")
@@ -258,20 +247,20 @@ export default function SignaturePackageCover({
         {/* Bottom invite block */}
         <div className="w-full flex flex-col items-center gap-3 pointer-events-auto">
           <p
-            className={`text-center ${coverTitleUnderline ? "underline underline-offset-[6px] decoration-2" : ""} ${
-              coverTitleBold ? "font-bold" : (isEn ? "font-semibold" : "font-normal")
-            } ${coverTitleItalic ? "italic" : ""} ${
-              !coverTitleFont ? (isEn ? "tracking-widest uppercase text-sm sm:text-base" : "font-khmer-moul") : ""
+            className={`text-center ${coverTitleStyle.showUnderline ? "underline underline-offset-[6px] decoration-2" : ""} ${
+              coverTitleStyle.isBold ? "font-bold" : (isEn ? "font-semibold" : "font-normal")
+            } ${coverTitleStyle.isItalic ? "italic" : ""} ${
+              !coverTitleStyle.font ? (isEn ? "tracking-widest uppercase text-sm sm:text-base" : "font-khmer-moul") : ""
             }`}
             style={{
-              fontSize: coverTitleFontSize.fontSize || (isEn ? undefined : "clamp(1.1rem, 4vw, 1.5rem)"),
-              color: coverTitleColor,
-              fontFamily: coverTitleFont,
-              textDecorationColor: coverTitleColor,
+              fontSize: coverTitleStyle.fontSize.fontSize || (isEn ? undefined : "clamp(1.1rem, 4vw, 1.5rem)"),
+              color: coverTitleStyle.color,
+              fontFamily: coverTitleStyle.font,
+              textDecorationColor: coverTitleStyle.color,
               textShadow: "0 2px 6px rgba(0,0,0,0.6), 0 0 10px rgba(245,215,110,0.5)",
             }}
           >
-            {coverTitleText}
+            {coverTitleStyle.text}
           </p>
 
           {/* Gold name ribbon */}
