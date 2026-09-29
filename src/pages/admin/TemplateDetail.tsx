@@ -65,6 +65,8 @@ type TemplateConfig = {
   venue: string | null;
   reception_title?: string | null;
   details_message?: string | null;
+  rsvp_title?: string | null;
+  rsvp_title_en?: string | null;
   cover_image_url: string | null;
   cover_background_url: string | null;
   invite_background_url: string | null;
@@ -271,6 +273,8 @@ function normalizeConfig(raw: any): TemplateConfig {
     map_button_bg_opacity: typeof r.map_button_bg_opacity === "number" ? r.map_button_bg_opacity : (typeof r.section_visibility?.map_button_bg_opacity === "number" ? r.section_visibility?.map_button_bg_opacity : null),
     countdown_bg_color: r.countdown_bg_color ?? r.section_visibility?.countdown_bg_color ?? null,
     countdown_bg_opacity: typeof r.countdown_bg_opacity === "number" ? r.countdown_bg_opacity : (typeof r.section_visibility?.countdown_bg_opacity === "number" ? r.section_visibility?.countdown_bg_opacity : null),
+    rsvp_title: r.rsvp_title ?? r.section_visibility?.rsvp_title ?? r.section_visibility?.rsvp_style?.rsvp_title ?? null,
+    rsvp_title_en: r.rsvp_title_en ?? r.section_visibility?.rsvp_title_en ?? r.section_visibility?.rsvp_style?.rsvp_title_en ?? null,
     rsvp_bg_color: r.rsvp_bg_color ?? r.section_visibility?.rsvp_bg_color ?? r.section_visibility?.rsvp_style?.bg_color ?? null,
     rsvp_bg_opacity: typeof r.rsvp_bg_opacity === "number" ? r.rsvp_bg_opacity : (typeof r.section_visibility?.rsvp_bg_opacity === "number" ? r.section_visibility?.rsvp_bg_opacity : (typeof r.section_visibility?.rsvp_style?.bg_opacity === "number" ? r.section_visibility?.rsvp_style?.bg_opacity : null)),
     rsvp_header_font: r.rsvp_header_font ?? r.section_visibility?.rsvp_header_font ?? r.section_visibility?.rsvp_style?.header_font ?? null,
@@ -1723,6 +1727,8 @@ export default function TemplateDetail() {
               <div className="pt-2">
                 <RsvpCardStyleEditor
                   config={{
+                    rsvp_title: draftConfig.rsvp_title,
+                    rsvp_title_en: draftConfig.rsvp_title_en,
                     bg_color: draftConfig.rsvp_bg_color,
                     bg_opacity: draftConfig.rsvp_bg_opacity,
                     header_font: draftConfig.rsvp_header_font,
@@ -1749,6 +1755,8 @@ export default function TemplateDetail() {
                   globalBodyFont={draftConfig.body_font}
                   onChange={(patch) => {
                     const p: Partial<TemplateConfig> = {};
+                    if (patch.rsvp_title !== undefined) p.rsvp_title = patch.rsvp_title;
+                    if (patch.rsvp_title_en !== undefined) p.rsvp_title_en = patch.rsvp_title_en;
                     if (patch.bg_color !== undefined) p.rsvp_bg_color = patch.bg_color;
                     if (patch.bg_opacity !== undefined) p.rsvp_bg_opacity = patch.bg_opacity;
                     if (patch.header_font !== undefined) p.rsvp_header_font = patch.header_font;

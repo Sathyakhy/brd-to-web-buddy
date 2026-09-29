@@ -19,6 +19,7 @@ export type LanguageContent = {
   reception_time?: string | null;
   reception_title?: string | null;
   details_message?: string | null;
+  rsvp_title?: string | null;
   qr_code_message?: string | null;
   qr_account_name?: string | null;
   apologies_message?: string | null;
@@ -192,6 +193,7 @@ export function getDualLanguageConfig(raw: unknown, baseEvent?: any): DualLangua
     reception_time: (baseEvent?.reception_time || obj.km_content?.reception_time || dualObj.km?.reception_time || obj.km?.reception_time) ?? null,
     reception_title: (baseEvent?.reception_title || obj.km_content?.reception_title || dualObj.km?.reception_title || obj.km?.reception_title) ?? null,
     details_message: (baseEvent?.details_message || obj.km_content?.details_message || dualObj.km?.details_message || obj.km?.details_message) ?? null,
+    rsvp_title: (baseEvent?.rsvp_title || obj.km_content?.rsvp_title || dualObj.km?.rsvp_title || obj.km?.rsvp_title) ?? null,
     qr_code_message: (baseEvent?.qr_code_message || obj.km_content?.qr_code_message || dualObj.km?.qr_code_message || obj.km?.qr_code_message) ?? null,
     qr_account_name: (baseEvent?.qr_account_name || obj.km_content?.qr_account_name || dualObj.km?.qr_account_name || obj.km?.qr_account_name) ?? null,
     apologies_message: (baseEvent?.apologies_message || obj.km_content?.apologies_message || dualObj.km?.apologies_message || obj.km?.apologies_message) ?? null,
@@ -210,6 +212,7 @@ export function getDualLanguageConfig(raw: unknown, baseEvent?: any): DualLangua
     reception_time: (obj.en_content?.reception_time || dualObj.en?.reception_time || obj.en?.reception_time) ?? null,
     reception_title: (obj.en_content?.reception_title || dualObj.en?.reception_title || obj.en?.reception_title) ?? null,
     details_message: (obj.en_content?.details_message || dualObj.en?.details_message || obj.en?.details_message) ?? null,
+    rsvp_title: (obj.en_content?.rsvp_title || dualObj.en?.rsvp_title || obj.en?.rsvp_title) ?? null,
     qr_code_message: (obj.en_content?.qr_code_message || dualObj.en?.qr_code_message || obj.en?.qr_code_message) ?? null,
     qr_account_name: (obj.en_content?.qr_account_name || dualObj.en?.qr_account_name || obj.en?.qr_account_name) ?? null,
     apologies_message: (obj.en_content?.apologies_message || dualObj.en?.apologies_message || obj.en?.apologies_message) ?? null,
@@ -242,6 +245,7 @@ export function buildEnglishPresets(base: Partial<TemplateData>): LanguageConten
     reception_time: base.reception_time ? "6:00 PM - Wedding Reception" : null,
     reception_title: "Banquet & Reception",
     details_message: null,
+    rsvp_title: "Will you be attending our wedding celebration?",
     qr_code_message: "Wedding Gift Transfer",
     qr_account_name: base.qr_account_name || null,
     apologies_message: "We sincerely apologize for any shortcomings or if we were unable to extend our invitation in person. Your blessings and well wishes mean the world to us.",
@@ -278,6 +282,7 @@ export function resolveEventContent(
       reception_time: event.reception_time ?? km?.reception_time?.trim() ?? null,
       reception_title: event.reception_title ?? km?.reception_title?.trim() ?? null,
       details_message: event.details_message ?? km?.details_message?.trim() ?? null,
+      rsvp_title: event.rsvp_title ?? km?.rsvp_title?.trim() ?? null,
       qr_code_message: event.qr_code_message ?? km?.qr_code_message?.trim() ?? null,
       qr_account_name: event.qr_account_name ?? km?.qr_account_name?.trim() ?? null,
       apologies_message: event.apologies_message ?? km?.apologies_message?.trim() ?? null,
@@ -335,6 +340,7 @@ export function resolveEventContent(
     reception_time: en.reception_time?.trim() || event.reception_time,
     reception_title: en.reception_title?.trim() || event.reception_title,
     details_message: en.details_message?.trim() || event.details_message,
+    rsvp_title: en.rsvp_title?.trim() || (event as any).rsvp_title_en?.trim() || event.rsvp_title,
     qr_code_message: en.qr_code_message?.trim() || presets.qr_code_message || event.qr_code_message,
     qr_account_name: en.qr_account_name?.trim() || event.qr_account_name,
     apologies_message: en.apologies_message?.trim() || event.apologies_message,

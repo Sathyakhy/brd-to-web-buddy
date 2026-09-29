@@ -52,6 +52,10 @@ type Props = {
   cardShadow?: string | null;
   /** Pre-computed custom header text-shadow string override */
   headerTextShadow?: string | null;
+  /** Custom RSVP card title / question */
+  rsvpTitle?: string | null;
+  /** English RSVP card title / question */
+  rsvpTitleEn?: string | null;
   /** Language version: "km" (Khmer, default) or "en" (English) */
   language?: "km" | "en";
 };
@@ -91,6 +95,8 @@ export default function RsvpCard({
   cardShadowOpacity,
   cardShadow,
   headerTextShadow,
+  rsvpTitle,
+  rsvpTitleEn,
   language = "km",
 }: Props) {
   const [partySize, setPartySize] = useState(initialPartySize);
@@ -215,7 +221,9 @@ export default function RsvpCard({
             textShadow: resolvedHeaderShadow,
           }}
         >
-          {isEn ? "Will you be attending our wedding celebration?" : "តើលោកអ្នកនឹងអញ្ជើញមកចូលរួមដែរឬទេ?"}
+          {isEn
+            ? (rsvpTitleEn?.trim() || rsvpTitle?.trim() || "Will you be attending our wedding celebration?")
+            : (rsvpTitle?.trim() || "តើលោកអ្នកនឹងអញ្ជើញមកចូលរួមដែរឬទេ?")}
         </h3>
         <p
           className={`${resolvedBodyFont ? "" : (isEn ? "font-sans" : "font-khmer-siemreap")} text-sm sm:text-base max-w-md mx-auto leading-relaxed`}

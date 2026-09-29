@@ -50,6 +50,8 @@ export type TemplateData = {
   reception_time: string | null;
   reception_title?: string | null;
   details_message?: string | null;
+  rsvp_title?: string | null;
+  rsvp_title_en?: string | null;
   contact_phone: string | null;
   bride_name: string | null;
   groom_name: string | null;
@@ -607,20 +609,20 @@ export function KhmerTraditionalTemplate({ event, guestName, children, hideBackg
             return (
               <div
                 key={key}
-                className={`min-w-0 flex items-baseline ${side === "right" ? "justify-end text-right" : "justify-start text-left"} ${isEn ? "text-sm sm:text-base font-semibold" : "font-khmer-koulen"}`}
+                className={`min-w-0 flex items-baseline ${side === "right" ? "justify-end text-right" : "justify-start text-left"} ${isEn ? "font-serif text-sm sm:text-base font-semibold" : "font-khmer-koulen"}`}
                 style={{
                   color: colorPrimary,
-                  fontFamily: bodyFont,
+                  fontFamily: isEn ? undefined : bodyFont,
                   textShadow: bodyShadow,
                   fontSize: isEn ? "0.95rem" : "1.05rem",
                   lineHeight: 1.7,
                   paddingTop: "0.25em",
                 }}
               >
-                <span className="opacity-95 mr-1.5 shrink-0" style={{ fontFamily: bodyFont }}>{cell.prefix}</span>
+                <span className="opacity-95 mr-1.5 shrink-0">{cell.prefix}</span>
                 <span
-                  className={isEn ? "font-bold tracking-wide" : "font-khmer-moul"}
-                  style={{ color: colorPrimary, fontFamily: bodyFont, letterSpacing: isEn ? "0.02em" : "0.04em" }}
+                  className={isEn ? "font-serif font-bold tracking-wide" : "font-khmer-moul"}
+                  style={{ color: colorPrimary, letterSpacing: isEn ? "0.02em" : "0.04em" }}
                 >
                   {fullName}
                 </span>
@@ -803,7 +805,7 @@ export function KhmerTraditionalTemplate({ event, guestName, children, hideBackg
           >
             {isEn ? (
               <>
-                <p className="italic font-semibold text-lg" style={{ color: colorAccent, fontFamily: headerFont }}>
+                <p className="italic font-semibold text-lg" style={{ color: colorAccent, fontFamily: bodyFont }}>
                   {(event.reception_title?.trim()) || "Banquet & Reception"}
                 </p>
                 {event.details_message?.trim() ? (
@@ -839,7 +841,7 @@ export function KhmerTraditionalTemplate({ event, guestName, children, hideBackg
               </>
             ) : (
               <>
-                <p>{(event.reception_title?.trim()) || "និងពិសារភោជនាអាហារ"}</p>
+                <p className="font-semibold text-lg" style={{ color: colorAccent, fontFamily: bodyFont }}>{(event.reception_title?.trim()) || "និងពិសារភោជនាអាហារ"}</p>
                 {event.details_message?.trim() ? (
                   <p className="whitespace-pre-line leading-[1.8]">
                     {event.details_message.trim()}
@@ -1579,6 +1581,8 @@ export function KhmerTraditionalTemplate({ event, guestName, children, hideBackg
               cardShadowX: (children.props as any).cardShadowX ?? rsvpCardShadowX,
               cardShadowY: (children.props as any).cardShadowY ?? rsvpCardShadowY,
               cardShadowOpacity: (children.props as any).cardShadowOpacity ?? rsvpCardShadowOpacity,
+              rsvpTitle: (children.props as any).rsvpTitle ?? rawEv.rsvp_title ?? rawVis.rsvp_title ?? rsvpStyle.rsvp_title ?? rawTplVis.rsvp_title ?? rawTplDef.rsvp_title ?? null,
+              rsvpTitleEn: (children.props as any).rsvpTitleEn ?? rawEv.rsvp_title_en ?? rawVis.rsvp_title_en ?? rsvpStyle.rsvp_title_en ?? rawTplVis.rsvp_title_en ?? rawTplDef.rsvp_title_en ?? null,
             });
           }
           return children;
@@ -2158,7 +2162,8 @@ export function InvitationTemplate({
     "header_font" | "header_font_km" | "header_font_en" |
     "body_font" | "body_font_km" | "body_font_en" |
     "cover_music_url" |
-    "reception_title" | "details_message"
+    "reception_title" | "details_message" |
+    "rsvp_title" | "rsvp_title_en"
   >>;
 }) {
   const visibility = mergeVisibility(templateVisibility, eventVisibility);
@@ -2220,6 +2225,8 @@ export function InvitationTemplate({
         cover_music_url: fallback("cover_music_url") as any,
         reception_title: fallback("reception_title") as any,
         details_message: fallback("details_message") as any,
+        rsvp_title: fallback("rsvp_title") as any,
+        rsvp_title_en: fallback("rsvp_title_en") as any,
       }
     : ev;
 

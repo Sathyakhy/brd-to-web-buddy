@@ -27,6 +27,8 @@ export type RsvpHeaderEffectType =
   | "custom";
 
 export type RsvpStyleConfig = {
+  rsvp_title?: string | null;
+  rsvp_title_en?: string | null;
   bg_color?: string | null;
   bg_opacity?: number | null;
   header_font?: string | null;

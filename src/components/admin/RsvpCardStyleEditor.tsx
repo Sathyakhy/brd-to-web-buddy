@@ -202,7 +202,7 @@ export default function RsvpCardStyleEditor({
               textShadow: previewHeaderShadow,
             }}
           >
-            តើលោកអ្នកនឹងអញ្ជើញមកចូលរួមដែរឬទេ?
+            {config.rsvp_title?.trim() || "តើលោកអ្នកនឹងអញ្ជើញមកចូលរួមដែរឬទេ?"}
           </h5>
 
           <p
@@ -267,8 +267,40 @@ export default function RsvpCardStyleEditor({
           </TabsTrigger>
         </TabsList>
 
-        {/* 1. Background Tab */}
+        {/* 1. Background & Title Tab */}
         <TabsContent value="appearance" className="space-y-4 pt-3">
+          {/* Card Title / Question */}
+          <div className="rounded-lg border border-border p-3.5 space-y-3 bg-secondary/10">
+            <div>
+              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                RSVP Question / Title
+              </Label>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Customize the main question or header displayed on the RSVP card. Leave blank for default.
+              </p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium">Khmer title / question</Label>
+                <Input
+                  value={config.rsvp_title ?? ""}
+                  onChange={(e) => onChange({ rsvp_title: e.target.value || null })}
+                  placeholder="តើលោកអ្នកនឹងអញ្ជើញមកចូលរួមដែរឬទេ?"
+                  className="text-sm"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium">English title / question</Label>
+                <Input
+                  value={config.rsvp_title_en ?? ""}
+                  onChange={(e) => onChange({ rsvp_title_en: e.target.value || null })}
+                  placeholder="Will you be attending our wedding celebration?"
+                  className="text-sm"
+                />
+              </div>
+            </div>
+          </div>
+
           <div className="rounded-lg border border-border p-3.5 space-y-3 bg-secondary/10">
             <div className="flex items-center justify-between">
               <div>

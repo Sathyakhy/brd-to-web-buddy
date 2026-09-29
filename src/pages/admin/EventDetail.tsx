@@ -124,6 +124,8 @@ type Event = {
   map_button_bg_opacity?: number | null;
   countdown_bg_color?: string | null;
   countdown_bg_opacity?: number | null;
+  rsvp_title?: string | null;
+  rsvp_title_en?: string | null;
   rsvp_bg_color?: string | null;
   rsvp_bg_opacity?: number | null;
   rsvp_header_font?: string | null;
@@ -247,6 +249,8 @@ export default function EventDetail() {
       const map_button_bg_opacity = typeof (raw as any).map_button_bg_opacity === "number" ? (raw as any).map_button_bg_opacity : (typeof rawVis.map_button_bg_opacity === "number" ? rawVis.map_button_bg_opacity : null);
       const countdown_bg_color = (raw as any).countdown_bg_color ?? rawVis.countdown_bg_color ?? null;
       const countdown_bg_opacity = typeof (raw as any).countdown_bg_opacity === "number" ? (raw as any).countdown_bg_opacity : (typeof rawVis.countdown_bg_opacity === "number" ? rawVis.countdown_bg_opacity : null);
+      const rsvp_title = (raw as any).rsvp_title ?? rawVis.rsvp_title ?? rawVis.rsvp_style?.rsvp_title ?? null;
+      const rsvp_title_en = (raw as any).rsvp_title_en ?? rawVis.rsvp_title_en ?? rawVis.rsvp_style?.rsvp_title_en ?? null;
       const rsvp_bg_color = (raw as any).rsvp_bg_color ?? rawVis.rsvp_bg_color ?? rawVis.rsvp_style?.bg_color ?? null;
       const rsvp_bg_opacity = typeof (raw as any).rsvp_bg_opacity === "number" ? (raw as any).rsvp_bg_opacity : (typeof rawVis.rsvp_bg_opacity === "number" ? rawVis.rsvp_bg_opacity : (typeof rawVis.rsvp_style?.bg_opacity === "number" ? rawVis.rsvp_style?.bg_opacity : null));
       const rsvp_header_font = (raw as any).rsvp_header_font ?? rawVis.rsvp_header_font ?? rawVis.rsvp_style?.header_font ?? null;
@@ -294,6 +298,8 @@ export default function EventDetail() {
         map_button_bg_opacity,
         countdown_bg_color,
         countdown_bg_opacity,
+        rsvp_title,
+        rsvp_title_en,
         rsvp_bg_color,
         rsvp_bg_opacity,
         rsvp_header_font,
@@ -397,6 +403,8 @@ export default function EventDetail() {
       countdown_bg_color: event.countdown_bg_color ?? null,
       countdown_bg_opacity: event.countdown_bg_opacity ?? null,
       rsvp_style: {
+        rsvp_title: event.rsvp_title ?? null,
+        rsvp_title_en: event.rsvp_title_en ?? null,
         bg_color: event.rsvp_bg_color ?? null,
         bg_opacity: event.rsvp_bg_opacity ?? null,
         header_font: event.rsvp_header_font ?? null,
@@ -419,6 +427,8 @@ export default function EventDetail() {
       },
       rsvp_bg_color: event.rsvp_bg_color ?? null,
       rsvp_bg_opacity: event.rsvp_bg_opacity ?? null,
+      rsvp_title: event.rsvp_title ?? null,
+      rsvp_title_en: event.rsvp_title_en ?? null,
       rsvp_header_font: event.rsvp_header_font ?? null,
       rsvp_header_font_en: event.rsvp_header_font_en ?? null,
       rsvp_body_font: event.rsvp_body_font ?? null,
@@ -2182,6 +2192,8 @@ export default function EventDetail() {
           <div className="pt-2">
             <RsvpCardStyleEditor
               config={{
+                rsvp_title: event.rsvp_title,
+                rsvp_title_en: event.rsvp_title_en,
                 bg_color: event.rsvp_bg_color,
                 bg_opacity: event.rsvp_bg_opacity,
                 header_font: event.rsvp_header_font,
@@ -2212,6 +2224,8 @@ export default function EventDetail() {
                   ...event,
                   ...(patch.bg_color !== undefined ? { rsvp_bg_color: patch.bg_color } : {}),
                   ...(patch.bg_opacity !== undefined ? { rsvp_bg_opacity: patch.bg_opacity } : {}),
+                  ...(patch.rsvp_title !== undefined ? { rsvp_title: patch.rsvp_title } : {}),
+                  ...(patch.rsvp_title_en !== undefined ? { rsvp_title_en: patch.rsvp_title_en } : {}),
                   ...(patch.header_font !== undefined ? { rsvp_header_font: patch.header_font } : {}),
                   ...(patch.header_font_en !== undefined ? { rsvp_header_font_en: patch.header_font_en } : {}),
                   ...(patch.body_font !== undefined ? { rsvp_body_font: patch.body_font } : {}),
