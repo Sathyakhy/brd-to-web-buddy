@@ -66,6 +66,7 @@ import FontSelector from "@/components/admin/FontSelector";
 import SideFrameEditor from "@/components/admin/SideFrameEditor";
 import CoverInvitationStyleEditor from "@/components/admin/CoverInvitationStyleEditor";
 import TitleAndCoupleSizeEditor from "@/components/admin/TitleAndCoupleSizeEditor";
+import SocialShareMetadataEditor from "@/components/admin/SocialShareMetadataEditor";
 import {
   CoverInvitationStyle,
   normalizeCoverInvitationStyle,
@@ -159,6 +160,9 @@ type Event = {
   page_title_font_size_en?: string | null;
   couple_font_size_km?: string | null;
   couple_font_size_en?: string | null;
+  og_image_url?: string | null;
+  og_title?: string | null;
+  og_description?: string | null;
   share_preview_index: number | null;
   header_font?: string | null;
   header_font_km?: string | null;
@@ -291,6 +295,9 @@ export default function EventDetail() {
       const page_title_font_size_en = (raw as any).page_title_font_size_en ?? rawVis.page_title_font_size_en ?? null;
       const couple_font_size_km = (raw as any).couple_font_size_km ?? rawVis.couple_font_size_km ?? null;
       const couple_font_size_en = (raw as any).couple_font_size_en ?? rawVis.couple_font_size_en ?? null;
+      const og_image_url = (raw as any).og_image_url ?? rawVis.og_image_url ?? rawVis.share_image_url ?? null;
+      const og_title = (raw as any).og_title ?? rawVis.og_title ?? rawVis.share_title ?? null;
+      const og_description = (raw as any).og_description ?? rawVis.og_description ?? rawVis.share_description ?? null;
       const envelope_unboxing = normalizeEnvelopeConfig(
         (raw as any).envelope_unboxing ?? rawVis.envelope_unboxing
       );
@@ -343,6 +350,9 @@ export default function EventDetail() {
         page_title_font_size_en,
         couple_font_size_km,
         couple_font_size_en,
+        og_image_url,
+        og_title,
+        og_description,
         envelope_unboxing,
         gallery_layout: galleryLayout,
         contacts,
@@ -474,6 +484,9 @@ export default function EventDetail() {
       page_title_font_size_en: (event as any).page_title_font_size_en ?? null,
       couple_font_size_km: (event as any).couple_font_size_km ?? null,
       couple_font_size_en: (event as any).couple_font_size_en ?? null,
+      og_image_url: (event as any).og_image_url ?? null,
+      og_title: (event as any).og_title ?? null,
+      og_description: (event as any).og_description ?? null,
     };
     const { error } = await supabase.from("events").update({
       title: event.title,
@@ -2487,6 +2500,42 @@ export default function EventDetail() {
                 onChange={(e) => { const f = e.target.files; if (f && f.length) handleUploadGallery(f); e.currentTarget.value = ""; }}
               />
             </Label>
+          </div>
+        </CollapsibleSection>
+
+        {/* Social share & link preview (Telegram / Messenger / Metadata) */}
+        <CollapsibleSection
+          title="Social share & link preview (Telegram / Messenger / Facebook metadata)"
+          description="Upload custom banner thumbnail and customize preview title/description when sharing this invitation link in chats."
+          defaultOpen={Boolean((event as any).og_image_url || (event as any).og_title || (event as any).og_description)}
+          rightSlot={sectionSave}
+        >
+          <div className="pt-2">
+            <SocialShareMetadataEditor
+              eventId={event.id}
+              config={{
+                og_image_url: (event as any).og_image_url ?? (event as any).section_visibility?.og_image_url ?? null,
+                og_title: (event as any).og_title ?? (event as any).section_visibility?.og_title ?? null,
+                og_description: (event as any).og_description ?? (event as any).section_visibility?.og_description ?? null,
+                share_preview_index: event.share_preview_index,
+              }}
+              onChange={(patch) => {
+                setEvent({
+                  ...event,
+                  ...patch,
+                  section_visibility: {
+                    ...(event.section_visibility as any),
+                    ...patch,
+                  },
+                } as any);
+              }}
+              defaultTitle={event.title || "Wedding Celebration"}
+              defaultDescription={event.description || undefined}
+              galleryUrls={event.gallery_urls || []}
+              coverImageUrl={event.cover_image_url}
+              coverBackgroundUrl={event.cover_background_url}
+              slug={event.slug}
+            />
           </div>
         </CollapsibleSection>
 

@@ -130,9 +130,12 @@ Deno.serve(async (req) => {
     if (isOgImage) {
       const { data: ev } = await supabase
         .from("events")
-        .select("gallery_urls, cover_image_url, cover_background_url, share_preview_index")
+        .select("gallery_urls, cover_image_url, cover_background_url, share_preview_index, section_visibility")
         .eq("slug", slug)
         .maybeSingle();
+
+      const secVis = (ev?.section_visibility as Record<string, any>) || {};
+      const customOgImage = (secVis.og_image_url as string | null) || (secVis.share_image_url as string | null) || "";
 
       const gallery = (ev?.gallery_urls as string[] | null) ?? [];
       const pickIdx =
@@ -142,6 +145,7 @@ Deno.serve(async (req) => {
           ? ev.share_preview_index
           : 0;
       const rawImage =
+        customOgImage ||
         gallery[pickIdx] ??
         gallery[0] ??
         (ev?.cover_image_url as string | null) ??
@@ -231,21 +235,27 @@ Deno.serve(async (req) => {
 
     const { data: ev } = await supabase
       .from("events")
-      .select("id, title, internal_title")
+      .select("id, title, internal_title, section_visibility")
       .eq("slug", slug)
       .maybeSingle();
 
+    const secVis = (ev?.section_visibility as Record<string, any>) || {};
     const internalTitle =
       (ev?.internal_title as string | null) ?? (ev?.title as string | null) ?? "";
 
-    const title = internalTitle
+    const customTitle = (secVis.og_title as string | null)?.trim();
+    const title = customTitle
+      ? customTitle
+      : internalTitle
       ? `21Invite.Online — ${internalTitle}`
       : "21Invite.Online";
 
-    const greet = "សូមគោរពអញ្ជើញ";
-    const body =
+    const customDesc = (secVis.og_description as string | null)?.trim();
+    const defaultGreet = "សូមគោរពអញ្ជើញ";
+    const defaultBody =
       "ចូលរួម ជាអធិបតី និងជាភ្ញៀវកិត្តិយស ដើម្បីប្រសិទ្ធពរជ័យសិរិសួស្តីជ័យមង្គល ក្នុងពិធីរៀបអាពាហ៍ពិពាហ៍ កូនប្រុស កូនស្រី របស់យើងខ្ញុំ";
-    const description = `${greet} ${body}`;
+    const defaultDescription = `${defaultGreet} ${defaultBody}`;
+    const description = customDesc || defaultDescription;
 
     // Stable same-origin `.jpg` OG image URL. Facebook is more reliable when
     // the preview image is served from the same host as the shared page.

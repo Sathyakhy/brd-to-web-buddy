@@ -17,6 +17,7 @@ import LetterCardStyleEditor from "@/components/admin/LetterCardStyleEditor";
 import ElementStyleEditor from "@/components/admin/ElementStyleEditor";
 import CoverInvitationStyleEditor from "@/components/admin/CoverInvitationStyleEditor";
 import TitleAndCoupleSizeEditor from "@/components/admin/TitleAndCoupleSizeEditor";
+import SocialShareMetadataEditor from "@/components/admin/SocialShareMetadataEditor";
 import {
   CoverInvitationStyle,
   normalizeCoverInvitationStyle,
@@ -77,6 +78,10 @@ type TemplateConfig = {
   page_title_font_size_en?: string | null;
   couple_font_size_km?: string | null;
   couple_font_size_en?: string | null;
+  og_image_url?: string | null;
+  og_title?: string | null;
+  og_description?: string | null;
+  share_preview_index?: number | null;
   cover_image_url: string | null;
   cover_background_url: string | null;
   invite_background_url: string | null;
@@ -290,6 +295,10 @@ function normalizeConfig(raw: any): TemplateConfig {
     page_title_font_size_en: r.page_title_font_size_en ?? r.section_visibility?.page_title_font_size_en ?? null,
     couple_font_size_km: r.couple_font_size_km ?? r.section_visibility?.couple_font_size_km ?? null,
     couple_font_size_en: r.couple_font_size_en ?? r.section_visibility?.couple_font_size_en ?? null,
+    og_image_url: r.og_image_url ?? r.section_visibility?.og_image_url ?? r.section_visibility?.share_image_url ?? null,
+    og_title: r.og_title ?? r.section_visibility?.og_title ?? r.section_visibility?.share_title ?? null,
+    og_description: r.og_description ?? r.section_visibility?.og_description ?? r.section_visibility?.share_description ?? null,
+    share_preview_index: typeof r.share_preview_index === "number" ? r.share_preview_index : (typeof r.section_visibility?.share_preview_index === "number" ? r.section_visibility?.share_preview_index : null),
     rsvp_bg_color: r.rsvp_bg_color ?? r.section_visibility?.rsvp_bg_color ?? r.section_visibility?.rsvp_style?.bg_color ?? null,
     rsvp_bg_opacity: typeof r.rsvp_bg_opacity === "number" ? r.rsvp_bg_opacity : (typeof r.section_visibility?.rsvp_bg_opacity === "number" ? r.section_visibility?.rsvp_bg_opacity : (typeof r.section_visibility?.rsvp_style?.bg_opacity === "number" ? r.section_visibility?.rsvp_style?.bg_opacity : null)),
     rsvp_header_font: r.rsvp_header_font ?? r.section_visibility?.rsvp_header_font ?? r.section_visibility?.rsvp_style?.header_font ?? null,
@@ -579,6 +588,10 @@ export default function TemplateDetail() {
       page_title_font_size_en: draftConfig.page_title_font_size_en ?? null,
       couple_font_size_km: draftConfig.couple_font_size_km ?? null,
       couple_font_size_en: draftConfig.couple_font_size_en ?? null,
+      og_image_url: draftConfig.og_image_url ?? null,
+      og_title: draftConfig.og_title ?? null,
+      og_description: draftConfig.og_description ?? null,
+      share_preview_index: draftConfig.share_preview_index ?? null,
     };
     const payload = {
       label: draft.label.trim() || "Untitled template",
@@ -1682,7 +1695,32 @@ export default function TemplateDetail() {
               </div>
             </CollapsibleSection>
 
-            {/* QR code (gift transfer) — uploaded image + editable message + account name. */}
+            {/* Social share & link preview (Telegram / Messenger / Facebook metadata) */}
+            <CollapsibleSection
+              title="Social share & link preview (Telegram / Messenger / Facebook metadata)"
+              description="Default social link thumbnail image and preview title/description for this template."
+              defaultOpen={Boolean(draftConfig.og_image_url || draftConfig.og_title || draftConfig.og_description)}
+              rightSlot={sectionSave}
+            >
+              <div className="pt-2">
+                <SocialShareMetadataEditor
+                  eventId={`template-${draft.id}`}
+                  config={{
+                    og_image_url: draftConfig.og_image_url,
+                    og_title: draftConfig.og_title,
+                    og_description: draftConfig.og_description,
+                    share_preview_index: draftConfig.share_preview_index,
+                  }}
+                  onChange={(patch) => patchConfig(patch)}
+                  defaultTitle={draftConfig.title || "Wedding Celebration"}
+                  defaultDescription={draftConfig.description || undefined}
+                  galleryUrls={draftConfig.gallery_urls || []}
+                  coverImageUrl={draftConfig.cover_image_url}
+                  coverBackgroundUrl={draftConfig.cover_background_url}
+                  slug={draft.slug}
+                />
+              </div>
+            </CollapsibleSection>
             <CollapsibleSection title="QR code for gift transfer" defaultOpen={false} rightSlot={sectionSave}>
               <div className="grid md:grid-cols-2 gap-4 pt-2">
                 <div className="space-y-2">
