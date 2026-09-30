@@ -132,9 +132,18 @@ export default function RsvpCard({
   rsvpTitleEn,
   language = "km",
 }: Props) {
-  const [customName, setCustomName] = useState(guestName || "");
-  const [partySize, setPartySize] = useState(initialPartySize);
-  const [message, setMessage] = useState(initialMessage);
+  const isGenericOpenGuest =
+    isOpenInvite ||
+    !guestName ||
+    guestName === "Honored Guest" ||
+    guestName === "ភ្ញៀវកិត្តិយស" ||
+    guestName === "open" ||
+    guestName === "preview";
+
+  // For open broadcast links, never auto-populate any placeholder/guest name or message into input fields
+  const [customName, setCustomName] = useState(isGenericOpenGuest ? "" : (guestName || ""));
+  const [partySize, setPartySize] = useState(isGenericOpenGuest ? 1 : (initialPartySize || 1));
+  const [message, setMessage] = useState(isGenericOpenGuest ? "" : (initialMessage || ""));
 
   const accent = accentColor || "#db9b0f";
   const primary = primaryColor || "#3a2a00";
