@@ -89,8 +89,18 @@ export function FitText({
     let sub: ((s: number) => void) | null = null;
     if (groupId) {
       const g = getGroup(groupId);
-      sub = (s: number) => setSize(current => current === s ? current : s);
+      sub = (s: number) => {
+        if (innerRef.current) {
+          innerRef.current.style.fontSize = `${s}px`;
+        }
+        setSize((current) => (current === s ? current : s));
+      };
       g.subscribers.add(sub);
+      if (g.members.size > 0) {
+        const currentMin = Math.min(...g.members.values());
+        inner.style.fontSize = `${currentMin}px`;
+        setSize(currentMin);
+      }
     }
 
     const fit = () => {
@@ -116,18 +126,16 @@ export function FitText({
         // Report this member's required size and let the group decide the
         // shared minimum (which will flow back via the subscriber above).
         const g = getGroup(groupId);
-        g.members.set(idRef.current, nextSize);
+        g.members.set(memberId, nextSize);
         broadcast(groupId);
-        // Always honour the current group min locally (covers the case
-        // where siblings already broadcast a smaller value before we
-        // mounted — those broadcasts are gone, but their values are
-        // still in the registry).
         if (g.members.size > 0) {
           const min = Math.min(...g.members.values());
-          setSize(current => current === min ? current : min);
+          inner.style.fontSize = `${min}px`;
+          setSize((current) => (current === min ? current : min));
         }
       } else {
-        setSize(current => current === nextSize ? current : nextSize);
+        inner.style.fontSize = `${nextSize}px`;
+        setSize((current) => (current === nextSize ? current : nextSize));
       }
     };
 
