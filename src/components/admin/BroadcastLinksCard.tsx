@@ -30,8 +30,8 @@ export default function BroadcastLinksCard({
   const khmerShareUrl = `https://share.21invite.online/${encodeURIComponent(slug)}/invite?lang=km`;
   const englishShareUrl = `https://share.21invite.online/${encodeURIComponent(slug)}/invite?lang=en`;
 
-  const khmerDirectUrl = `https://21invite.online/${slug}/invite?lang=km`;
-  const englishDirectUrl = `https://21invite.online/${slug}/invite?lang=en`;
+  const khmerDirectUrl = `/${slug}/invite?lang=km`;
+  const englishDirectUrl = `/${slug}/invite?lang=en`;
 
   const cleanName = (raw?: string | null) => {
     if (!raw) return "";

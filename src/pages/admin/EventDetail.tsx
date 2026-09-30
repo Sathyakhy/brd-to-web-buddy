@@ -1261,7 +1261,7 @@ export default function EventDetail() {
               <p className="text-sm text-muted-foreground mt-1">/<span className="text-gold">{event.slug}</span></p>
             </div>
             <a
-              href={`https://21invite.online/${event.slug}/invite?token=preview`}
+              href={`/${event.slug}/invite?token=preview`}
               target="_blank"
               rel="noreferrer"
               className="shrink-0"
@@ -1324,7 +1324,7 @@ export default function EventDetail() {
                   </Button>
                 )}
                 <a
-                  href={`https://21invite.online/${event.slug}/invite?token=preview`}
+                  href={`/${event.slug}/invite?token=preview`}
                   target="_blank"
                   rel="noreferrer"
                   title="View public page"
