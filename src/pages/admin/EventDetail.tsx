@@ -68,6 +68,7 @@ import CoverInvitationStyleEditor from "@/components/admin/CoverInvitationStyleE
 import GuestNameStyleEditor from "@/components/admin/GuestNameStyleEditor";
 import TitleAndCoupleSizeEditor from "@/components/admin/TitleAndCoupleSizeEditor";
 import SocialShareMetadataEditor from "@/components/admin/SocialShareMetadataEditor";
+import BroadcastLinksCard from "@/components/admin/BroadcastLinksCard";
 import {
   CoverInvitationStyle,
   normalizeCoverInvitationStyle,
@@ -2836,7 +2837,15 @@ export default function EventDetail() {
         </CollapsibleSection>
           </TabsContent>
 
-          <TabsContent value="guests" className="mt-6 space-y-8">
+          <TabsContent value="guests" className="mt-6 space-y-6">
+            <BroadcastLinksCard
+              slug={event.slug}
+              groomName={event.groom_name}
+              brideName={event.bride_name}
+              eventDate={event.event_date}
+              venue={event.venue}
+              title={event.title}
+            />
 
         {/* RSVP stats — 4 columns on mobile (compact) so the entire snapshot
             is visible above the fold; expands at sm: with larger numbers. */}

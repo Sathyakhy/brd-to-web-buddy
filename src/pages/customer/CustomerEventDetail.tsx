@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { generateToken, formatDateTime } from "@/lib/invitation";
 import { RsvpBadge } from "@/components/admin/RsvpBadge";
 import PreviewPanel from "@/components/admin/PreviewPanel";
+import BroadcastLinksCard from "@/components/admin/BroadcastLinksCard";
 import type { TemplateData } from "@/components/templates/InvitationTemplate";
 
 type Event = TemplateData & {
@@ -209,8 +210,17 @@ export default function CustomerEventDetail() {
             <PreviewPanel event={event as any} publicHref={`/${event.slug}`} bare />
           </TabsContent>
 
-          <TabsContent value="manage" className="mt-6 space-y-8">
-        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+          <TabsContent value="manage" className="mt-6 space-y-6">
+            <BroadcastLinksCard
+              slug={event.slug}
+              groomName={event.groom_name}
+              brideName={event.bride_name}
+              eventDate={event.event_date}
+              venue={event.venue}
+              title={event.title}
+            />
+
+            <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
           {[
             { label: "Invited", value: stats.total },
             { label: "Attending", value: stats.yes },

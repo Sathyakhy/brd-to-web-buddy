@@ -79,151 +79,257 @@ export default function InvitePage() {
     }
   }, [isCoverActive]);
 
+  const rawToken = token?.trim() || "";
+  const isOpenInvite = isPreview
+    ? false
+    : (!rawToken || ["open", "public", "broadcast", "general", "km", "en", "kh"].includes(rawToken.toLowerCase()));
+
   useEffect(() => {
-    if (!slug || !token) { setLoading(false); return; }
+    if (!slug) { setLoading(false); return; }
     (async () => {
-      const [evResponse, guestResponse] = await Promise.all([
-        supabase.rpc("get_event_public_by_slug", { _slug: slug }),
-        isPreview
-          ? Promise.resolve({ data: null, error: null })
-          : supabase.rpc("get_guest_by_token", { _event_slug: slug, _token: token }),
-      ]);
+      try {
+        const rawTok = token?.trim() || "";
+        const isOpen = isPreview
+          ? false
+          : (!rawTok || ["open", "public", "broadcast", "general", "km", "en", "kh"].includes(rawTok.toLowerCase()));
 
-      const evRows = evResponse.data;
-      const ev = Array.isArray(evRows) ? evRows[0] : evRows;
-      if (!ev) { setLoading(false); return; }
+        const [evResponse, guestResponse] = await Promise.all([
+          supabase.rpc("get_event_public_by_slug", { _slug: slug }),
+          (isPreview || isOpen)
+            ? Promise.resolve({ data: null, error: null })
+            : supabase.rpc("get_guest_by_token", { _event_slug: slug, _token: rawTok }),
+        ]);
 
-      const agenda_bg_color = (ev as any).agenda_bg_color ?? (ev as any).section_visibility?.agenda_style?.bg_color ?? (ev as any).section_visibility?.agenda_bg_color ?? null;
-      const agenda_bg_opacity = (ev as any).agenda_bg_opacity ?? (ev as any).section_visibility?.agenda_style?.bg_opacity ?? (ev as any).section_visibility?.agenda_bg_opacity ?? null;
-      const agenda_asset_color = (ev as any).agenda_asset_color ?? (ev as any).section_visibility?.agenda_style?.asset_color ?? (ev as any).section_visibility?.agenda_asset_color ?? null;
-      const side_frame_config = (ev as any).side_frame_config ?? (ev as any).section_visibility?.side_frame_config ?? null;
-      setEvent({
-        ...ev,
-        agenda_bg_color,
-        agenda_bg_opacity,
-        agenda_asset_color,
-        side_frame_config,
-      } as Event);
+        const evRows = evResponse.data;
+        const ev = Array.isArray(evRows) ? evRows[0] : evRows;
+        if (!ev) { setLoading(false); return; }
 
-      const dualCfg = getDualLanguageConfig(
-        (ev as any).dual_language_config ??
-        (ev as any).section_visibility?.dual_language ??
-        (ev as any).section_visibility,
-        ev
-      );
+        const agenda_bg_color = (ev as any).agenda_bg_color ?? (ev as any).section_visibility?.agenda_style?.bg_color ?? (ev as any).section_visibility?.agenda_bg_color ?? null;
+        const agenda_bg_opacity = (ev as any).agenda_bg_opacity ?? (ev as any).section_visibility?.agenda_style?.bg_opacity ?? (ev as any).section_visibility?.agenda_bg_opacity ?? null;
+        const agenda_asset_color = (ev as any).agenda_asset_color ?? (ev as any).section_visibility?.agenda_style?.asset_color ?? (ev as any).section_visibility?.agenda_asset_color ?? null;
+        const side_frame_config = (ev as any).side_frame_config ?? (ev as any).section_visibility?.side_frame_config ?? null;
+        setEvent({
+          ...ev,
+          agenda_bg_color,
+          agenda_bg_opacity,
+          agenda_asset_color,
+          side_frame_config,
+        } as Event);
 
-      const urlLang = params.get("lang") || params.get("language");
-      const normalizedUrlLang = (urlLang === "en" || urlLang === "km" || urlLang === "kh")
-        ? (urlLang === "kh" ? "km" : (urlLang as LanguageCode))
-        : null;
+        const dualCfg = getDualLanguageConfig(
+          (ev as any).dual_language_config ??
+          (ev as any).section_visibility?.dual_language ??
+          (ev as any).section_visibility,
+          ev
+        );
 
-      const tokenLang = token?.endsWith("-en") ? "en" : (token?.endsWith("-km") || token?.endsWith("-kh")) ? "km" : null;
+        const urlLang = params.get("lang") || params.get("language");
+        const normalizedUrlLang = (urlLang === "en" || urlLang === "km" || urlLang === "kh")
+          ? (urlLang === "kh" ? "km" : (urlLang as LanguageCode))
+          : null;
 
-      const initialLang = normalizedUrlLang || tokenLang || dualCfg.default_language || "km";
-      setLanguage(initialLang);
+        const tokenLang = rawTok.toLowerCase().endsWith("-en") || rawTok.toLowerCase() === "en"
+          ? "en"
+          : (rawTok.toLowerCase().endsWith("-km") || rawTok.toLowerCase().endsWith("-kh") || rawTok.toLowerCase() === "km" || rawTok.toLowerCase() === "kh")
+          ? "km"
+          : null;
 
-      if (isPreview) {
-        // Synthetic guest used purely for the public preview — no name,
-        // neutral RSVP defaults, never persisted.
-        setGuest({
-          id: "preview",
-          name: "",
-          rsvp_status: "pending",
-          party_size: 1,
-          message: null,
-        });
-      } else if (guestResponse.data) {
-        const gRows = guestResponse.data;
-        const g = Array.isArray(gRows) ? gRows[0] : gRows;
-        if (g) {
-          setGuest(g as Guest);
-          setPartySize(g.party_size);
-          setMessage(g.message ?? "");
+        const initialLang = normalizedUrlLang || tokenLang || dualCfg.default_language || "km";
+        setLanguage(initialLang);
+
+        if (isPreview) {
+          // Synthetic guest used purely for the public preview — no name,
+          // neutral RSVP defaults, never persisted.
+          setGuest({
+            id: "preview",
+            name: "",
+            rsvp_status: "pending",
+            party_size: 1,
+            message: null,
+          });
+        } else if (isOpen) {
+          const defaultOpenGreeting = initialLang === "en"
+            ? ((ev as any).open_guest_greeting_en || (ev as any).section_visibility?.open_guest_greeting_en || "Honored Guest")
+            : ((ev as any).open_guest_greeting_km || (ev as any).section_visibility?.open_guest_greeting_km || "ភ្ញៀវកិត្តិយស");
+          setGuest({
+            id: "open",
+            name: defaultOpenGreeting,
+            rsvp_status: "pending",
+            party_size: 1,
+            message: null,
+          });
+        } else if (guestResponse.data) {
+          const gRows = guestResponse.data;
+          const g = Array.isArray(gRows) ? gRows[0] : gRows;
+          if (g) {
+            setGuest(g as Guest);
+            setPartySize(g.party_size);
+            setMessage(g.message ?? "");
+          } else {
+            // Token was provided but not found, fallback to open guest
+            const defaultOpenGreeting = initialLang === "en"
+              ? ((ev as any).open_guest_greeting_en || (ev as any).section_visibility?.open_guest_greeting_en || "Honored Guest")
+              : ((ev as any).open_guest_greeting_km || (ev as any).section_visibility?.open_guest_greeting_km || "ភ្ញៀវកិត្តិយស");
+            setGuest({
+              id: "open",
+              name: defaultOpenGreeting,
+              rsvp_status: "pending",
+              party_size: 1,
+              message: null,
+            });
+          }
         }
-      }
 
-      // Pull the template's default section visibility so the merge in
-      // <InvitationTemplate> can fall through to it when the event hasn't
-      // overridden a given key.
-      const { data: tpl } = await supabase
-        .from("templates")
-        .select("config, base_renderer")
-        .eq("slug", (ev as any).template)
-        .maybeSingle();
-      if (tpl?.base_renderer) {
-        setBaseRenderer(tpl.base_renderer);
+        // Pull the template's default section visibility so the merge in
+        // <InvitationTemplate> can fall through to it when the event hasn't
+        // overridden a given key.
+        const { data: tpl } = await supabase
+          .from("templates")
+          .select("config, base_renderer")
+          .eq("slug", (ev as any).template)
+          .maybeSingle();
+        if (tpl?.base_renderer) {
+          setBaseRenderer(tpl.base_renderer);
+        }
+        const cfg = (tpl?.config as any) ?? {};
+        setTemplateVisibility(cfg.section_visibility ?? {});
+        setTemplateDefaults({
+          qr_code_url: cfg.qr_code_url ?? null,
+          qr_code_message: cfg.qr_code_message ?? null,
+          qr_account_name: cfg.qr_account_name ?? null,
+          apologies_message: cfg.apologies_message ?? null,
+          thank_you_message: cfg.thank_you_message ?? null,
+          letter_bg_color: cfg.letter_bg_color ?? null,
+          letter_bg_opacity: cfg.letter_bg_opacity ?? null,
+          agenda_bg_color: cfg.agenda_bg_color ?? cfg.section_visibility?.agenda_style?.bg_color ?? null,
+          agenda_bg_opacity: cfg.agenda_bg_opacity ?? cfg.section_visibility?.agenda_style?.bg_opacity ?? null,
+          agenda_asset_color: cfg.agenda_asset_color ?? cfg.section_visibility?.agenda_style?.asset_color ?? null,
+          map_button_bg_color: cfg.map_button_bg_color ?? cfg.section_visibility?.map_button_bg_color ?? null,
+          map_button_bg_opacity: typeof cfg.map_button_bg_opacity === "number" ? cfg.map_button_bg_opacity : (typeof cfg.section_visibility?.map_button_bg_opacity === "number" ? cfg.section_visibility?.map_button_bg_opacity : null),
+          countdown_bg_color: cfg.countdown_bg_color ?? cfg.section_visibility?.countdown_bg_color ?? null,
+          countdown_bg_opacity: typeof cfg.countdown_bg_opacity === "number" ? cfg.countdown_bg_opacity : (typeof cfg.section_visibility?.countdown_bg_opacity === "number" ? cfg.section_visibility?.countdown_bg_opacity : null),
+          rsvp_bg_color: cfg.rsvp_bg_color ?? cfg.section_visibility?.rsvp_bg_color ?? null,
+          rsvp_bg_opacity: typeof cfg.rsvp_bg_opacity === "number" ? cfg.rsvp_bg_opacity : (typeof cfg.section_visibility?.rsvp_bg_opacity === "number" ? cfg.section_visibility?.rsvp_bg_opacity : null),
+          rsvp_header_font: cfg.rsvp_header_font ?? cfg.section_visibility?.rsvp_header_font ?? cfg.section_visibility?.rsvp_style?.header_font ?? null,
+          rsvp_header_font_en: cfg.rsvp_header_font_en ?? cfg.section_visibility?.rsvp_header_font_en ?? cfg.section_visibility?.rsvp_style?.header_font_en ?? null,
+          rsvp_body_font: cfg.rsvp_body_font ?? cfg.section_visibility?.rsvp_body_font ?? cfg.section_visibility?.rsvp_style?.body_font ?? null,
+          rsvp_body_font_en: cfg.rsvp_body_font_en ?? cfg.section_visibility?.rsvp_body_font_en ?? cfg.section_visibility?.rsvp_style?.body_font_en ?? null,
+          rsvp_header_effect: cfg.rsvp_header_effect ?? cfg.section_visibility?.rsvp_header_effect ?? cfg.section_visibility?.rsvp_style?.header_effect ?? null,
+          rsvp_header_effect_color: cfg.rsvp_header_effect_color ?? cfg.section_visibility?.rsvp_header_effect_color ?? cfg.section_visibility?.rsvp_style?.header_effect_color ?? null,
+          rsvp_header_effect_blur: typeof cfg.rsvp_header_effect_blur === "number" ? cfg.rsvp_header_effect_blur : (typeof cfg.section_visibility?.rsvp_header_effect_blur === "number" ? cfg.section_visibility?.rsvp_header_effect_blur : cfg.section_visibility?.rsvp_style?.header_effect_blur ?? null),
+          rsvp_header_effect_x: typeof cfg.rsvp_header_effect_x === "number" ? cfg.rsvp_header_effect_x : (typeof cfg.section_visibility?.rsvp_header_effect_x === "number" ? cfg.section_visibility?.rsvp_header_effect_x : cfg.section_visibility?.rsvp_style?.header_effect_x ?? null),
+          rsvp_header_effect_y: typeof cfg.rsvp_header_effect_y === "number" ? cfg.rsvp_header_effect_y : (typeof cfg.section_visibility?.rsvp_header_effect_y === "number" ? cfg.section_visibility?.rsvp_header_effect_y : cfg.section_visibility?.rsvp_style?.header_effect_y ?? null),
+          rsvp_header_effect_opacity: typeof cfg.rsvp_header_effect_opacity === "number" ? cfg.rsvp_header_effect_opacity : (typeof cfg.section_visibility?.rsvp_header_effect_opacity === "number" ? cfg.section_visibility?.rsvp_header_effect_opacity : cfg.section_visibility?.rsvp_style?.header_effect_opacity ?? null),
+          rsvp_card_shadow_type: cfg.rsvp_card_shadow_type ?? cfg.section_visibility?.rsvp_card_shadow_type ?? cfg.section_visibility?.rsvp_style?.card_shadow_type ?? null,
+          rsvp_card_shadow_color: cfg.rsvp_card_shadow_color ?? cfg.section_visibility?.rsvp_card_shadow_color ?? cfg.section_visibility?.rsvp_style?.card_shadow_color ?? null,
+          rsvp_card_shadow_blur: typeof cfg.rsvp_card_shadow_blur === "number" ? cfg.rsvp_card_shadow_blur : (typeof cfg.section_visibility?.rsvp_card_shadow_blur === "number" ? cfg.section_visibility?.rsvp_card_shadow_blur : cfg.section_visibility?.rsvp_style?.card_shadow_blur ?? null),
+          rsvp_card_shadow_spread: typeof cfg.rsvp_card_shadow_spread === "number" ? cfg.rsvp_card_shadow_spread : (typeof cfg.section_visibility?.rsvp_card_shadow_spread === "number" ? cfg.section_visibility?.rsvp_card_shadow_spread : cfg.section_visibility?.rsvp_style?.card_shadow_spread ?? null),
+          rsvp_card_shadow_x: typeof cfg.rsvp_card_shadow_x === "number" ? cfg.rsvp_card_shadow_x : (typeof cfg.section_visibility?.rsvp_card_shadow_x === "number" ? cfg.section_visibility?.rsvp_card_shadow_x : cfg.section_visibility?.rsvp_style?.card_shadow_x ?? null),
+          rsvp_card_shadow_y: typeof cfg.rsvp_card_shadow_y === "number" ? cfg.rsvp_card_shadow_y : (typeof cfg.section_visibility?.rsvp_card_shadow_y === "number" ? cfg.section_visibility?.rsvp_card_shadow_y : cfg.section_visibility?.rsvp_style?.card_shadow_y ?? null),
+          rsvp_card_shadow_opacity: typeof cfg.rsvp_card_shadow_opacity === "number" ? cfg.rsvp_card_shadow_opacity : (typeof cfg.section_visibility?.rsvp_card_shadow_opacity === "number" ? cfg.section_visibility?.rsvp_card_shadow_opacity : cfg.section_visibility?.rsvp_style?.card_shadow_opacity ?? null),
+          side_frame_config: cfg.side_frame_config ?? cfg.section_visibility?.side_frame_config ?? null,
+          frame_url: cfg.frame_url ?? null,
+          frame_type: (cfg.frame_type as "image" | "video") ?? "image",
+          cover_music_url: cfg.cover_music_url ?? null,
+          text_effect_config: cfg.text_effect_config ?? null,
+          header_font: cfg.header_font ?? null,
+          header_font_km: cfg.header_font_km ?? cfg.header_font ?? null,
+          header_font_en: cfg.header_font_en ?? null,
+          body_font: cfg.body_font ?? null,
+          body_font_km: cfg.body_font_km ?? cfg.body_font ?? null,
+          body_font_en: cfg.body_font_en ?? null,
+          envelope_unboxing: cfg.envelope_unboxing ?? cfg.section_visibility?.envelope_unboxing ?? null,
+          music_autoplay_cover: cfg.music_autoplay_cover ?? cfg.section_visibility?.music_autoplay_cover ?? true,
+          music_autoplay_invitation: cfg.music_autoplay_invitation ?? cfg.section_visibility?.music_autoplay_invitation ?? true,
+          music_autoplay_mode: cfg.music_autoplay_mode ?? cfg.section_visibility?.music_autoplay_mode ?? null,
+        });
+      } catch (err: any) {
+        console.error("Failed to load invite:", err);
+      } finally {
+        setLoading(false);
       }
-      const cfg = (tpl?.config as any) ?? {};
-      setTemplateVisibility(cfg.section_visibility ?? {});
-      setTemplateDefaults({
-        qr_code_url: cfg.qr_code_url ?? null,
-        qr_code_message: cfg.qr_code_message ?? null,
-        qr_account_name: cfg.qr_account_name ?? null,
-        apologies_message: cfg.apologies_message ?? null,
-        thank_you_message: cfg.thank_you_message ?? null,
-        letter_bg_color: cfg.letter_bg_color ?? null,
-        letter_bg_opacity: cfg.letter_bg_opacity ?? null,
-        agenda_bg_color: cfg.agenda_bg_color ?? cfg.section_visibility?.agenda_style?.bg_color ?? null,
-        agenda_bg_opacity: cfg.agenda_bg_opacity ?? cfg.section_visibility?.agenda_style?.bg_opacity ?? null,
-        agenda_asset_color: cfg.agenda_asset_color ?? cfg.section_visibility?.agenda_style?.asset_color ?? null,
-        map_button_bg_color: cfg.map_button_bg_color ?? cfg.section_visibility?.map_button_bg_color ?? null,
-        map_button_bg_opacity: typeof cfg.map_button_bg_opacity === "number" ? cfg.map_button_bg_opacity : (typeof cfg.section_visibility?.map_button_bg_opacity === "number" ? cfg.section_visibility?.map_button_bg_opacity : null),
-        countdown_bg_color: cfg.countdown_bg_color ?? cfg.section_visibility?.countdown_bg_color ?? null,
-        countdown_bg_opacity: typeof cfg.countdown_bg_opacity === "number" ? cfg.countdown_bg_opacity : (typeof cfg.section_visibility?.countdown_bg_opacity === "number" ? cfg.section_visibility?.countdown_bg_opacity : null),
-        rsvp_bg_color: cfg.rsvp_bg_color ?? cfg.section_visibility?.rsvp_bg_color ?? null,
-        rsvp_bg_opacity: typeof cfg.rsvp_bg_opacity === "number" ? cfg.rsvp_bg_opacity : (typeof cfg.section_visibility?.rsvp_bg_opacity === "number" ? cfg.section_visibility?.rsvp_bg_opacity : null),
-        rsvp_header_font: cfg.rsvp_header_font ?? cfg.section_visibility?.rsvp_header_font ?? cfg.section_visibility?.rsvp_style?.header_font ?? null,
-        rsvp_header_font_en: cfg.rsvp_header_font_en ?? cfg.section_visibility?.rsvp_header_font_en ?? cfg.section_visibility?.rsvp_style?.header_font_en ?? null,
-        rsvp_body_font: cfg.rsvp_body_font ?? cfg.section_visibility?.rsvp_body_font ?? cfg.section_visibility?.rsvp_style?.body_font ?? null,
-        rsvp_body_font_en: cfg.rsvp_body_font_en ?? cfg.section_visibility?.rsvp_body_font_en ?? cfg.section_visibility?.rsvp_style?.body_font_en ?? null,
-        rsvp_header_effect: cfg.rsvp_header_effect ?? cfg.section_visibility?.rsvp_header_effect ?? cfg.section_visibility?.rsvp_style?.header_effect ?? null,
-        rsvp_header_effect_color: cfg.rsvp_header_effect_color ?? cfg.section_visibility?.rsvp_header_effect_color ?? cfg.section_visibility?.rsvp_style?.header_effect_color ?? null,
-        rsvp_header_effect_blur: typeof cfg.rsvp_header_effect_blur === "number" ? cfg.rsvp_header_effect_blur : (typeof cfg.section_visibility?.rsvp_header_effect_blur === "number" ? cfg.section_visibility?.rsvp_header_effect_blur : cfg.section_visibility?.rsvp_style?.header_effect_blur ?? null),
-        rsvp_header_effect_x: typeof cfg.rsvp_header_effect_x === "number" ? cfg.rsvp_header_effect_x : (typeof cfg.section_visibility?.rsvp_header_effect_x === "number" ? cfg.section_visibility?.rsvp_header_effect_x : cfg.section_visibility?.rsvp_style?.header_effect_x ?? null),
-        rsvp_header_effect_y: typeof cfg.rsvp_header_effect_y === "number" ? cfg.rsvp_header_effect_y : (typeof cfg.section_visibility?.rsvp_header_effect_y === "number" ? cfg.section_visibility?.rsvp_header_effect_y : cfg.section_visibility?.rsvp_style?.header_effect_y ?? null),
-        rsvp_header_effect_opacity: typeof cfg.rsvp_header_effect_opacity === "number" ? cfg.rsvp_header_effect_opacity : (typeof cfg.section_visibility?.rsvp_header_effect_opacity === "number" ? cfg.section_visibility?.rsvp_header_effect_opacity : cfg.section_visibility?.rsvp_style?.header_effect_opacity ?? null),
-        rsvp_card_shadow_type: cfg.rsvp_card_shadow_type ?? cfg.section_visibility?.rsvp_card_shadow_type ?? cfg.section_visibility?.rsvp_style?.card_shadow_type ?? null,
-        rsvp_card_shadow_color: cfg.rsvp_card_shadow_color ?? cfg.section_visibility?.rsvp_card_shadow_color ?? cfg.section_visibility?.rsvp_style?.card_shadow_color ?? null,
-        rsvp_card_shadow_blur: typeof cfg.rsvp_card_shadow_blur === "number" ? cfg.rsvp_card_shadow_blur : (typeof cfg.section_visibility?.rsvp_card_shadow_blur === "number" ? cfg.section_visibility?.rsvp_card_shadow_blur : cfg.section_visibility?.rsvp_style?.card_shadow_blur ?? null),
-        rsvp_card_shadow_spread: typeof cfg.rsvp_card_shadow_spread === "number" ? cfg.rsvp_card_shadow_spread : (typeof cfg.section_visibility?.rsvp_card_shadow_spread === "number" ? cfg.section_visibility?.rsvp_card_shadow_spread : cfg.section_visibility?.rsvp_style?.card_shadow_spread ?? null),
-        rsvp_card_shadow_x: typeof cfg.rsvp_card_shadow_x === "number" ? cfg.rsvp_card_shadow_x : (typeof cfg.section_visibility?.rsvp_card_shadow_x === "number" ? cfg.section_visibility?.rsvp_card_shadow_x : cfg.section_visibility?.rsvp_style?.card_shadow_x ?? null),
-        rsvp_card_shadow_y: typeof cfg.rsvp_card_shadow_y === "number" ? cfg.rsvp_card_shadow_y : (typeof cfg.section_visibility?.rsvp_card_shadow_y === "number" ? cfg.section_visibility?.rsvp_card_shadow_y : cfg.section_visibility?.rsvp_style?.card_shadow_y ?? null),
-        rsvp_card_shadow_opacity: typeof cfg.rsvp_card_shadow_opacity === "number" ? cfg.rsvp_card_shadow_opacity : (typeof cfg.section_visibility?.rsvp_card_shadow_opacity === "number" ? cfg.section_visibility?.rsvp_card_shadow_opacity : cfg.section_visibility?.rsvp_style?.card_shadow_opacity ?? null),
-        side_frame_config: cfg.side_frame_config ?? cfg.section_visibility?.side_frame_config ?? null,
-        frame_url: cfg.frame_url ?? null,
-        frame_type: (cfg.frame_type as "image" | "video") ?? "image",
-        cover_music_url: cfg.cover_music_url ?? null,
-        text_effect_config: cfg.text_effect_config ?? null,
-        header_font: cfg.header_font ?? null,
-        header_font_km: cfg.header_font_km ?? cfg.header_font ?? null,
-        header_font_en: cfg.header_font_en ?? null,
-        body_font: cfg.body_font ?? null,
-        body_font_km: cfg.body_font_km ?? cfg.body_font ?? null,
-        body_font_en: cfg.body_font_en ?? null,
-        envelope_unboxing: cfg.envelope_unboxing ?? cfg.section_visibility?.envelope_unboxing ?? null,
-        music_autoplay_cover: cfg.music_autoplay_cover ?? cfg.section_visibility?.music_autoplay_cover ?? true,
-        music_autoplay_invitation: cfg.music_autoplay_invitation ?? cfg.section_visibility?.music_autoplay_invitation ?? true,
-        music_autoplay_mode: cfg.music_autoplay_mode ?? cfg.section_visibility?.music_autoplay_mode ?? null,
-      });
-      setLoading(false);
     })();
   }, [slug, token, isPreview]);
 
-  const submit = async (status: "yes" | "no") => {
-    if (!slug || !token) return;
+  const submit = async (status: "yes" | "no", chosenPartySize?: number, chosenMessage?: string, submittedName?: string) => {
+    if (!slug) return;
     setSubmitting(true);
-    const { data, error } = await supabase.rpc("submit_rsvp", {
-      _event_slug: slug,
-      _token: token,
-      _status: status,
-      _party_size: partySize,
-      _message: message || null,
-    });
-    setSubmitting(false);
-    if (error) { toast.error(error.message); return; }
-    if (data) {
-      setGuest(data as Guest);
-      toast.success(status === "yes" ? "Thank you for accepting 💛" : "Your response has been recorded");
+    const size = typeof chosenPartySize === "number" ? chosenPartySize : partySize;
+    const msg = typeof chosenMessage === "string" ? chosenMessage : message;
+    const rawTok = token?.trim() || "";
+    const isOpen = isPreview
+      ? false
+      : (!rawTok || ["open", "public", "broadcast", "general", "km", "en", "kh"].includes(rawTok.toLowerCase()));
+    const gName = (submittedName || guest?.name || "").trim();
+
+    try {
+      if (isOpen) {
+        const { data, error } = await supabase.rpc("submit_open_rsvp" as any, {
+          _event_slug: slug,
+          _name: gName || (language === "en" ? "Honored Guest" : "ភ្ញៀវកិត្តិយស"),
+          _status: status,
+          _party_size: size,
+          _message: msg || null,
+          _language: language,
+        });
+
+        if (error) {
+          console.warn("submit_open_rsvp RPC error, attempting direct insert fallback:", error);
+          if (event?.id) {
+            const fallbackToken = `${generateToken(12)}-${language}`;
+            const { data: inserted, error: insertErr } = await supabase
+              .from("guests")
+              .insert({
+                event_id: event.id,
+                name: gName || (language === "en" ? "Honored Guest" : "ភ្ញៀវកិត្តិយស"),
+                token: fallbackToken,
+                rsvp_status: status,
+                party_size: size,
+                message: msg || null,
+              })
+              .select()
+              .single();
+
+            if (insertErr) throw new Error(error.message || insertErr.message);
+            if (inserted) {
+              setGuest(inserted as Guest);
+            }
+          } else {
+            throw error;
+          }
+        } else if (data) {
+          setGuest(data as Guest);
+        }
+
+        toast.success(
+          language === "en"
+            ? (status === "yes" ? "Thank you for accepting 💛" : "Your response has been recorded")
+            : (status === "yes" ? "សូមអរគុណសម្រាប់ការឆ្លើយតបចូលរួម 💛" : "សូមអរគុណ ការឆ្លើយតបរបស់អ្នកត្រូវបានកត់ត្រា")
+        );
+      } else {
+        const { data, error } = await supabase.rpc("submit_rsvp", {
+          _event_slug: slug,
+          _token: rawTok,
+          _status: status,
+          _party_size: size,
+          _message: msg || null,
+        });
+
+        if (error) throw error;
+        if (data) {
+          setGuest(data as Guest);
+          toast.success(
+            language === "en"
+              ? (status === "yes" ? "Thank you for accepting 💛" : "Your response has been recorded")
+              : (status === "yes" ? "សូមអរគុណសម្រាប់ការឆ្លើយតបចូលរួម 💛" : "សូមអរគុណ ការឆ្លើយតបរបស់អ្នកត្រូវបានកត់ត្រា")
+          );
+        }
+      }
+    } catch (err: any) {
+      console.error("RSVP submission error:", err);
+      toast.error(err?.message || "Failed to record RSVP response");
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -235,7 +341,7 @@ export default function InvitePage() {
     );
   }
 
-  if (!token || !event || !guest) {
+  if (!event || !guest) {
     return (
       <div className="invitation-surface min-h-screen bg-gradient-hero flex items-center justify-center p-6">
         <div className="text-center max-w-md">
@@ -281,6 +387,7 @@ export default function InvitePage() {
   const rsvpForm = (
     <RsvpCard
       guestName={guest.name}
+      isOpenInvite={isOpenInvite}
       status={guest.rsvp_status}
       initialPartySize={partySize}
       initialMessage={message}
@@ -307,10 +414,10 @@ export default function InvitePage() {
       cardShadowY={typeof (event as any).rsvp_card_shadow_y === "number" ? (event as any).rsvp_card_shadow_y : (typeof (event as any).section_visibility?.rsvp_card_shadow_y === "number" ? (event as any).section_visibility?.rsvp_card_shadow_y : (typeof (event as any).section_visibility?.rsvp_style?.card_shadow_y === "number" ? (event as any).section_visibility?.rsvp_style?.card_shadow_y : (typeof (templateDefaults as any)?.rsvp_card_shadow_y === "number" ? (templateDefaults as any)?.rsvp_card_shadow_y : (typeof (templateDefaults as any)?.rsvp_style?.card_shadow_y === "number" ? (templateDefaults as any)?.rsvp_style?.card_shadow_y : null))))}
       cardShadowOpacity={typeof (event as any).rsvp_card_shadow_opacity === "number" ? (event as any).rsvp_card_shadow_opacity : (typeof (event as any).section_visibility?.rsvp_card_shadow_opacity === "number" ? (event as any).section_visibility?.rsvp_card_shadow_opacity : (typeof (event as any).section_visibility?.rsvp_style?.card_shadow_opacity === "number" ? (event as any).section_visibility?.rsvp_style?.card_shadow_opacity : (typeof (templateDefaults as any)?.rsvp_card_shadow_opacity === "number" ? (templateDefaults as any)?.rsvp_card_shadow_opacity : (typeof (templateDefaults as any)?.rsvp_style?.card_shadow_opacity === "number" ? (templateDefaults as any)?.rsvp_style?.card_shadow_opacity : null))))}
       language={language}
-      onSubmit={(s, p, m) => {
+      onSubmit={(s, p, m, gName) => {
         setPartySize(p);
         setMessage(m);
-        submit(s);
+        submit(s, p, m, gName);
       }}
     />
   );

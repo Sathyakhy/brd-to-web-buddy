@@ -1,20 +1,37 @@
 import { useState } from "react";
-import { Check, X, Heart, Minus, Plus, Sparkles } from "lucide-react";
+import { Check, X, Heart, Minus, Plus, Sparkles, User, MessageSquareHeart } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
 import { computeRsvpCardShadow, computeRsvpHeaderShadow } from "@/lib/rsvpStyle";
 import { resolveHeaderFont, resolveBodyFont } from "@/lib/fonts";
 
 type Props = {
   guestName: string;
+  isOpenInvite?: boolean;
+  openNameLabel?: string | null;
+  openNameLabelEn?: string | null;
+  openNamePlaceholder?: string | null;
+  openNamePlaceholderEn?: string | null;
+  wishesLabel?: string | null;
+  wishesLabelEn?: string | null;
+  wishesPlaceholder?: string | null;
+  wishesPlaceholderEn?: string | null;
+  partySizeLabel?: string | null;
+  partySizeLabelEn?: string | null;
+  attendingLabel?: string | null;
+  attendingLabelEn?: string | null;
+  decliningLabel?: string | null;
+  decliningLabelEn?: string | null;
   status?: "pending" | "yes" | "no" | string;
   initialPartySize?: number;
   initialMessage?: string;
   submitting?: boolean;
   /** When true, the form is read-only (used for admin preview). */
   preview?: boolean;
-  onSubmit?: (status: "yes" | "no", partySize: number, message: string) => void;
+  onSubmit?: (status: "yes" | "no", partySize: number, message: string, guestName?: string) => void;
   /** Accent (gold) and primary (body) colours — fall through to the
       Khmer Traditional defaults when omitted. Pass-through from the
       parent so all "border-like" / heading colours follow the event's
@@ -62,10 +79,26 @@ type Props = {
 
 /**
  * Premium RSVP card — used by the live invite page and the admin preview.
- * Self-contained state so it can render standalone in preview mode.
+ * Supports both named invitations (pre-assigned tokens) and open broadcast links
+ * with guest self-registration name input.
  */
 export default function RsvpCard({
   guestName,
+  isOpenInvite = false,
+  openNameLabel,
+  openNameLabelEn,
+  openNamePlaceholder,
+  openNamePlaceholderEn,
+  wishesLabel,
+  wishesLabelEn,
+  wishesPlaceholder,
+  wishesPlaceholderEn,
+  partySizeLabel,
+  partySizeLabelEn,
+  attendingLabel,
+  attendingLabelEn,
+  decliningLabel,
+  decliningLabelEn,
   status = "pending",
   initialPartySize = 1,
   initialMessage = "",
@@ -99,6 +132,7 @@ export default function RsvpCard({
   rsvpTitleEn,
   language = "km",
 }: Props) {
+  const [customName, setCustomName] = useState(guestName || "");
   const [partySize, setPartySize] = useState(initialPartySize);
   const [message, setMessage] = useState(initialMessage);
 
@@ -167,15 +201,16 @@ export default function RsvpCard({
 
   const statusLabel = isEn
     ? status === "yes"
-      ? "Attending"
+      ? (attendingLabelEn?.trim() || "Attending")
       : status === "no"
-      ? "Unable to attend"
+      ? (decliningLabelEn?.trim() || "Unable to attend")
       : "Awaiting response"
     : status === "yes"
-    ? "នឹងចូលរួម"
+    ? (attendingLabel?.trim() || "នឹងចូលរួម")
     : status === "no"
-    ? "សុំទោស មិនអាចចូលរួមបាន"
+    ? (decliningLabel?.trim() || "សុំទោស មិនអាចចូលរួមបាន")
     : "កំពុងរង់ចាំការឆ្លើយតប";
+
   const statusBg =
     status === "yes" ? "rgba(34,197,94,0.15)" :
     status === "no" ? "rgba(239,68,68,0.15)" :
@@ -184,12 +219,21 @@ export default function RsvpCard({
     status === "yes" ? "#16a34a" :
     status === "no" ? "#dc2626" : accent;
 
+  const handleAction = (chosenStatus: "yes" | "no") => {
+    if (preview) return;
+    if (isOpenInvite && !customName.trim()) {
+      toast.error(isEn ? "Please enter your name or family name" : "សូមបញ្ចូលឈ្មោះរបស់អ្នក ឬគ្រួសារ");
+      return;
+    }
+    onSubmit?.(chosenStatus, partySize, message, isOpenInvite ? customName.trim() : guestName);
+  };
+
+  const displayName = isOpenInvite ? (customName.trim() || (isEn ? "Honored Guest" : "ភ្ញៀវកិត្តិយស")) : (guestName || (isEn ? "Honored Guest" : "ភ្ញៀវកិត្តិយស"));
+
   return (
     <section
       className="kt-section-card p-5 sm:p-8 my-6 mx-auto w-full max-w-xl relative overflow-hidden"
       style={{
-        // Override the hard-coded gold border baked into `.kt-section-card`
-        // so the RSVP card frame follows the configured accent colour.
         borderColor: accent,
         boxShadow: resolvedCardShadow,
         ...(resolvedRsvpBg ? { backgroundColor: resolvedRsvpBg, background: resolvedRsvpBg } : {}),
@@ -210,8 +254,6 @@ export default function RsvpCard({
         >
           R · S · V · P
         </p>
-        {/* Heading wraps naturally so the full Khmer question is always visible,
-            even on narrow viewports. */}
         <h3
           className={`leading-snug break-words whitespace-normal px-2 ${resolvedHeaderFont ? "font-bold" : (isEn ? "font-serif font-bold text-xl sm:text-2xl" : "font-khmer-moul")}`}
           style={{
@@ -225,49 +267,65 @@ export default function RsvpCard({
             ? (rsvpTitleEn?.trim() || rsvpTitle?.trim() || "Will you be attending our wedding celebration?")
             : (rsvpTitle?.trim() || "តើលោកអ្នកនឹងអញ្ជើញមកចូលរួមដែរឬទេ?")}
         </h3>
-        <p
-          className={`${resolvedBodyFont ? "" : (isEn ? "font-sans" : "font-khmer-siemreap")} text-sm sm:text-base max-w-md mx-auto leading-relaxed`}
-          style={{
-            color: primary,
-            fontFamily: resolvedBodyFont,
-          }}
-        >
-          {isEn ? (
-            <>
-              Dear{" "}
-              <span
-                className="font-bold"
-                style={{
-                  background: nameGradient,
-                  WebkitBackgroundClip: "text",
-                  backgroundClip: "text",
-                  WebkitTextFillColor: "transparent",
-                  filter: `drop-shadow(0 1px 0 rgba(255,255,255,0.5))`,
-                }}
-              >
-                {guestName}
-              </span>
-              , your presence would be our greatest honor and blessing.
-            </>
-          ) : (
-            <>
-              ជូនចំពោះ{" "}
-              <span
-                className="font-bold"
-                style={{
-                  background: nameGradient,
-                  WebkitBackgroundClip: "text",
-                  backgroundClip: "text",
-                  WebkitTextFillColor: "transparent",
-                  filter: `drop-shadow(0 1px 0 rgba(255,255,255,0.5))`,
-                }}
-              >
-                {guestName}
-              </span>{" "}
-              វត្តមានរបស់លោកអ្នក គឺជាកិត្តិយសដ៏ធំធេងសម្រាប់ពិធីរបស់យើងខ្ញុំ។
-            </>
-          )}
-        </p>
+
+        {!isOpenInvite ? (
+          <p
+            className={`${resolvedBodyFont ? "" : (isEn ? "font-sans" : "font-khmer-siemreap")} text-sm sm:text-base max-w-md mx-auto leading-relaxed`}
+            style={{
+              color: primary,
+              fontFamily: resolvedBodyFont,
+            }}
+          >
+            {isEn ? (
+              <>
+                Dear{" "}
+                <span
+                  className="font-bold"
+                  style={{
+                    background: nameGradient,
+                    WebkitBackgroundClip: "text",
+                    backgroundClip: "text",
+                    WebkitTextFillColor: "transparent",
+                    filter: `drop-shadow(0 1px 0 rgba(255,255,255,0.5))`,
+                  }}
+                >
+                  {displayName}
+                </span>
+                , your presence would be our greatest honor and blessing.
+              </>
+            ) : (
+              <>
+                ជូនចំពោះ{" "}
+                <span
+                  className="font-bold"
+                  style={{
+                    background: nameGradient,
+                    WebkitBackgroundClip: "text",
+                    backgroundClip: "text",
+                    WebkitTextFillColor: "transparent",
+                    filter: `drop-shadow(0 1px 0 rgba(255,255,255,0.5))`,
+                  }}
+                >
+                  {displayName}
+                </span>{" "}
+                វត្តមានរបស់លោកអ្នក គឺជាកិត្តិយសដ៏ធំធេងសម្រាប់ពិធីរបស់យើងខ្ញុំ។
+              </>
+            )}
+          </p>
+        ) : (
+          <p
+            className={`${resolvedBodyFont ? "" : (isEn ? "font-sans" : "font-khmer-siemreap")} text-xs sm:text-sm max-w-md mx-auto leading-relaxed opacity-90`}
+            style={{
+              color: primary,
+              fontFamily: resolvedBodyFont,
+            }}
+          >
+            {isEn
+              ? "Please fill in your name and let us know if you can join our celebration."
+              : "សូមបំពេញឈ្មោះរបស់អ្នក និងជម្រាបជូនអំពីវត្តមាននៃការចូលរួម។"}
+          </p>
+        )}
+
         <span
           className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-[11px] font-medium border"
           style={{ background: statusBg, color: statusColor, borderColor: `${statusColor}55`, fontFamily: resolvedBodyFont }}
@@ -277,18 +335,57 @@ export default function RsvpCard({
         </span>
       </div>
 
-      <div className="my-6 flex items-center justify-center">
+      <div className="my-5 flex items-center justify-center">
         <div className="h-px flex-1" style={{ background: `linear-gradient(to right, transparent, ${accent}80, transparent)` }} />
         <Heart className="h-3.5 w-3.5 mx-3" style={{ color: accent }} />
         <div className="h-px flex-1" style={{ background: `linear-gradient(to right, transparent, ${accent}80, transparent)` }} />
       </div>
 
+      {/* Guest Name input field (for Open Broadcast Links) */}
+      {isOpenInvite && (
+        <div className="mb-5 space-y-1.5 text-left">
+          <Label
+            className={`flex items-center gap-1.5 text-xs sm:text-sm ${resolvedBodyFont ? "font-semibold" : (isEn ? "font-medium" : "font-khmer-koulen")}`}
+            style={{ color: accent, fontFamily: resolvedBodyFont }}
+          >
+            <User className="h-3.5 w-3.5" style={{ color: accent }} />
+            {isEn
+              ? (openNameLabelEn?.trim() || "Your Name / Family Name")
+              : (openNameLabel?.trim() || "ឈ្មោះរបស់អ្នក ឬគ្រួសារ")}
+            <span className="text-red-500 font-bold">*</span>
+          </Label>
+          <Input
+            type="text"
+            value={customName}
+            onChange={(e) => setCustomName(e.target.value)}
+            disabled={preview || submitting}
+            placeholder={
+              isEn
+                ? (openNamePlaceholderEn?.trim() || "e.g. Mr. John Smith & Guest")
+                : (openNamePlaceholder?.trim() || "ឧ. លោក សុខ សំណាង និងភរិយា")
+            }
+            className={`h-11 sm:h-12 text-sm sm:text-base border transition-all ${
+              resolvedBodyFont ? "" : (isEn ? "font-sans" : "font-khmer-siemreap")
+            }`}
+            style={{
+              background: "rgba(255,255,255,0.65)",
+              borderColor: `${accent}66`,
+              color: primary,
+              fontFamily: resolvedBodyFont,
+            }}
+          />
+        </div>
+      )}
+
+      {/* Party Size Counter */}
       <div className="space-y-3">
         <Label
           className={`block text-center text-xs sm:text-sm ${resolvedBodyFont ? "font-semibold" : (isEn ? "font-medium uppercase tracking-wider" : "font-khmer-koulen")}`}
           style={{ color: accent, fontFamily: resolvedBodyFont }}
         >
-          {isEn ? "Number of Guests" : "ចំនួនភ្ញៀវ"}
+          {isEn
+            ? (partySizeLabelEn?.trim() || "Number of Guests")
+            : (partySizeLabel?.trim() || "ចំនួនភ្ញៀវ")}
         </Label>
         <div className="flex items-center justify-center gap-4">
           <button
@@ -325,19 +422,27 @@ export default function RsvpCard({
         </div>
       </div>
 
-      <div className="mt-6 space-y-2">
+      {/* Wishes / Message Field */}
+      <div className="mt-5 space-y-2 text-left">
         <Label
-          className={`block text-center text-xs sm:text-sm ${resolvedBodyFont ? "font-semibold" : (isEn ? "font-medium uppercase tracking-wider" : "font-khmer-koulen")}`}
+          className={`flex items-center justify-center gap-1.5 text-xs sm:text-sm text-center ${resolvedBodyFont ? "font-semibold" : (isEn ? "font-medium uppercase tracking-wider" : "font-khmer-koulen")}`}
           style={{ color: accent, fontFamily: resolvedBodyFont }}
         >
-          {isEn ? "Leave a warm message for the couple" : "សារជូនពរដល់ម្ចាស់ពិធី"}
+          <MessageSquareHeart className="h-3.5 w-3.5" style={{ color: accent }} />
+          {isEn
+            ? (wishesLabelEn?.trim() || "Leave a warm message for the couple")
+            : (wishesLabel?.trim() || "សារជូនពរដល់ម្ចាស់ពិធី")}
         </Label>
         <Textarea
           rows={3}
           value={message}
           onChange={e => setMessage(e.target.value)}
           readOnly={preview}
-          placeholder={isEn ? "Wishing you both a lifetime of love, health, and joy..." : "សូមជូនពរឱ្យមានសុភមង្គល និងសេចក្តីស្រឡាញ់ជារៀងរហូត…"}
+          placeholder={
+            isEn
+              ? (wishesPlaceholderEn?.trim() || "Wishing you both a lifetime of love, health, and joy...")
+              : (wishesPlaceholder?.trim() || "សូមជូនពរឱ្យមានសុភមង្គល និងសេចក្តីស្រឡាញ់ជារៀងរហូត…")
+          }
           className={`resize-none text-center ${resolvedBodyFont ? "" : (isEn ? "font-sans" : "font-khmer-siemreap")}`}
           style={{
             background: "rgba(255,255,255,0.55)",
@@ -348,27 +453,34 @@ export default function RsvpCard({
         />
       </div>
 
-      <div className="mt-7 grid grid-cols-1 sm:grid-cols-2 gap-3">
+      {/* Action Buttons */}
+      <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-3">
         <Button
           size="lg"
           type="button"
-          onClick={() => onSubmit?.("yes", partySize, message)}
+          onClick={() => handleAction("yes")}
           disabled={preview || submitting}
           className={`h-12 tracking-wide text-white hover:opacity-95 ${resolvedBodyFont ? "font-semibold" : (isEn ? "font-semibold" : "font-khmer-koulen")}`}
           style={{ background: accent, boxShadow: `0 6px 18px ${accent}55`, fontFamily: resolvedBodyFont }}
         >
-          <Check className="h-4 w-4 mr-2" /> {isEn ? "Joyfully Accept" : "យល់ព្រមចូលរួម"}
+          <Check className="h-4 w-4 mr-2" />
+          {isEn
+            ? (attendingLabelEn?.trim() || "Joyfully Accept")
+            : (attendingLabel?.trim() || "យល់ព្រមចូលរួម")}
         </Button>
         <Button
           size="lg"
           type="button"
           variant="outline"
-          onClick={() => onSubmit?.("no", partySize, message)}
+          onClick={() => handleAction("no")}
           disabled={preview || submitting}
           className={`h-12 tracking-wide bg-transparent hover:bg-white/40 ${resolvedBodyFont ? "font-semibold" : (isEn ? "font-semibold" : "font-khmer-koulen")}`}
           style={{ borderColor: `${accent}66`, color: primary, fontFamily: resolvedBodyFont }}
         >
-          <X className="h-4 w-4 mr-2" /> {isEn ? "Regretfully Decline" : "សុំទោស មិនអាចចូលរួម"}
+          <X className="h-4 w-4 mr-2" />
+          {isEn
+            ? (decliningLabelEn?.trim() || "Regretfully Decline")
+            : (decliningLabel?.trim() || "សុំទោស មិនអាចចូលរួម")}
         </Button>
       </div>
 
@@ -384,3 +496,4 @@ export default function RsvpCard({
     </section>
   );
 }
+

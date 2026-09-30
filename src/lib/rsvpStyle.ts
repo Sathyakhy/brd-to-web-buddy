@@ -48,6 +48,21 @@ export type RsvpStyleConfig = {
   card_shadow_x?: number | null;
   card_shadow_y?: number | null;
   card_shadow_opacity?: number | null;
+  // Open / Broadcast RSVP custom wording
+  rsvp_name_label?: string | null;
+  rsvp_name_label_en?: string | null;
+  rsvp_name_placeholder?: string | null;
+  rsvp_name_placeholder_en?: string | null;
+  rsvp_wishes_label?: string | null;
+  rsvp_wishes_label_en?: string | null;
+  rsvp_wishes_placeholder?: string | null;
+  rsvp_wishes_placeholder_en?: string | null;
+  rsvp_attending_label?: string | null;
+  rsvp_attending_label_en?: string | null;
+  rsvp_declining_label?: string | null;
+  rsvp_declining_label_en?: string | null;
+  open_guest_greeting_km?: string | null;
+  open_guest_greeting_en?: string | null;
 };
 
 export const RSVP_CARD_SHADOW_PRESETS: {

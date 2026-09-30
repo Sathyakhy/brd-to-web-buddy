@@ -1658,6 +1658,21 @@ export function KhmerTraditionalTemplate({ event, guestName, children, hideBackg
               cardShadowOpacity: (children.props as any).cardShadowOpacity ?? rsvpCardShadowOpacity,
               rsvpTitle: (children.props as any).rsvpTitle ?? rawEv.rsvp_title ?? rawVis.rsvp_title ?? rsvpStyle.rsvp_title ?? rawTplVis.rsvp_title ?? rawTplDef.rsvp_title ?? null,
               rsvpTitleEn: (children.props as any).rsvpTitleEn ?? rawEv.rsvp_title_en ?? rawVis.rsvp_title_en ?? rsvpStyle.rsvp_title_en ?? rawTplVis.rsvp_title_en ?? rawTplDef.rsvp_title_en ?? null,
+              isOpenInvite: (children.props as any).isOpenInvite ?? (props as any).isOpenInvite ?? false,
+              openNameLabel: (children.props as any).openNameLabel ?? rawEv.rsvp_name_label ?? rawVis.rsvp_name_label ?? rsvpStyle.rsvp_name_label ?? null,
+              openNameLabelEn: (children.props as any).openNameLabelEn ?? rawEv.rsvp_name_label_en ?? rawVis.rsvp_name_label_en ?? rsvpStyle.rsvp_name_label_en ?? null,
+              openNamePlaceholder: (children.props as any).openNamePlaceholder ?? rawEv.rsvp_name_placeholder ?? rawVis.rsvp_name_placeholder ?? null,
+              openNamePlaceholderEn: (children.props as any).openNamePlaceholderEn ?? rawEv.rsvp_name_placeholder_en ?? rawVis.rsvp_name_placeholder_en ?? null,
+              wishesLabel: (children.props as any).wishesLabel ?? rawEv.rsvp_wishes_label ?? rawVis.rsvp_wishes_label ?? null,
+              wishesLabelEn: (children.props as any).wishesLabelEn ?? rawEv.rsvp_wishes_label_en ?? rawVis.rsvp_wishes_label_en ?? null,
+              wishesPlaceholder: (children.props as any).wishesPlaceholder ?? rawEv.rsvp_wishes_placeholder ?? rawVis.rsvp_wishes_placeholder ?? null,
+              wishesPlaceholderEn: (children.props as any).wishesPlaceholderEn ?? rawEv.rsvp_wishes_placeholder_en ?? rawVis.rsvp_wishes_placeholder_en ?? null,
+              partySizeLabel: (children.props as any).partySizeLabel ?? rawEv.rsvp_party_size_label ?? rawVis.rsvp_party_size_label ?? null,
+              partySizeLabelEn: (children.props as any).partySizeLabelEn ?? rawEv.rsvp_party_size_label_en ?? rawVis.rsvp_party_size_label_en ?? null,
+              attendingLabel: (children.props as any).attendingLabel ?? rawEv.rsvp_attending_label ?? rawVis.rsvp_attending_label ?? null,
+              attendingLabelEn: (children.props as any).attendingLabelEn ?? rawEv.rsvp_attending_label_en ?? rawVis.rsvp_attending_label_en ?? null,
+              decliningLabel: (children.props as any).decliningLabel ?? rawEv.rsvp_declining_label ?? rawVis.rsvp_declining_label ?? null,
+              decliningLabelEn: (children.props as any).decliningLabelEn ?? rawEv.rsvp_declining_label_en ?? rawVis.rsvp_declining_label_en ?? null,
             });
           }
           return children;

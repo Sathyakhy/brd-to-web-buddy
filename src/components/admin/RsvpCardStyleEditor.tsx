@@ -248,22 +248,26 @@ export default function RsvpCardStyleEditor({
         onValueChange={(v) => setActiveTab(v as any)}
         className="w-full"
       >
-        <TabsList className="grid grid-cols-4 w-full h-9">
-          <TabsTrigger value="appearance" className="text-xs flex items-center gap-1.5">
-            <Layers className="h-3.5 w-3.5" />
-            <span>Card Background</span>
+        <TabsList className="grid grid-cols-5 w-full h-9">
+          <TabsTrigger value="appearance" className="text-xs flex items-center gap-1">
+            <Layers className="h-3.5 w-3.5 hidden sm:inline" />
+            <span>Background</span>
           </TabsTrigger>
-          <TabsTrigger value="shadow" className="text-xs flex items-center gap-1.5">
-            <Sun className="h-3.5 w-3.5" />
-            <span>Card Shadow</span>
+          <TabsTrigger value="shadow" className="text-xs flex items-center gap-1">
+            <Sun className="h-3.5 w-3.5 hidden sm:inline" />
+            <span>Shadow</span>
           </TabsTrigger>
-          <TabsTrigger value="header_effect" className="text-xs flex items-center gap-1.5">
-            <Sparkles className="h-3.5 w-3.5" />
-            <span>Header Effect</span>
+          <TabsTrigger value="header_effect" className="text-xs flex items-center gap-1">
+            <Sparkles className="h-3.5 w-3.5 hidden sm:inline" />
+            <span>Effects</span>
           </TabsTrigger>
-          <TabsTrigger value="fonts" className="text-xs flex items-center gap-1.5">
-            <TypeIcon className="h-3.5 w-3.5" />
+          <TabsTrigger value="fonts" className="text-xs flex items-center gap-1">
+            <TypeIcon className="h-3.5 w-3.5 hidden sm:inline" />
             <span>Fonts</span>
+          </TabsTrigger>
+          <TabsTrigger value="wording" className="text-xs flex items-center gap-1">
+            <Sliders className="h-3.5 w-3.5 hidden sm:inline" />
+            <span>Wording</span>
           </TabsTrigger>
         </TabsList>
 
@@ -980,6 +984,149 @@ export default function RsvpCardStyleEditor({
                 </div>
               </div>
             )}
+          </div>
+        </TabsContent>
+
+        {/* 5. Wording & Labels Tab */}
+        <TabsContent value="wording" className="space-y-4 pt-3">
+          <div className="rounded-lg border border-border p-3.5 space-y-4 bg-secondary/10">
+            <div>
+              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Custom RSVP & Broadcast Wording
+              </Label>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Customize wording for open broadcast links and RSVP fields. Leave blank to use defaults.
+              </p>
+            </div>
+
+            {/* 1. Guest Name Field Wording */}
+            <div className="space-y-3 p-3 rounded-lg border border-border/60 bg-background/50">
+              <Label className="text-xs font-semibold text-gold">Guest Name Field (For Open Links)</Label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label className="text-[11px] text-muted-foreground">Khmer Label (ឈ្មោះរបស់អ្នក ឬគ្រួសារ)</Label>
+                  <Input
+                    value={config.rsvp_name_label ?? ""}
+                    onChange={(e) => onChange({ rsvp_name_label: e.target.value || null })}
+                    placeholder="ឈ្មោះរបស់អ្នក ឬគ្រួសារ"
+                    className="h-8 text-xs"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[11px] text-muted-foreground">English Label (Your Name / Family Name)</Label>
+                  <Input
+                    value={config.rsvp_name_label_en ?? ""}
+                    onChange={(e) => onChange({ rsvp_name_label_en: e.target.value || null })}
+                    placeholder="Your Name / Family Name"
+                    className="h-8 text-xs"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[11px] text-muted-foreground">Khmer Placeholder</Label>
+                  <Input
+                    value={config.rsvp_name_placeholder ?? ""}
+                    onChange={(e) => onChange({ rsvp_name_placeholder: e.target.value || null })}
+                    placeholder="ឧ. លោក សុខ សំណាង និងភរិយា"
+                    className="h-8 text-xs"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[11px] text-muted-foreground">English Placeholder</Label>
+                  <Input
+                    value={config.rsvp_name_placeholder_en ?? ""}
+                    onChange={(e) => onChange({ rsvp_name_placeholder_en: e.target.value || null })}
+                    placeholder="e.g. Mr. John Smith & Guest"
+                    className="h-8 text-xs"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* 2. Wishes / Message Field Wording */}
+            <div className="space-y-3 p-3 rounded-lg border border-border/60 bg-background/50">
+              <Label className="text-xs font-semibold text-gold">Wedding Wishes / Message Field</Label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label className="text-[11px] text-muted-foreground">Khmer Label (សារជូនពរដល់ម្ចាស់ពិធី)</Label>
+                  <Input
+                    value={config.rsvp_wishes_label ?? ""}
+                    onChange={(e) => onChange({ rsvp_wishes_label: e.target.value || null })}
+                    placeholder="សារជូនពរដល់ម្ចាស់ពិធី"
+                    className="h-8 text-xs"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[11px] text-muted-foreground">English Label (Leave a message)</Label>
+                  <Input
+                    value={config.rsvp_wishes_label_en ?? ""}
+                    onChange={(e) => onChange({ rsvp_wishes_label_en: e.target.value || null })}
+                    placeholder="Leave a warm message for the couple"
+                    className="h-8 text-xs"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[11px] text-muted-foreground">Khmer Placeholder</Label>
+                  <Input
+                    value={config.rsvp_wishes_placeholder ?? ""}
+                    onChange={(e) => onChange({ rsvp_wishes_placeholder: e.target.value || null })}
+                    placeholder="សូមជូនពរឱ្យមានសុភមង្គល និងសេចក្តីស្រឡាញ់ជារៀងរហូត…"
+                    className="h-8 text-xs"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[11px] text-muted-foreground">English Placeholder</Label>
+                  <Input
+                    value={config.rsvp_wishes_placeholder_en ?? ""}
+                    onChange={(e) => onChange({ rsvp_wishes_placeholder_en: e.target.value || null })}
+                    placeholder="Wishing you both a lifetime of love, health, and joy..."
+                    className="h-8 text-xs"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* 3. Action Buttons Wording */}
+            <div className="space-y-3 p-3 rounded-lg border border-border/60 bg-background/50">
+              <Label className="text-xs font-semibold text-gold">Action Buttons (Accept & Decline)</Label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label className="text-[11px] text-muted-foreground">Khmer Accept Button (យល់ព្រមចូលរួម)</Label>
+                  <Input
+                    value={config.rsvp_attending_label ?? ""}
+                    onChange={(e) => onChange({ rsvp_attending_label: e.target.value || null })}
+                    placeholder="យល់ព្រមចូលរួម"
+                    className="h-8 text-xs"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[11px] text-muted-foreground">English Accept Button (Joyfully Accept)</Label>
+                  <Input
+                    value={config.rsvp_attending_label_en ?? ""}
+                    onChange={(e) => onChange({ rsvp_attending_label_en: e.target.value || null })}
+                    placeholder="Joyfully Accept"
+                    className="h-8 text-xs"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[11px] text-muted-foreground">Khmer Decline Button (សុំទោស មិនអាចចូលរួម)</Label>
+                  <Input
+                    value={config.rsvp_declining_label ?? ""}
+                    onChange={(e) => onChange({ rsvp_declining_label: e.target.value || null })}
+                    placeholder="សុំទោស មិនអាចចូលរួម"
+                    className="h-8 text-xs"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[11px] text-muted-foreground">English Decline Button (Regretfully Decline)</Label>
+                  <Input
+                    value={config.rsvp_declining_label_en ?? ""}
+                    onChange={(e) => onChange({ rsvp_declining_label_en: e.target.value || null })}
+                    placeholder="Regretfully Decline"
+                    className="h-8 text-xs"
+                  />
+                </div>
+              </div>
+            </div>
           </div>
         </TabsContent>
       </Tabs>
