@@ -629,20 +629,31 @@ export function KhmerTraditionalTemplate({ event, guestName, children, hideBackg
             return (
               <div
                 key={key}
-                className={`min-w-0 flex items-baseline ${side === "right" ? "justify-end text-right" : "justify-start text-left"} ${isEn ? "text-sm sm:text-base font-semibold" : "font-khmer-koulen"}`}
+                className={`min-w-0 flex items-baseline whitespace-nowrap overflow-hidden ${
+                  side === "right" ? "justify-end text-right" : "justify-start text-left"
+                } ${isEn ? "text-sm sm:text-base font-semibold" : "font-khmer-koulen"}`}
                 style={{
                   color: colorPrimary,
-                  fontFamily: bodyFont,
+                  fontFamily: isEn ? bodyFont : undefined,
                   textShadow: bodyShadow,
                   fontSize: isEn ? "0.95rem" : "1.05rem",
                   lineHeight: 1.7,
                   paddingTop: "0.25em",
                 }}
               >
-                <span className="opacity-95 mr-1.5 shrink-0" style={{ fontFamily: bodyFont }}>{cell.prefix}</span>
                 <span
-                  className={isEn ? "font-bold tracking-wide" : "font-khmer-moul"}
-                  style={{ color: colorPrimary, fontFamily: bodyFont, letterSpacing: isEn ? "0.02em" : "0.04em" }}
+                  className="opacity-95 mr-1.5 shrink-0 whitespace-nowrap"
+                  style={{ fontFamily: isEn ? bodyFont : undefined }}
+                >
+                  {cell.prefix}
+                </span>
+                <span
+                  className={`whitespace-nowrap truncate ${isEn ? "font-bold tracking-wide" : "font-khmer-moul"}`}
+                  style={{
+                    color: colorPrimary,
+                    fontFamily: isEn ? bodyFont : undefined,
+                    letterSpacing: isEn ? "0.02em" : "0.04em",
+                  }}
                 >
                   {fullName}
                 </span>
