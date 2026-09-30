@@ -631,7 +631,7 @@ export function KhmerTraditionalTemplate({ event, guestName, children, hideBackg
                 key={key}
                 className={`min-w-0 flex items-baseline whitespace-nowrap overflow-hidden ${
                   side === "right" ? "justify-end text-right" : "justify-start text-left"
-                } ${isEn ? "text-sm sm:text-base font-semibold" : "font-khmer-koulen"}`}
+                } ${isEn ? "text-sm sm:text-base font-semibold" : ""}`}
                 style={{
                   color: colorPrimary,
                   fontFamily: isEn ? bodyFont : undefined,
@@ -643,7 +643,7 @@ export function KhmerTraditionalTemplate({ event, guestName, children, hideBackg
               >
                 <span
                   className="opacity-95 mr-1.5 shrink-0 whitespace-nowrap"
-                  style={{ fontFamily: isEn ? bodyFont : undefined }}
+                  style={{ fontFamily: bodyFont }}
                 >
                   {cell.prefix}
                 </span>
