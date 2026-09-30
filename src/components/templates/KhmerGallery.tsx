@@ -66,16 +66,13 @@ export default function KhmerGallery({ images, layout = "grid" }: Props) {
     if (!containerRef.current) return;
     const thumbs = containerRef.current.querySelectorAll<HTMLImageElement>("img[data-fade]");
     const observer = new IntersectionObserver(
-      async (entries, obs) => {
-        for (const entry of entries) {
-          if (!entry.isIntersecting) continue;
+      (entries, obs) => {
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting) return;
           const img = entry.target as HTMLImageElement;
-          try {
-            if ("decode" in img) await img.decode();
-          } catch {}
           img.classList.add("opacity-100");
           obs.unobserve(img);
-        }
+        });
       },
       { rootMargin: "200px", threshold: 0.01 }
     );
@@ -100,13 +97,10 @@ export default function KhmerGallery({ images, layout = "grid" }: Props) {
     };
     document.addEventListener("keydown", handleKeys);
     const previousOverflow = document.body.style.overflow;
-    const previousTouchAction = document.body.style.touchAction;
     document.body.style.overflow = "hidden";
-    document.body.style.touchAction = "none";
     return () => {
       document.removeEventListener("keydown", handleKeys);
       document.body.style.overflow = previousOverflow;
-      document.body.style.touchAction = previousTouchAction;
     };
   }, [active, close, next, prev]);
 

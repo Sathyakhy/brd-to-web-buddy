@@ -50,7 +50,7 @@ export default function InvitePage() {
   const [musicPlayTrigger, setMusicPlayTrigger] = useState(0);
   const [language, setLanguage] = useState<LanguageCode>("km");
 
-  // Prevent background scrolling and rubber-band peek-through on iOS/Safari ONLY while the cover is active
+  // Prevent background scrolling on document body only while the cover is active
   const effectiveTemplate = baseRenderer || event?.template;
   const isEssentials =
     effectiveTemplate === "essentials-package-01" ||
@@ -65,14 +65,11 @@ export default function InvitePage() {
     if (isCoverActive) {
       const origOverflow = document.body.style.overflow;
       const origDocOverflow = document.documentElement.style.overflow;
-      const origTouch = document.body.style.touchAction;
       document.body.style.overflow = "hidden";
       document.documentElement.style.overflow = "hidden";
-      document.body.style.touchAction = "none";
       return () => {
         document.body.style.overflow = origOverflow;
         document.documentElement.style.overflow = origDocOverflow;
-        document.body.style.touchAction = origTouch;
       };
     } else {
       document.body.style.overflow = "";
@@ -348,6 +345,10 @@ export default function InvitePage() {
     : !musicSettings.autoPlayInvitation;
 
   const handleOpenInvitation = () => {
+    // Unlock scrolling immediately on click
+    document.body.style.overflow = "";
+    document.documentElement.style.overflow = "";
+    document.body.style.touchAction = "";
     if (envelopeConfig.enabled) {
       setUnboxingActive(true);
     } else {
@@ -359,6 +360,9 @@ export default function InvitePage() {
   };
 
   const handleUnboxingComplete = () => {
+    document.body.style.overflow = "";
+    document.documentElement.style.overflow = "";
+    document.body.style.touchAction = "";
     setOpened(true);
     setUnboxingActive(false);
     if (musicSettings.autoPlayInvitation || musicSettings.autoPlayCover) {
@@ -395,7 +399,6 @@ export default function InvitePage() {
         <div
           style={{
             pointerEvents: isCoverActive ? "none" : undefined,
-            visibility: isCoverActive && !unboxingActive ? "hidden" : "visible",
           }}
         >
           <InvitationTemplate
