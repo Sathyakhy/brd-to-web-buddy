@@ -50,9 +50,19 @@ export default function InvitePage() {
   const [musicPlayTrigger, setMusicPlayTrigger] = useState(0);
   const [language, setLanguage] = useState<LanguageCode>("km");
 
-  // Prevent background scrolling and rubber-band peek-through on iOS/Safari while the cover is active
+  // Prevent background scrolling and rubber-band peek-through on iOS/Safari ONLY while the cover is active
+  const effectiveTemplate = baseRenderer || event?.template;
+  const isEssentials =
+    effectiveTemplate === "essentials-package-01" ||
+    effectiveTemplate === "essentials-package" ||
+    effectiveTemplate === "khmer-traditional";
+
+  const isSignature = effectiveTemplate === "signature-package-01";
+
+  const isCoverActive = !opened && !isPreview && (isEssentials || isSignature);
+
   useEffect(() => {
-    if (!opened) {
+    if (isCoverActive) {
       const origOverflow = document.body.style.overflow;
       const origDocOverflow = document.documentElement.style.overflow;
       const origTouch = document.body.style.touchAction;
@@ -64,17 +74,27 @@ export default function InvitePage() {
         document.documentElement.style.overflow = origDocOverflow;
         document.body.style.touchAction = origTouch;
       };
+    } else {
+      document.body.style.overflow = "";
+      document.documentElement.style.overflow = "";
+      document.body.style.touchAction = "";
     }
-  }, [opened]);
+  }, [isCoverActive]);
 
   useEffect(() => {
     if (!slug || !token) { setLoading(false); return; }
     (async () => {
-      const { data: evRows } = await supabase.rpc("get_event_public_by_slug", {
-        _slug: slug,
-      });
+      const [evResponse, guestResponse] = await Promise.all([
+        supabase.rpc("get_event_public_by_slug", { _slug: slug }),
+        isPreview
+          ? Promise.resolve({ data: null, error: null })
+          : supabase.rpc("get_guest_by_token", { _event_slug: slug, _token: token }),
+      ]);
+
+      const evRows = evResponse.data;
       const ev = Array.isArray(evRows) ? evRows[0] : evRows;
       if (!ev) { setLoading(false); return; }
+
       const agenda_bg_color = (ev as any).agenda_bg_color ?? (ev as any).section_visibility?.agenda_style?.bg_color ?? (ev as any).section_visibility?.agenda_bg_color ?? null;
       const agenda_bg_opacity = (ev as any).agenda_bg_opacity ?? (ev as any).section_visibility?.agenda_style?.bg_opacity ?? (ev as any).section_visibility?.agenda_bg_opacity ?? null;
       const agenda_asset_color = (ev as any).agenda_asset_color ?? (ev as any).section_visibility?.agenda_style?.asset_color ?? (ev as any).section_visibility?.agenda_asset_color ?? null;
@@ -86,6 +106,7 @@ export default function InvitePage() {
         agenda_asset_color,
         side_frame_config,
       } as Event);
+
       const dualCfg = getDualLanguageConfig(
         (ev as any).dual_language_config ??
         (ev as any).section_visibility?.dual_language ??
@@ -95,6 +116,27 @@ export default function InvitePage() {
       if (dualCfg.default_language) {
         setLanguage(dualCfg.default_language);
       }
+
+      if (isPreview) {
+        // Synthetic guest used purely for the public preview — no name,
+        // neutral RSVP defaults, never persisted.
+        setGuest({
+          id: "preview",
+          name: "",
+          rsvp_status: "pending",
+          party_size: 1,
+          message: null,
+        });
+      } else if (guestResponse.data) {
+        const gRows = guestResponse.data;
+        const g = Array.isArray(gRows) ? gRows[0] : gRows;
+        if (g) {
+          setGuest(g as Guest);
+          setPartySize(g.party_size);
+          setMessage(g.message ?? "");
+        }
+      }
+
       // Pull the template's default section visibility so the merge in
       // <InvitationTemplate> can fall through to it when the event hasn't
       // overridden a given key.
@@ -158,31 +200,6 @@ export default function InvitePage() {
         music_autoplay_invitation: cfg.music_autoplay_invitation ?? cfg.section_visibility?.music_autoplay_invitation ?? true,
         music_autoplay_mode: cfg.music_autoplay_mode ?? cfg.section_visibility?.music_autoplay_mode ?? null,
       });
-      if (isPreview) {
-        // Synthetic guest used purely for the public preview — no name,
-        // neutral RSVP defaults, never persisted.
-        setGuest({
-          id: "preview",
-          name: "",
-          rsvp_status: "pending",
-          party_size: 1,
-          message: null,
-        });
-      } else {
-        // Use a SECURITY DEFINER RPC so anonymous visitors can only retrieve
-        // the single guest matching their invitation token — never enumerate
-        // the table.
-        const { data: gRows } = await supabase.rpc("get_guest_by_token", {
-          _event_slug: slug,
-          _token: token,
-        });
-        const g = Array.isArray(gRows) ? gRows[0] : gRows;
-        if (g) {
-          setGuest(g as Guest);
-          setPartySize(g.party_size);
-          setMessage(g.message ?? "");
-        }
-      }
       setLoading(false);
     })();
   }, [slug, token, isPreview]);
@@ -293,16 +310,6 @@ export default function InvitePage() {
     />
   );
 
-  const effectiveTemplate = baseRenderer || event.template;
-  const isEssentials =
-    effectiveTemplate === "essentials-package-01" ||
-    effectiveTemplate === "essentials-package" ||
-    effectiveTemplate === "khmer-traditional";
-
-  const isSignature = effectiveTemplate === "signature-package-01";
-
-  const isCoverActive = !opened && (isEssentials || isSignature);
-
   const musicSettings = normalizeMusicSettings({
     autoPlayCover:
       (event as any).music_autoplay_cover ??
@@ -380,15 +387,15 @@ export default function InvitePage() {
         className="invitation-surface min-h-screen relative bg-[#fdf5dc]"
         style={{
           minHeight: "100vh",
-          maxHeight: !opened ? "100vh" : undefined,
-          overflow: !opened ? "hidden" : undefined,
+          maxHeight: isCoverActive ? "100vh" : undefined,
+          overflow: isCoverActive ? "hidden" : undefined,
         }}
       >
         {/* Base layer: The live invitation template is rendered underneath */}
         <div
           style={{
-            pointerEvents: !opened ? "none" : undefined,
-            visibility: !opened && !unboxingActive ? "hidden" : "visible",
+            pointerEvents: isCoverActive ? "none" : undefined,
+            visibility: isCoverActive && !unboxingActive ? "hidden" : "visible",
           }}
         >
           <InvitationTemplate
@@ -408,7 +415,7 @@ export default function InvitePage() {
         </div>
 
         {/* Original Cover for Khmer Traditional / Essentials — completely untouched */}
-        {isEssentials && !opened && (
+        {isEssentials && isCoverActive && (
           <div
             className={`fixed inset-0 z-40 h-[100dvh] min-h-screen w-full overflow-hidden transition-opacity duration-300 ${
               unboxingActive ? "opacity-0 pointer-events-none" : "opacity-100"
@@ -435,7 +442,7 @@ export default function InvitePage() {
         )}
 
         {/* Original Cover for Signature Package — completely untouched */}
-        {isSignature && !opened && (
+        {isSignature && isCoverActive && (
           <div
             className={`transition-opacity duration-300 ${
               unboxingActive ? "opacity-0 pointer-events-none" : "opacity-100"

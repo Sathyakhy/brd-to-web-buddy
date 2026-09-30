@@ -92,17 +92,14 @@ export default function KhmerTraditionalCover({
   // the cover (most importantly the guest name). Otherwise on slow networks
   // the name flashes on a blank/white screen for a beat before the
   // ornate background fades in.
-  const [bgReady, setBgReady] = useState(false);
+  const [bgReady, setBgReady] = useState(true);
 
   const bg = backgroundUrl || DEFAULT_BG;
   const nameImg = nameGraphicUrl || DEFAULT_NAME;
 
-  // Preload the background and only flip `bgReady` once decoded. Using
-  // an Image() + decode() guarantees the pixels are ready to paint, not
-  // just downloaded.
+  // Preload the background and fade it in once decoded
   useEffect(() => {
     let cancelled = false;
-    setBgReady(false);
     const img = new Image();
     img.src = bg;
     const finish = () => { if (!cancelled) setBgReady(true); };
@@ -112,9 +109,7 @@ export default function KhmerTraditionalCover({
       img.onload = finish;
       img.onerror = finish;
     }
-    // Fallback so a hung request never permanently hides the cover.
-    const t = window.setTimeout(finish, 4000);
-    return () => { cancelled = true; window.clearTimeout(t); };
+    return () => { cancelled = true; };
   }, [bg]);
 
   // Build a gentle 3-stop gradient from the accent color so the name still
@@ -216,11 +211,9 @@ export default function KhmerTraditionalCover({
         }}
       />
 
-      {/* Foreground — only revealed once the background has painted, so
-          the guest name never appears on a blank screen. */}
+      {/* Foreground elements */}
       <div
-        className="relative z-10 flex flex-col items-center w-full transition-opacity duration-500"
-        style={{ opacity: bgReady ? 1 : 0 }}
+        className="relative z-10 flex flex-col items-center w-full"
       >
       {/* Center decorative name graphic */}
       <div className="flex items-center justify-center mt-0 mb-1 sm:mb-2">
