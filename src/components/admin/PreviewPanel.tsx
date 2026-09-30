@@ -437,10 +437,9 @@ export default function PreviewPanel({
                     }
                     coverInvitationStyle={coverInvitationStyle}
                     onOpen={() => {
+                      setView("invitation");
                       if (envelopeConfig.enabled) {
                         setUnboxingActive(true);
-                      } else {
-                        setView("invitation");
                       }
                     }}
                     closing={opened || unboxingActive}
@@ -480,10 +479,9 @@ export default function PreviewPanel({
                   }
                   coverInvitationStyle={coverInvitationStyle}
                   onOpen={() => {
+                    setView("invitation");
                     if (envelopeConfig.enabled) {
                       setUnboxingActive(true);
-                    } else {
-                      setView("invitation");
                     }
                   }}
                 />

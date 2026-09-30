@@ -349,10 +349,9 @@ export default function InvitePage() {
     document.body.style.overflow = "";
     document.documentElement.style.overflow = "";
     document.body.style.touchAction = "";
+    setOpened(true);
     if (envelopeConfig.enabled) {
       setUnboxingActive(true);
-    } else {
-      setOpened(true);
     }
     if (musicSettings.autoPlayInvitation || musicSettings.autoPlayCover) {
       setMusicPlayTrigger((n) => n + 1);
@@ -363,7 +362,6 @@ export default function InvitePage() {
     document.body.style.overflow = "";
     document.documentElement.style.overflow = "";
     document.body.style.touchAction = "";
-    setOpened(true);
     setUnboxingActive(false);
     if (musicSettings.autoPlayInvitation || musicSettings.autoPlayCover) {
       setMusicPlayTrigger((n) => n + 1);

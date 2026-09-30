@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   EnvelopeUnboxingConfig,
   COLOR_THEMES,
@@ -39,6 +39,10 @@ export default function Interactive3DEnvelopeUnboxing({
   const [isOpen, setIsOpen] = useState(false);
   const [fadedOut, setFadedOut] = useState(false);
 
+  // Keep stable ref to onComplete to prevent effect re-runs from resetting animation timer
+  const onCompleteRef = useRef(onComplete);
+  onCompleteRef.current = onComplete;
+
   // Speed and timing calculations
   const { tOpen, tFade } = getUnboxingTiming(config);
 
@@ -57,22 +61,22 @@ export default function Interactive3DEnvelopeUnboxing({
       setIsOpen(true);
     }, 40);
 
-    // When the 3D opening completes its majestic motion, smoothly fade out overlay into the live invitation
+    // Smoothly fade out overlay into the live invitation
     const timerFade = setTimeout(() => {
       setFadedOut(true);
-
-      const timerDone = setTimeout(() => {
-        onComplete();
-      }, tFade);
-
-      return () => clearTimeout(timerDone);
     }, tOpen + 60);
+
+    // Complete unboxing and clean up overlay
+    const timerDone = setTimeout(() => {
+      onCompleteRef.current?.();
+    }, tOpen + 60 + tFade);
 
     return () => {
       clearTimeout(timerOpen);
       clearTimeout(timerFade);
+      clearTimeout(timerDone);
     };
-  }, [config.sound_effects, config.style, onComplete, tOpen, tFade]);
+  }, [config.sound_effects, config.style, tOpen, tFade]);
 
   const theme =
     COLOR_THEMES.find((c) => c.id === config.color_theme) || COLOR_THEMES[0];
