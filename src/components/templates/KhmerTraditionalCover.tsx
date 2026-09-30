@@ -4,6 +4,10 @@ import {
   CoverInvitationStyle,
   getResolvedCoverTitleStyle,
 } from "@/lib/coverInvitationStyle";
+import {
+  GuestNameStyle,
+  getResolvedGuestNameStyle,
+} from "@/lib/guestNameStyle";
 
 function isKhmerChar(ch: string): boolean {
   const cp = ch.codePointAt(0) || 0;
@@ -50,6 +54,8 @@ type Props = {
   monogramEffectConfig?: MonogramShadowSettings | TextEffectConfig | null;
   /** Optional custom styling for the cover invitation title (សូមគោរពអញ្ជើញ / INVITATION) */
   coverInvitationStyle?: CoverInvitationStyle | null;
+  /** Optional custom styling for the guest name on cover */
+  guestNameStyle?: GuestNameStyle | null;
   onOpen: () => void;
 };
 
@@ -75,6 +81,7 @@ export default function KhmerTraditionalCover({
   monogramFilter,
   monogramEffectConfig,
   coverInvitationStyle,
+  guestNameStyle,
   onOpen,
 }: Props) {
   const isEn = language === "en";
@@ -173,6 +180,9 @@ export default function KhmerTraditionalCover({
   // Cover invitation title custom styling (independent for Khmer & English)
   const coverTitleStyle = getResolvedCoverTitleStyle(coverInvitationStyle, isEn, "#1a1a1a");
 
+  // Guest name custom styling (independent for Khmer & English)
+  const resolvedGuestStyle = getResolvedGuestNameStyle(guestNameStyle, isEn, "#f7a60f");
+
   return (
     <div
       lang="km"
@@ -260,28 +270,41 @@ export default function KhmerTraditionalCover({
       >
         <span
           ref={nameRef}
-          className="whitespace-nowrap text-2xl sm:text-3xl"
+          className="whitespace-nowrap"
           style={{
-            // Bitter SemiBold for Latin glyphs; per-glyph fallback to
-            // Khmer OS Moul Light for Khmer codepoints.
-            fontFamily: "'Bitter', 'Khmer OS Moul Light', 'Khmer OS Moul', 'Moul', 'Battambang', serif",
+            fontFamily: resolvedGuestStyle.font,
+            fontSize: resolvedGuestStyle.fontSize.fontSize || undefined,
             transform: `scale(${scale})`,
             transformOrigin: "center",
-            background: "#f7a60f",
+            background: resolvedGuestStyle.color,
             WebkitBackgroundClip: "text",
             backgroundClip: "text",
             WebkitTextFillColor: "transparent",
+            color: resolvedGuestStyle.color,
+            fontWeight: resolvedGuestStyle.isBold ? "bold" : (isEn ? 600 : undefined),
+            fontStyle: resolvedGuestStyle.isItalic ? "italic" : undefined,
             lineHeight: 1.65,
             padding: "0.14em 0 0.18em",
             letterSpacing: 0,
             display: "inline-block",
           }}
         >
-          {splitByScript(guestName).map((seg, i) => (
-            <span key={i} style={{ fontWeight: seg.isKhmer ? undefined : 600 }}>
-              {seg.text}
-            </span>
-          ))}
+          {splitByScript(guestName).map((seg, i) => {
+            const segStyle = getResolvedGuestNameStyle(guestNameStyle, !seg.isKhmer, resolvedGuestStyle.color);
+            return (
+              <span
+                key={i}
+                style={{
+                  fontFamily: segStyle.font,
+                  color: segStyle.color,
+                  fontWeight: segStyle.isBold ? "bold" : (seg.isKhmer ? undefined : 600),
+                  fontStyle: segStyle.isItalic ? "italic" : undefined,
+                }}
+              >
+                {seg.text}
+              </span>
+            );
+          })}
         </span>
       </div>
       {/* Slow shimmer sweep across the gradient for a premium metallic feel */}

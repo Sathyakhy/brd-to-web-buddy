@@ -10,6 +10,10 @@ import {
   CoverInvitationStyle,
   getResolvedCoverTitleStyle,
 } from "@/lib/coverInvitationStyle";
+import {
+  GuestNameStyle,
+  getResolvedGuestNameStyle,
+} from "@/lib/guestNameStyle";
 
 // Web Audio API organic sound synthesizer for zero-dependency unboxing audio cues
 function playUnboxSounds(enabled: boolean) {
@@ -88,6 +92,8 @@ type Props = {
   language?: LanguageCode;
   /** Optional custom styling for the cover invitation title (សូមគោរពអញ្ជើញ / INVITATION) */
   coverInvitationStyle?: CoverInvitationStyle | null;
+  /** Optional custom styling for the guest name on cover */
+  guestNameStyle?: GuestNameStyle | null;
   onOpen: () => void;
   positionMode?: "fixed" | "absolute";
   /** Allows preview resetting */
@@ -102,6 +108,7 @@ export default function Interactive3DEnvelope({
   config,
   language = "km",
   coverInvitationStyle,
+  guestNameStyle,
   onOpen,
   positionMode = "fixed",
   allowReplay = false,
@@ -110,6 +117,7 @@ export default function Interactive3DEnvelope({
   const cfg = normalizeEnvelopeConfig(config);
   const theme = SILK_THEMES.find((t) => t.id === cfg.silk_theme) || SILK_THEMES[0];
   const coverTitleStyle = getResolvedCoverTitleStyle(coverInvitationStyle, isEn, "rgba(253, 230, 138, 0.9)");
+  const resolvedGuestStyle = getResolvedGuestNameStyle(guestNameStyle, isEn, "#fcd34d");
 
   // Unboxing ritual states:
   // "sealed" -> "breaking" (seal cracked, ribbon peeling) -> "opening_flap" -> "card_rising" -> "completed"
@@ -362,8 +370,13 @@ export default function Interactive3DEnvelope({
                 {coverTitleStyle.text}
               </span>
               <span
-                className="text-sm sm:text-base font-bold text-amber-300 font-khmer-moul truncate max-w-full px-1"
+                className="text-sm sm:text-base font-bold truncate max-w-full px-1"
                 style={{
+                  color: resolvedGuestStyle.color,
+                  fontFamily: resolvedGuestStyle.font,
+                  fontSize: resolvedGuestStyle.fontSize.fontSize || undefined,
+                  fontWeight: resolvedGuestStyle.isBold ? "bold" : (isEn ? "bold" : "normal"),
+                  fontStyle: resolvedGuestStyle.isItalic ? "italic" : "normal",
                   textShadow: "0 2px 4px rgba(0,0,0,0.8), 0 0 10px rgba(247,207,114,0.4)",
                 }}
               >

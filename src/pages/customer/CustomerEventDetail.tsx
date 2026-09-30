@@ -33,7 +33,25 @@ export default function CustomerEventDetail() {
   const [loading, setLoading] = useState(true);
   const [addOpen, setAddOpen] = useState(false);
   const [bulkNames, setBulkNames] = useState("");
+  const [addGuestLanguage, setAddGuestLanguage] = useState<"km" | "en">("km");
   const [authorized, setAuthorized] = useState(false);
+
+  const getGuestLang = (g: Guest): "km" | "en" => {
+    if (g.token?.endsWith("-en")) return "en";
+    return "km";
+  };
+
+  const setGuestLang = async (g: Guest, newLang: "km" | "en") => {
+    const baseToken = g.token.replace(/-(en|km|kh)$/i, "");
+    const newToken = `${baseToken}-${newLang}`;
+    const { error } = await supabase.from("guests").update({ token: newToken }).eq("id", g.id);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    setGuests(prev => prev.map(x => x.id === g.id ? { ...x, token: newToken } : x));
+    toast.success(`Language set to ${newLang === "en" ? "English (EN)" : "Khmer (KH)"} for ${g.name}`);
+  };
 
   const load = async () => {
     if (!id || !user) return;
@@ -69,7 +87,7 @@ export default function CustomerEventDetail() {
     if (!event) return;
     const names = bulkNames.split("\n").map(n => n.trim()).filter(Boolean);
     if (names.length === 0) return;
-    const rows = names.map(name => ({ event_id: event.id, name, token: generateToken(12) }));
+    const rows = names.map(name => ({ event_id: event.id, name, token: `${generateToken(12)}-${addGuestLanguage}` }));
     const { error } = await supabase.from("guests").insert(rows);
     if (error) return toast.error(error.message);
     toast.success(`Added ${names.length} guest${names.length > 1 ? "s" : ""}`);
@@ -78,9 +96,10 @@ export default function CustomerEventDetail() {
     load();
   };
 
-  const copyLink = (token: string) => {
-    if (!event) return;
-    const url = `${window.location.origin}/${event.slug}/invite?token=${token}`;
+  const copyLink = (token: string, lang?: "km" | "en") => {
+    if (!event) return "";
+    const l = lang ?? (token.endsWith("-en") ? "en" : "km");
+    const url = `https://share.21invite.online/${encodeURIComponent(event.slug)}/invite?token=${encodeURIComponent(token)}&lang=${l}`;
     navigator.clipboard.writeText(url);
     toast.success("Invitation link copied");
   };
@@ -217,10 +236,39 @@ export default function CustomerEventDetail() {
                 <form onSubmit={handleAddGuests} className="space-y-4">
                   <div className="space-y-2">
                     <Label>Names (one per line)</Label>
-                    <Textarea rows={8} value={bulkNames} onChange={e => setBulkNames(e.target.value)}
+                    <Textarea rows={6} value={bulkNames} onChange={e => setBulkNames(e.target.value)}
                       placeholder="One name per line" required />
-                    <p className="text-xs text-muted-foreground">Each guest gets a unique secure invitation link.</p>
                   </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-medium">Default Language</Label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setAddGuestLanguage("km")}
+                        className={`flex items-center justify-center gap-2 py-2 px-3 rounded-lg border text-xs font-medium transition-colors ${
+                          addGuestLanguage === "km"
+                            ? "border-gold bg-gold/15 text-gold font-semibold shadow-2xs"
+                            : "border-input hover:bg-secondary/40 text-muted-foreground"
+                        }`}
+                      >
+                        <span className="font-bold">KH</span>
+                        <span>ភាសាខ្មែរ (Khmer)</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setAddGuestLanguage("en")}
+                        className={`flex items-center justify-center gap-2 py-2 px-3 rounded-lg border text-xs font-medium transition-colors ${
+                          addGuestLanguage === "en"
+                            ? "border-gold bg-gold/15 text-gold font-semibold shadow-2xs"
+                            : "border-input hover:bg-secondary/40 text-muted-foreground"
+                        }`}
+                      >
+                        <span className="font-bold">EN</span>
+                        <span>English</span>
+                      </button>
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground">Each guest gets a unique secure invitation link.</p>
                   <DialogFooter>
                     <Button type="submit" className="bg-gradient-gold text-primary-foreground hover:opacity-90">
                       Create guests
@@ -241,6 +289,7 @@ export default function CustomerEventDetail() {
                 <thead>
                   <tr className="text-xs uppercase tracking-widest text-muted-foreground border-b border-border">
                     <th className="text-left p-4 font-medium">Name</th>
+                    <th className="text-left p-4 font-medium">Language</th>
                     <th className="text-left p-4 font-medium">RSVP</th>
                     <th className="text-left p-4 font-medium hidden md:table-cell">Party</th>
                     <th className="text-left p-4 font-medium hidden lg:table-cell">Wishes</th>
@@ -248,34 +297,65 @@ export default function CustomerEventDetail() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
-                  {guests.map(g => (
-                    <tr key={g.id} className="hover:bg-secondary/30 transition-smooth">
-                      <td className="p-4">
-                        <div className="font-medium">{g.name}</div>
-                        <div className="text-xs text-muted-foreground mt-0.5">
-                          {g.responded_at ? `Responded ${formatDateTime(g.responded_at)}` : "Not yet responded"}
-                        </div>
-                      </td>
-                      <td className="p-4"><RsvpBadge status={g.rsvp_status} /></td>
-                      <td className="p-4 hidden md:table-cell">{g.party_size}</td>
-                      <td className="p-4 hidden lg:table-cell text-xs text-muted-foreground italic max-w-xs">
-                        {g.message ? `"${g.message}"` : "—"}
-                      </td>
-                      <td className="p-4 text-right">
-                        <div className="inline-flex gap-1">
-                          <Button variant="ghost" size="icon" onClick={() => copyLink(g.token)} title="Copy invitation link">
-                            <Copy className="h-4 w-4 text-gold" />
-                          </Button>
-                          <Button variant="ghost" size="icon" onClick={() => regenerate(g)} title="Regenerate token">
-                            <RefreshCw className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon" onClick={() => removeGuest(g)} title="Remove">
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                  {guests.map(g => {
+                    const gLang = getGuestLang(g);
+                    return (
+                      <tr key={g.id} className="hover:bg-secondary/30 transition-smooth">
+                        <td className="p-4">
+                          <div className="font-medium">{g.name}</div>
+                          <div className="text-xs text-muted-foreground mt-0.5">
+                            {g.responded_at ? `Responded ${formatDateTime(g.responded_at)}` : "Not yet responded"}
+                          </div>
+                        </td>
+                        <td className="p-4">
+                          <div className="inline-flex items-center rounded-md border border-border p-0.5 bg-background shadow-2xs">
+                            <button
+                              type="button"
+                              onClick={() => setGuestLang(g, "km")}
+                              className={`px-2 py-0.5 rounded text-[11px] font-semibold transition-all ${
+                                gLang === "km"
+                                  ? "bg-gold text-primary-foreground shadow-2xs"
+                                  : "text-muted-foreground hover:text-foreground"
+                              }`}
+                              title="Set default language to Khmer"
+                            >
+                              KH
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setGuestLang(g, "en")}
+                              className={`px-2 py-0.5 rounded text-[11px] font-semibold transition-all ${
+                                gLang === "en"
+                                  ? "bg-gold text-primary-foreground shadow-2xs"
+                                  : "text-muted-foreground hover:text-foreground"
+                              }`}
+                              title="Set default language to English"
+                            >
+                              EN
+                            </button>
+                          </div>
+                        </td>
+                        <td className="p-4"><RsvpBadge status={g.rsvp_status} /></td>
+                        <td className="p-4 hidden md:table-cell">{g.party_size}</td>
+                        <td className="p-4 hidden lg:table-cell text-xs text-muted-foreground italic max-w-xs">
+                          {g.message ? `"${g.message}"` : "—"}
+                        </td>
+                        <td className="p-4 text-right">
+                          <div className="inline-flex gap-1">
+                            <Button variant="ghost" size="icon" onClick={() => copyLink(g.token, gLang)} title="Copy invitation link">
+                              <Copy className="h-4 w-4 text-gold" />
+                            </Button>
+                            <Button variant="ghost" size="icon" onClick={() => regenerate(g)} title="Regenerate token">
+                              <RefreshCw className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="icon" onClick={() => removeGuest(g)} title="Remove">
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

@@ -65,12 +65,17 @@ import MonogramEffectEditor from "@/components/admin/MonogramEffectEditor";
 import FontSelector from "@/components/admin/FontSelector";
 import SideFrameEditor from "@/components/admin/SideFrameEditor";
 import CoverInvitationStyleEditor from "@/components/admin/CoverInvitationStyleEditor";
+import GuestNameStyleEditor from "@/components/admin/GuestNameStyleEditor";
 import TitleAndCoupleSizeEditor from "@/components/admin/TitleAndCoupleSizeEditor";
 import SocialShareMetadataEditor from "@/components/admin/SocialShareMetadataEditor";
 import {
   CoverInvitationStyle,
   normalizeCoverInvitationStyle,
 } from "@/lib/coverInvitationStyle";
+import {
+  GuestNameStyle,
+  normalizeGuestNameStyle,
+} from "@/lib/guestNameStyle";
 import {
   SideFrameConfig,
   normalizeSideFrameConfig,
@@ -156,6 +161,7 @@ type Event = {
   envelope_unboxing?: EnvelopeUnboxingConfig;
   cover_music_url: string | null;
   cover_invitation_style?: CoverInvitationStyle;
+  guest_name_style?: GuestNameStyle;
   page_title_font_size_km?: string | null;
   page_title_font_size_en?: string | null;
   couple_font_size_km?: string | null;
@@ -176,6 +182,7 @@ type Guest = {
   id: string; name: string; token: string; rsvp_status: string;
   party_size: number; message: string | null; responded_at: string | null;
   invite_sent_at: string | null;
+  default_language?: "km" | "en" | null;
 };
 
 export default function EventDetail() {
@@ -196,11 +203,20 @@ export default function EventDetail() {
   const [uploading, setUploading] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
   const [bulkNames, setBulkNames] = useState("");
+  const [addGuestLanguage, setAddGuestLanguage] = useState<"auto" | "km" | "en">("auto");
+  // Import dialog controls
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [importDefaultLanguage, setImportDefaultLanguage] = useState<"auto" | "km" | "en">("auto");
+  const [importParsedGuests, setImportParsedGuests] = useState<
+    Array<{ name: string; language: "km" | "en" | null; party_size: number; message: string }>
+  >([]);
   // Guest list controls
   const [guestSearch, setGuestSearch] = useState("");
-  const [guestFilter, setGuestFilter] = useState<"all" | "yes" | "no" | "pending" | "sent" | "unsent">("all");
+  const [guestFilter, setGuestFilter] = useState<"all" | "yes" | "no" | "pending" | "sent" | "unsent" | "km" | "en">("all");
   const [editingGuestId, setEditingGuestId] = useState<string | null>(null);
   const [editingGuestName, setEditingGuestName] = useState("");
+  const [editingGuestLanguage, setEditingGuestLanguage] = useState<"km" | "en">("km");
   const [selectedGuestIds, setSelectedGuestIds] = useState<Set<string>>(new Set());
   const [bulkDeleting, setBulkDeleting] = useState(false);
 
@@ -291,6 +307,9 @@ export default function EventDetail() {
       const cover_invitation_style = normalizeCoverInvitationStyle(
         (raw as any).cover_invitation_style ?? rawVis.cover_invitation_style ?? rawVis.cover_invitation
       );
+      const guest_name_style = normalizeGuestNameStyle(
+        (raw as any).guest_name_style ?? rawVis.guest_name_style
+      );
       const page_title_font_size_km = (raw as any).page_title_font_size_km ?? rawVis.page_title_font_size_km ?? null;
       const page_title_font_size_en = (raw as any).page_title_font_size_en ?? rawVis.page_title_font_size_en ?? null;
       const couple_font_size_km = (raw as any).couple_font_size_km ?? rawVis.couple_font_size_km ?? null;
@@ -346,6 +365,7 @@ export default function EventDetail() {
         rsvp_card_shadow_opacity,
         side_frame_config,
         cover_invitation_style,
+        guest_name_style,
         page_title_font_size_km,
         page_title_font_size_en,
         couple_font_size_km,
@@ -373,7 +393,18 @@ export default function EventDetail() {
     } else {
       setEvent(null);
     }
-    setGuests((gRes.data ?? []) as Guest[]);
+    const guestLangs = (rawVis.guest_languages || {}) as Record<string, string>;
+    const loadedGuests: Guest[] = ((gRes.data ?? []) as any[]).map(g => {
+      let lang: "km" | "en" | null = null;
+      if (g.token?.endsWith("-en")) lang = "en";
+      else if (g.token?.endsWith("-km") || g.token?.endsWith("-kh")) lang = "km";
+      else if (guestLangs[g.id] === "en" || guestLangs[g.id] === "km") lang = guestLangs[g.id] as "km" | "en";
+      return {
+        ...g,
+        default_language: lang,
+      };
+    });
+    setGuests(loadedGuests);
 
     // Build the list of customer-role profiles + already-linked ids.
     const customerIds = new Set((rolesRes.data ?? []).map((r: any) => r.user_id));
@@ -480,6 +511,7 @@ export default function EventDetail() {
       rsvp_card_shadow_y: event.rsvp_card_shadow_y ?? null,
       rsvp_card_shadow_opacity: event.rsvp_card_shadow_opacity ?? null,
       cover_invitation_style: event.cover_invitation_style ?? null,
+      guest_name_style: event.guest_name_style ?? null,
       page_title_font_size_km: (event as any).page_title_font_size_km ?? null,
       page_title_font_size_en: (event as any).page_title_font_size_en ?? null,
       couple_font_size_km: (event as any).couple_font_size_km ?? null,
@@ -707,14 +739,68 @@ export default function EventDetail() {
     reorderGallery(from, to);
   };
 
+  const getGuestLang = (g: Guest): "km" | "en" => {
+    if (g.default_language === "en" || g.default_language === "km") return g.default_language;
+    if (g.token?.endsWith("-en")) return "en";
+    if (g.token?.endsWith("-km") || g.token?.endsWith("-kh")) return "km";
+    const dualCfg = getDualLanguageConfig(
+      (event as any)?.dual_language_config ??
+      (event as any)?.section_visibility?.dual_language ??
+      (event as any)?.section_visibility,
+      event
+    );
+    return dualCfg.default_language || "km";
+  };
+
+  const setGuestLang = async (g: Guest, newLang: "km" | "en") => {
+    const baseToken = g.token.replace(/-(en|km|kh)$/i, "");
+    const newToken = `${baseToken}-${newLang}`;
+    const { error } = await supabase.from("guests").update({ token: newToken }).eq("id", g.id);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    setGuests(prev => prev.map(x => x.id === g.id ? { ...x, token: newToken, default_language: newLang } : x));
+    toast.success(`Language set to ${newLang === "en" ? "English (EN)" : "Khmer (KH)"} for ${g.name}`);
+  };
+
+  type GuestBatchItem = {
+    name: string;
+    lang?: "km" | "en" | null;
+    party_size?: number;
+    message?: string | null;
+  };
+
   /**
    * Insert a batch of guests, enforcing the optional `max_guests` cap.
-   * Returns true on success so callers (manual / Excel import) can clear UI.
+   * Supports explicit per-guest language and fallback default language.
    */
-  const insertGuestsBatch = async (names: string[]): Promise<boolean> => {
+  const insertGuestsBatch = async (
+    items: (string | GuestBatchItem)[],
+    fallbackLang?: "auto" | "km" | "en"
+  ): Promise<boolean> => {
     if (!event) return false;
-    const cleaned = names.map(n => n.trim()).filter(Boolean);
-    if (cleaned.length === 0) {
+    const dualCfg = getDualLanguageConfig(
+      (event as any)?.dual_language_config ??
+      (event as any)?.section_visibility?.dual_language ??
+      (event as any)?.section_visibility,
+      event
+    );
+    const eventDefaultLang = dualCfg.default_language || "km";
+
+    const normalizedItems: GuestBatchItem[] = items
+      .map(item => {
+        if (typeof item === "string") {
+          return { name: item.trim() };
+        }
+        return {
+          ...item,
+          name: (item.name || "").trim(),
+        };
+      })
+      .filter(item => Boolean(item.name));
+
+    if (normalizedItems.length === 0) {
       toast.error("No guest names found");
       return false;
     }
@@ -725,48 +811,66 @@ export default function EventDetail() {
         toast.error(`Guest limit reached (${cap}). Increase the maximum to add more.`);
         return false;
       }
-      if (cleaned.length > remaining) {
-        toast.error(`Only ${remaining} more allowed (max ${cap}). Remove ${cleaned.length - remaining} name(s) and try again.`);
+      if (normalizedItems.length > remaining) {
+        toast.error(`Only ${remaining} more allowed (max ${cap}). Remove ${normalizedItems.length - remaining} name(s) and try again.`);
         return false;
       }
     }
-    const rows = cleaned.map(name => ({ event_id: event.id, name, token: generateToken(12) }));
+
+    const rows = normalizedItems.map(item => {
+      const resolvedLang: "km" | "en" =
+        item.lang ??
+        (fallbackLang && fallbackLang !== "auto" ? fallbackLang : eventDefaultLang);
+      const token = `${generateToken(12)}-${resolvedLang}`;
+      return {
+        event_id: event.id,
+        name: item.name,
+        token,
+        party_size: item.party_size && item.party_size > 0 ? item.party_size : 1,
+        message: item.message || null,
+      };
+    });
+
     const { data: inserted, error } = await supabase
       .from("guests")
       .insert(rows)
       .select("*");
     if (error) { toast.error(error.message); return false; }
     if (inserted && inserted.length) {
-      setGuests(prev => [...(inserted as Guest[]), ...prev]);
+      const newGuests: Guest[] = (inserted as any[]).map(g => ({
+        ...g,
+        default_language: g.token.endsWith("-en") ? "en" : "km",
+      }));
+      setGuests(prev => [...newGuests, ...prev]);
     }
-    toast.success(`Added ${cleaned.length} guest${cleaned.length > 1 ? "s" : ""}`);
+    toast.success(`Added ${normalizedItems.length} guest${normalizedItems.length > 1 ? "s" : ""}`);
     return true;
   };
 
   const handleAddGuests = async (e: React.FormEvent) => {
     e.preventDefault();
     const names = bulkNames.split("\n");
-    const ok = await insertGuestsBatch(names);
+    const ok = await insertGuestsBatch(names, addGuestLanguage);
     if (ok) {
       setBulkNames("");
       setAddOpen(false);
     }
   };
 
-  /** Download a blank .xlsx template guests can fill in and re-import.
-   *  Header row only — no example/dummy rows so admins can't accidentally
-   *  re-import them. */
+  /** Download a blank .xlsx template with Language column (KH / EN). */
   const downloadGuestTemplate = () => {
     const ws = XLSX.utils.aoa_to_sheet([
-      ["Name", "Party size", "Message"],
+      ["Name", "Language", "Party size", "Message"],
+      ["Mr. & Mrs. John Smith", "EN", 2, ""],
+      ["ឯកឧត្តម និងលោកជំទាវ", "KH", 2, ""],
     ]);
-    ws["!cols"] = [{ wch: 32 }, { wch: 12 }, { wch: 40 }];
+    ws["!cols"] = [{ wch: 32 }, { wch: 14 }, { wch: 12 }, { wch: 40 }];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Guests");
     XLSX.writeFile(wb, `${event?.slug || "event"}-guest-template.xlsx`);
   };
 
-  /** Read an .xlsx file and import the "Name" column as new guests. */
+  /** Read an .xlsx file, extract guest names and language, and open the import preview dialog. */
   const importGuestsExcel = async (file: File) => {
     try {
       const buf = await file.arrayBuffer();
@@ -774,20 +878,62 @@ export default function EventDetail() {
       const sheet = wb.Sheets[wb.SheetNames[0]];
       if (!sheet) { toast.error("No sheet found in file"); return; }
       const rows: any[] = XLSX.utils.sheet_to_json(sheet, { defval: "" });
-      // Accept any case/spacing for the Name column.
-      const names = rows
-        .map(r => {
-          const k = Object.keys(r).find(k => k.trim().toLowerCase() === "name");
-          return k ? String(r[k] ?? "").trim() : "";
-        })
-        .filter(Boolean);
-      if (names.length === 0) {
-        toast.error('No "Name" column values found. Use the template format.');
+      
+      const parsed = rows.map(r => {
+        const nameKey = Object.keys(r).find(k => k.trim().toLowerCase() === "name");
+        const name = nameKey ? String(r[nameKey] ?? "").trim() : "";
+        if (!name) return null;
+
+        const langKey = Object.keys(r).find(k => {
+          const lk = k.trim().toLowerCase();
+          return lk.includes("lang") || lk === "language" || lk === "default language" || lk === "ភាសា";
+        });
+        const langVal = langKey ? String(r[langKey] ?? "").trim().toLowerCase() : "";
+        let rowLang: "km" | "en" | null = null;
+        if (langVal.includes("en") || langVal.includes("english")) rowLang = "en";
+        else if (langVal.includes("km") || langVal.includes("kh") || langVal.includes("khmer")) rowLang = "km";
+
+        const partyKey = Object.keys(r).find(k => k.trim().toLowerCase().includes("party"));
+        const party_size = partyKey ? parseInt(String(r[partyKey]), 10) || 1 : 1;
+
+        const msgKey = Object.keys(r).find(k => k.trim().toLowerCase().includes("message"));
+        const message = msgKey ? String(r[msgKey] ?? "").trim() : "";
+
+        return { name, language: rowLang, party_size, message };
+      }).filter(Boolean) as Array<{ name: string; language: "km" | "en" | null; party_size: number; message: string }>;
+
+      if (parsed.length === 0) {
+        toast.error('No valid guest rows found with a "Name" column.');
         return;
       }
-      await insertGuestsBatch(names);
+
+      setImportFile(file);
+      setImportParsedGuests(parsed);
+      setImportDefaultLanguage("auto");
+      setImportDialogOpen(true);
     } catch (err: any) {
       toast.error(err?.message || "Failed to read Excel file");
+    }
+  };
+
+  const confirmImportGuests = async () => {
+    const items: GuestBatchItem[] = importParsedGuests.map(p => {
+      let finalLang: "km" | "en";
+      if (importDefaultLanguage === "km") finalLang = "km";
+      else if (importDefaultLanguage === "en") finalLang = "en";
+      else finalLang = p.language || ((event as any)?.dual_language_config?.default_language || "km");
+      return {
+        name: p.name,
+        lang: finalLang,
+        party_size: p.party_size,
+        message: p.message,
+      };
+    });
+    const ok = await insertGuestsBatch(items, importDefaultLanguage);
+    if (ok) {
+      setImportDialogOpen(false);
+      setImportFile(null);
+      setImportParsedGuests([]);
     }
   };
 
@@ -798,28 +944,26 @@ export default function EventDetail() {
    * Graph tags (event title, guest name, Khmer wording, first gallery
    * photo). Real users are redirected to the SPA invitation page instantly.
    */
-  const buildShareUrl = (token: string) => {
+  const buildShareUrl = (token: string, lang?: "km" | "en") => {
     if (!event) return "";
-    // Branded share subdomain — Cloudflare Worker on share.21invite.online
-    // serves OG preview tags to crawlers and 302-redirects humans to the
-    // root domain SPA invitation page.
-    return `https://share.21invite.online/${encodeURIComponent(event.slug)}/invite?token=${encodeURIComponent(token)}`;
+    const l = lang ?? (token.endsWith("-en") ? "en" : token.endsWith("-km") || token.endsWith("-kh") ? "km" : undefined);
+    const langQuery = l ? `&lang=${l}` : "";
+    return `https://share.21invite.online/${encodeURIComponent(event.slug)}/invite?token=${encodeURIComponent(token)}${langQuery}`;
   };
 
   /** Short, branded invitation URL guests will actually see when the host
-   *  copies/pastes the link into a chat. Hosts strongly prefer this over
-   *  the long edge-function URL used purely for social-media OG previews. */
-  const buildBrandedUrl = (token: string) => {
+   *  copies/pastes the link into a chat. */
+  const buildBrandedUrl = (token: string, lang?: "km" | "en") => {
     if (!event) return "";
-    return `https://21invite.online/${event.slug}/invite?token=${encodeURIComponent(token)}`;
+    const l = lang ?? (token.endsWith("-en") ? "en" : token.endsWith("-km") || token.endsWith("-kh") ? "km" : undefined);
+    const langQuery = l ? `&lang=${l}` : "";
+    return `https://21invite.online/${event.slug}/invite?token=${encodeURIComponent(token)}${langQuery}`;
   };
 
   /** Render the ready-to-send Khmer invitation message a host can paste
    *  directly into Telegram/Messenger for each guest. */
   const buildKhmerMessage = (guestName: string, token: string) => {
     if (!event) return "";
-    // Extract the couple's name from stored groom/bride string.
-    // Format: line 0 = father, line 1 = mother, line 2 = couple name (or single line = couple name).
     const cleanName = (raw: string | null) => {
       if (!raw) return "";
       const lines = raw.split(/\r?\n|\s\/\s/).map(s => s.trim()).filter(Boolean);
@@ -832,7 +976,7 @@ export default function EventDetail() {
     const couple = `${groom} និង ${bride}`;
     const dateStr = formatKhmerDateLocal(event.event_date) || "<event date>";
     const venue = ((event.venue ?? "").split("|")[0] ?? "").trim() || "<venue location>";
-    const link = buildShareUrl(token);
+    const link = buildShareUrl(token, "km");
     return [
       "សូមគោរពអញ្ជើញ",
       guestName,
@@ -850,22 +994,58 @@ export default function EventDetail() {
     ].join("\n");
   };
 
-  /** Export the current guest list (with RSVP details) as .xlsx. */
+  /** Render ready-to-send English invitation message. */
+  const buildEnglishMessage = (guestName: string, token: string) => {
+    if (!event) return "";
+    const cleanName = (raw: string | null) => {
+      if (!raw) return "";
+      const lines = raw.split(/\r?\n|\s\/\s/).map(s => s.trim()).filter(Boolean);
+      const target = lines.length >= 3 ? lines[2] : (lines.length === 1 ? lines[0] : (lines[lines.length - 1] || ""));
+      const parts = target.split("|").map(s => s.trim()).filter(Boolean);
+      return parts.join(" ").trim();
+    };
+    const groom = cleanName(event.groom_name) || "Groom";
+    const bride = cleanName(event.bride_name) || "Bride";
+    const couple = `${groom} & ${bride}`;
+    const dateStr = event.event_date
+      ? new Date(event.event_date).toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })
+      : "<Date>";
+    const venue = ((event.venue ?? "").split("|")[1] ?? (event.venue ?? "").split("|")[0] ?? "").trim() || "<Venue>";
+    const link = buildShareUrl(token, "en");
+
+    return [
+      "WEDDING INVITATION",
+      guestName,
+      "",
+      `We cordially invite you to celebrate the wedding ceremony of ${couple} as our honored guest on ${dateStr} at ${venue}.`,
+      "",
+      "Your presence will be our greatest honor and make our special day truly memorable.",
+      "",
+      "Please find your personalized digital invitation below:",
+      link,
+    ].join("\n");
+  };
+
+  /** Export the current guest list (with RSVP details & language) as .xlsx. */
   const exportGuestsExcel = () => {
     if (!event) return;
-    const data = guests.map(g => ({
-      Name: g.name,
-      "RSVP status": g.rsvp_status,
-      "Party size": g.party_size,
-      Message: g.message ?? "",
-      "Responded at": g.responded_at ? new Date(g.responded_at).toLocaleString() : "",
-      "Invitation sent at": g.invite_sent_at ? new Date(g.invite_sent_at).toLocaleString() : "",
-      "Invitation link": buildShareUrl(g.token),
-      "Invitation message (Khmer)": buildKhmerMessage(g.name, g.token),
-    }));
+    const data = guests.map(g => {
+      const guestLang = getGuestLang(g);
+      return {
+        Name: g.name,
+        Language: guestLang === "en" ? "EN" : "KH",
+        "RSVP status": g.rsvp_status,
+        "Party size": g.party_size,
+        Message: g.message ?? "",
+        "Responded at": g.responded_at ? new Date(g.responded_at).toLocaleString() : "",
+        "Invitation sent at": g.invite_sent_at ? new Date(g.invite_sent_at).toLocaleString() : "",
+        "Invitation link": buildShareUrl(g.token, guestLang),
+        "Invitation message": guestLang === "en" ? buildEnglishMessage(g.name, g.token) : buildKhmerMessage(g.name, g.token),
+      };
+    });
     const ws = XLSX.utils.json_to_sheet(data);
     ws["!cols"] = [
-      { wch: 28 }, { wch: 12 }, { wch: 10 }, { wch: 32 },
+      { wch: 28 }, { wch: 12 }, { wch: 12 }, { wch: 10 }, { wch: 32 },
       { wch: 22 }, { wch: 22 }, { wch: 60 }, { wch: 80 },
     ];
     const wb = XLSX.utils.book_new();
@@ -873,23 +1053,22 @@ export default function EventDetail() {
     XLSX.writeFile(wb, `${event.slug}-guests-${new Date().toISOString().slice(0, 10)}.xlsx`);
   };
 
-
-  const copyLink = (token: string) => {
+  const copyLink = (token: string, lang?: "km" | "en") => {
     if (!event) return;
-    navigator.clipboard.writeText(buildShareUrl(token));
+    navigator.clipboard.writeText(buildShareUrl(token, lang));
     toast.success("Invitation link copied");
   };
 
   const regenerate = async (g: Guest) => {
-    const newToken = generateToken(12);
+    const currentLang = getGuestLang(g);
+    const newToken = `${generateToken(12)}-${currentLang}`;
     const { error } = await supabase.from("guests").update({ token: newToken }).eq("id", g.id);
     if (error) return toast.error(error.message);
     setGuests(prev => prev.map(x => x.id === g.id ? { ...x, token: newToken } : x));
     toast.success("Token regenerated");
   };
 
-  /** Toggle the "invitation sent" marker for a guest. Lets hosts track who
-   *  has already received their link without affecting RSVP state. */
+  /** Toggle the "invitation sent" marker for a guest. */
   const toggleSent = async (g: Guest) => {
     const next = g.invite_sent_at ? null : new Date().toISOString();
     const { error } = await supabase.from("guests").update({ invite_sent_at: next }).eq("id", g.id);
@@ -949,6 +1128,7 @@ export default function EventDetail() {
   const startEditGuest = (g: Guest) => {
     setEditingGuestId(g.id);
     setEditingGuestName(g.name);
+    setEditingGuestLanguage(getGuestLang(g));
   };
   const cancelEditGuest = () => {
     setEditingGuestId(null);
@@ -957,12 +1137,18 @@ export default function EventDetail() {
   const saveEditGuest = async (g: Guest) => {
     const newName = editingGuestName.trim();
     if (!newName) return toast.error("Name cannot be empty");
-    if (newName === g.name) { cancelEditGuest(); return; }
-    const { error } = await supabase.from("guests").update({ name: newName }).eq("id", g.id);
+    
+    const baseToken = g.token.replace(/-(en|km|kh)$/i, "");
+    const newToken = `${baseToken}-${editingGuestLanguage}`;
+    
+    const { error } = await supabase
+      .from("guests")
+      .update({ name: newName, token: newToken })
+      .eq("id", g.id);
     if (error) return toast.error(error.message);
-    setGuests(prev => prev.map(x => x.id === g.id ? { ...x, name: newName } : x));
+    setGuests(prev => prev.map(x => x.id === g.id ? { ...x, name: newName, token: newToken, default_language: editingGuestLanguage } : x));
     cancelEditGuest();
-    toast.success("Guest renamed");
+    toast.success("Guest updated");
   };
 
   // Toggle a customer's link to this event in local state. Saved on click of
@@ -1714,6 +1900,24 @@ export default function EventDetail() {
                   setEvent({
                     ...event,
                     cover_invitation_style: updated,
+                  } as any);
+                }}
+                defaultAccentColor={event.text_color_accent}
+              />
+            </div>
+
+            {/* 4b. Cover Page Guest Name Style (Independent Khmer & English font, size, color) */}
+            <div className="pt-4 border-t border-border/50">
+              <GuestNameStyleEditor
+                config={normalizeGuestNameStyle(event.guest_name_style)}
+                onChange={(patch) => {
+                  const updated = {
+                    ...normalizeGuestNameStyle(event.guest_name_style),
+                    ...patch,
+                  };
+                  setEvent({
+                    ...event,
+                    guest_name_style: updated,
                   } as any);
                 }}
                 defaultAccentColor={event.text_color_accent}
@@ -2697,22 +2901,124 @@ export default function EventDetail() {
                   <form onSubmit={handleAddGuests} className="space-y-4">
                     <div className="space-y-2">
                       <Label>Names (one per line)</Label>
-                      <Textarea rows={8} value={bulkNames} onChange={e => setBulkNames(e.target.value)}
+                      <Textarea rows={7} value={bulkNames} onChange={e => setBulkNames(e.target.value)}
                         placeholder="One name per line" required
                         className="font-khmer-siemreap" />
-                      <p className="text-xs text-muted-foreground">
-                        Each guest gets a unique secure invitation link. Links never expire and can be opened any number of times.
-                        {event.max_guests != null && (
-                          <> Limit: <span className="text-gold">{guests.length} / {event.max_guests}</span>.</>
-                        )}
-                      </p>
                     </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-medium">Default Language</Label>
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setAddGuestLanguage("km")}
+                          className={`flex items-center justify-center gap-2 py-2 px-3 rounded-lg border text-xs font-medium transition-colors ${
+                            addGuestLanguage === "km" || addGuestLanguage === "auto"
+                              ? "border-gold bg-gold/15 text-gold font-semibold shadow-2xs"
+                              : "border-input hover:bg-secondary/40 text-muted-foreground"
+                          }`}
+                        >
+                          <span className="font-bold">KH</span>
+                          <span>ភាសាខ្មែរ (Khmer)</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setAddGuestLanguage("en")}
+                          className={`flex items-center justify-center gap-2 py-2 px-3 rounded-lg border text-xs font-medium transition-colors ${
+                            addGuestLanguage === "en"
+                              ? "border-gold bg-gold/15 text-gold font-semibold shadow-2xs"
+                              : "border-input hover:bg-secondary/40 text-muted-foreground"
+                          }`}
+                        >
+                          <span className="font-bold">EN</span>
+                          <span>English</span>
+                        </button>
+                      </div>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Each guest gets a unique secure invitation link in their chosen default language.
+                      {event.max_guests != null && (
+                        <> Limit: <span className="text-gold">{guests.length} / {event.max_guests}</span>.</>
+                      )}
+                    </p>
                     <DialogFooter>
                       <Button type="submit" className="bg-gradient-gold text-primary-foreground hover:opacity-90">
                         Create guests
                       </Button>
                     </DialogFooter>
                   </form>
+                </DialogContent>
+              </Dialog>
+
+              {/* Import Guests Dialog with Language Selection */}
+              <Dialog open={importDialogOpen} onOpenChange={setImportDialogOpen}>
+                <DialogContent className="sm:max-w-md">
+                  <DialogHeader>
+                    <DialogTitle className="font-serif text-2xl flex items-center gap-2">
+                      <FileSpreadsheet className="h-5 w-5 text-gold" /> Import Guests
+                    </DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4 py-2">
+                    <div className="p-3 bg-secondary/30 rounded-lg border border-border text-xs space-y-1">
+                      <div className="flex justify-between font-medium text-foreground">
+                        <span>File: {importFile?.name}</span>
+                        <span className="text-gold font-semibold">{importParsedGuests.length} guests detected</span>
+                      </div>
+                      <div className="text-muted-foreground">
+                        Auto-detected: {importParsedGuests.filter(p => p.language === "en").length} English, {importParsedGuests.filter(p => p.language === "km" || !p.language).length} Khmer
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-xs font-medium">Default Language for imported guests</Label>
+                      <div className="space-y-2">
+                        <label className={`flex items-center gap-2.5 p-2.5 rounded-lg border cursor-pointer text-xs transition-colors ${importDefaultLanguage === "auto" ? "border-gold bg-gold/10 text-foreground" : "border-border text-muted-foreground"}`}>
+                          <input
+                            type="radio"
+                            name="import_lang"
+                            checked={importDefaultLanguage === "auto"}
+                            onChange={() => setImportDefaultLanguage("auto")}
+                            className="text-gold focus:ring-gold"
+                          />
+                          <div className="flex-1">
+                            <span className="font-semibold text-foreground">Auto-detect from sheet column</span>
+                            <p className="text-[11px] opacity-80">Uses Language column if present, otherwise event default.</p>
+                          </div>
+                        </label>
+                        <label className={`flex items-center gap-2.5 p-2.5 rounded-lg border cursor-pointer text-xs transition-colors ${importDefaultLanguage === "km" ? "border-gold bg-gold/10 text-foreground" : "border-border text-muted-foreground"}`}>
+                          <input
+                            type="radio"
+                            name="import_lang"
+                            checked={importDefaultLanguage === "km"}
+                            onChange={() => setImportDefaultLanguage("km")}
+                            className="text-gold focus:ring-gold"
+                          />
+                          <div className="flex-1">
+                            <span className="font-semibold text-foreground">All Khmer (KH) — ភាសាខ្មែរ</span>
+                            <p className="text-[11px] opacity-80">Import all guests with Khmer as default invitation language.</p>
+                          </div>
+                        </label>
+                        <label className={`flex items-center gap-2.5 p-2.5 rounded-lg border cursor-pointer text-xs transition-colors ${importDefaultLanguage === "en" ? "border-gold bg-gold/10 text-foreground" : "border-border text-muted-foreground"}`}>
+                          <input
+                            type="radio"
+                            name="import_lang"
+                            checked={importDefaultLanguage === "en"}
+                            onChange={() => setImportDefaultLanguage("en")}
+                            className="text-gold focus:ring-gold"
+                          />
+                          <div className="flex-1">
+                            <span className="font-semibold text-foreground">All English (EN)</span>
+                            <p className="text-[11px] opacity-80">Import all guests with English as default invitation language.</p>
+                          </div>
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                  <DialogFooter className="gap-2">
+                    <Button variant="ghost" onClick={() => setImportDialogOpen(false)}>Cancel</Button>
+                    <Button onClick={confirmImportGuests} className="bg-gradient-gold text-primary-foreground">
+                      Import {importParsedGuests.length} Guests
+                    </Button>
+                  </DialogFooter>
                 </DialogContent>
               </Dialog>
             </div>
@@ -2733,18 +3039,18 @@ export default function EventDetail() {
                   />
                 </div>
                 <div className="inline-flex rounded-md border border-border overflow-hidden flex-wrap">
-                  {(["all", "yes", "no", "pending", "sent", "unsent"] as const).map(f => (
+                  {(["all", "yes", "no", "pending", "sent", "unsent", "km", "en"] as const).map(f => (
                     <button
                       key={f}
                       type="button"
                       onClick={() => setGuestFilter(f)}
                       className={`flex-1 sm:flex-none px-2.5 sm:px-3 py-1.5 text-[11px] sm:text-xs uppercase tracking-wide transition-colors ${
                         guestFilter === f
-                          ? "bg-gold/15 text-gold"
+                          ? "bg-gold/15 text-gold font-semibold"
                           : "text-muted-foreground hover:bg-secondary/50"
                       }`}
                     >
-                      {f === "all" ? "All" : f === "yes" ? "Attending" : f === "no" ? "Declined" : f === "pending" ? "Pending" : f === "sent" ? "Sent" : "Not sent"}
+                      {f === "all" ? "All" : f === "yes" ? "Attending" : f === "no" ? "Declined" : f === "pending" ? "Pending" : f === "sent" ? "Sent" : f === "unsent" ? "Not sent" : f === "km" ? "KH" : "EN"}
                     </button>
                   ))}
                 </div>
@@ -2754,8 +3060,11 @@ export default function EventDetail() {
             {(() => {
               const q = guestSearch.trim().toLowerCase();
               const filtered = guests.filter(g => {
+                const gLang = getGuestLang(g);
                 if (guestFilter === "sent" && !g.invite_sent_at) return false;
                 if (guestFilter === "unsent" && g.invite_sent_at) return false;
+                if (guestFilter === "km" && gLang !== "km") return false;
+                if (guestFilter === "en" && gLang !== "en") return false;
                 if (["yes", "no", "pending"].includes(guestFilter) && g.rsvp_status !== guestFilter) return false;
                 if (!q) return true;
                 return (
@@ -2805,8 +3114,7 @@ export default function EventDetail() {
                       </div>
                     </div>
                   )}
-                  {/* Mobile card list — guest rows collapse into stacked cards
-                      with full-width action row, removing horizontal scroll. */}
+                  {/* Mobile card list — guest rows collapse into stacked cards */}
                   <div className="sm:hidden divide-y divide-border">
                     <div className="px-5 py-2 flex items-center gap-3 bg-secondary/20 border-b border-border">
                       <Checkbox
@@ -2821,26 +3129,56 @@ export default function EventDetail() {
                     {filtered.map(g => {
                       const isEditing = editingGuestId === g.id;
                       const isSelected = selectedGuestIds.has(g.id);
+                      const gLang = getGuestLang(g);
                       return (
                         <div key={g.id} className={`px-5 py-4 space-y-3 ${isSelected ? "bg-secondary/30" : ""}`}>
                           {isEditing ? (
-                            <div className="flex items-center gap-2">
-                              <Input
-                                autoFocus
-                                value={editingGuestName}
-                                onChange={e => setEditingGuestName(e.target.value)}
-                                onKeyDown={e => {
-                                  if (e.key === "Enter") saveEditGuest(g);
-                                  if (e.key === "Escape") cancelEditGuest();
-                                }}
-                                className="h-8 font-khmer-siemreap"
-                              />
-                              <Button size="icon" variant="ghost" onClick={() => saveEditGuest(g)} title="Save">
-                                <Check className="h-4 w-4 text-success" />
-                              </Button>
-                              <Button size="icon" variant="ghost" onClick={cancelEditGuest} title="Cancel">
-                                <X className="h-4 w-4" />
-                              </Button>
+                            <div className="space-y-2">
+                              <div className="flex items-center gap-2">
+                                <Input
+                                  autoFocus
+                                  value={editingGuestName}
+                                  onChange={e => setEditingGuestName(e.target.value)}
+                                  onKeyDown={e => {
+                                    if (e.key === "Enter") saveEditGuest(g);
+                                    if (e.key === "Escape") cancelEditGuest();
+                                  }}
+                                  className="h-8 font-khmer-siemreap"
+                                />
+                                <Button size="icon" variant="ghost" onClick={() => saveEditGuest(g)} title="Save">
+                                  <Check className="h-4 w-4 text-success" />
+                                </Button>
+                                <Button size="icon" variant="ghost" onClick={cancelEditGuest} title="Cancel">
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs text-muted-foreground">Default Language:</span>
+                                <div className="inline-flex rounded-md border border-border p-0.5 bg-background shadow-2xs">
+                                  <button
+                                    type="button"
+                                    onClick={() => setEditingGuestLanguage("km")}
+                                    className={`px-2 py-0.5 rounded text-[11px] font-semibold transition-all ${
+                                      editingGuestLanguage === "km"
+                                        ? "bg-gold text-primary-foreground shadow-2xs"
+                                        : "text-muted-foreground hover:text-foreground"
+                                    }`}
+                                  >
+                                    KH
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => setEditingGuestLanguage("en")}
+                                    className={`px-2 py-0.5 rounded text-[11px] font-semibold transition-all ${
+                                      editingGuestLanguage === "en"
+                                        ? "bg-gold text-primary-foreground shadow-2xs"
+                                        : "text-muted-foreground hover:text-foreground"
+                                    }`}
+                                  >
+                                    EN
+                                  </button>
+                                </div>
+                              </div>
                             </div>
                           ) : (
                             <div className="flex items-start gap-3">
@@ -2851,7 +3189,9 @@ export default function EventDetail() {
                                 className="mt-1"
                               />
                               <div className="min-w-0 flex-1">
-                                <div className="font-medium font-khmer-siemreap break-words">{g.name}</div>
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className="font-medium font-khmer-siemreap break-words">{g.name}</span>
+                                </div>
                                 {g.message && (
                                   <div className="text-xs text-muted-foreground mt-0.5 italic font-khmer-siemreap break-words">
                                     "{g.message}"
@@ -2859,6 +3199,32 @@ export default function EventDetail() {
                                 )}
                                 <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground flex-wrap">
                                   <RsvpBadge status={g.rsvp_status} />
+                                  <div className="inline-flex items-center rounded-md border border-border p-0.5 bg-background shadow-2xs">
+                                    <button
+                                      type="button"
+                                      onClick={() => setGuestLang(g, "km")}
+                                      className={`px-1.5 py-0.5 rounded text-[10px] font-bold transition-all ${
+                                        gLang === "km"
+                                          ? "bg-gold text-primary-foreground shadow-2xs"
+                                          : "text-muted-foreground hover:text-foreground"
+                                      }`}
+                                      title="Set default language to Khmer (KH)"
+                                    >
+                                      KH
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => setGuestLang(g, "en")}
+                                      className={`px-1.5 py-0.5 rounded text-[10px] font-bold transition-all ${
+                                        gLang === "en"
+                                          ? "bg-gold text-primary-foreground shadow-2xs"
+                                          : "text-muted-foreground hover:text-foreground"
+                                      }`}
+                                      title="Set default language to English (EN)"
+                                    >
+                                      EN
+                                    </button>
+                                  </div>
                                   {g.invite_sent_at && (
                                     <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-gold/15 text-gold text-[10px] uppercase tracking-wide">
                                       <Send className="h-3 w-3" /> Sent
@@ -2872,10 +3238,10 @@ export default function EventDetail() {
                           )}
                           {!isEditing && (
                             <div className="flex items-center justify-end gap-1 pt-1 border-t border-border/40">
-                              <Button variant="ghost" size="icon" onClick={() => startEditGuest(g)} title="Edit name">
+                              <Button variant="ghost" size="icon" onClick={() => startEditGuest(g)} title="Edit name & language">
                                 <Pencil className="h-4 w-4" />
                               </Button>
-                              <Button variant="ghost" size="icon" onClick={() => copyLink(g.token)} title="Copy invitation link">
+                              <Button variant="ghost" size="icon" onClick={() => copyLink(g.token, gLang)} title="Copy invitation link">
                                 <Copy className="h-4 w-4 text-gold" />
                               </Button>
                               <Button variant="ghost" size="icon" onClick={() => toggleSent(g)} title={g.invite_sent_at ? "Mark as not sent" : "Mark as sent"}>
@@ -2894,7 +3260,7 @@ export default function EventDetail() {
                     })}
                   </div>
 
-                  {/* Desktop table — unchanged structure, just hidden below sm. */}
+                  {/* Desktop table */}
                   <div className="hidden sm:block overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead>
@@ -2907,6 +3273,7 @@ export default function EventDetail() {
                             />
                           </th>
                           <th className="text-left p-4 font-medium">Name</th>
+                          <th className="text-left p-4 font-medium">Default Lang</th>
                           <th className="text-left p-4 font-medium">RSVP</th>
                           <th className="text-left p-4 font-medium hidden md:table-cell">Party</th>
                           <th className="text-left p-4 font-medium hidden lg:table-cell">Responded</th>
@@ -2917,6 +3284,7 @@ export default function EventDetail() {
                         {filtered.map(g => {
                           const isEditing = editingGuestId === g.id;
                           const isSelected = selectedGuestIds.has(g.id);
+                          const gLang = getGuestLang(g);
                           return (
                             <tr key={g.id} className={`hover:bg-secondary/30 transition-smooth ${isSelected ? "bg-secondary/30" : ""}`}>
                               <td className="p-4 align-middle">
@@ -2954,6 +3322,61 @@ export default function EventDetail() {
                                 )}
                               </td>
                               <td className="p-4">
+                                {isEditing ? (
+                                  <div className="inline-flex rounded-md border border-border p-0.5 bg-background shadow-2xs">
+                                    <button
+                                      type="button"
+                                      onClick={() => setEditingGuestLanguage("km")}
+                                      className={`px-2 py-0.5 rounded text-[11px] font-semibold transition-all ${
+                                        editingGuestLanguage === "km"
+                                          ? "bg-gold text-primary-foreground shadow-2xs"
+                                          : "text-muted-foreground hover:text-foreground"
+                                      }`}
+                                    >
+                                      KH
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => setEditingGuestLanguage("en")}
+                                      className={`px-2 py-0.5 rounded text-[11px] font-semibold transition-all ${
+                                        editingGuestLanguage === "en"
+                                          ? "bg-gold text-primary-foreground shadow-2xs"
+                                          : "text-muted-foreground hover:text-foreground"
+                                      }`}
+                                    >
+                                      EN
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <div className="inline-flex items-center rounded-md border border-border p-0.5 bg-background shadow-2xs">
+                                    <button
+                                      type="button"
+                                      onClick={() => setGuestLang(g, "km")}
+                                      className={`px-2 py-0.5 rounded text-[11px] font-semibold transition-all ${
+                                        gLang === "km"
+                                          ? "bg-gold text-primary-foreground shadow-2xs"
+                                          : "text-muted-foreground hover:text-foreground"
+                                      }`}
+                                      title="Set default language to Khmer (KH)"
+                                    >
+                                      KH
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => setGuestLang(g, "en")}
+                                      className={`px-2 py-0.5 rounded text-[11px] font-semibold transition-all ${
+                                        gLang === "en"
+                                          ? "bg-gold text-primary-foreground shadow-2xs"
+                                          : "text-muted-foreground hover:text-foreground"
+                                      }`}
+                                      title="Set default language to English (EN)"
+                                    >
+                                      EN
+                                    </button>
+                                  </div>
+                                )}
+                              </td>
+                              <td className="p-4">
                                 <div className="flex items-center gap-1.5 flex-wrap">
                                   <RsvpBadge status={g.rsvp_status} />
                                   {g.invite_sent_at && (
@@ -2970,11 +3393,11 @@ export default function EventDetail() {
                               <td className="p-4 text-right">
                                 <div className="inline-flex gap-1">
                                   {!isEditing && (
-                                    <Button variant="ghost" size="icon" onClick={() => startEditGuest(g)} title="Edit name">
+                                    <Button variant="ghost" size="icon" onClick={() => startEditGuest(g)} title="Edit name & language">
                                       <Pencil className="h-4 w-4" />
                                     </Button>
                                   )}
-                                  <Button variant="ghost" size="icon" onClick={() => copyLink(g.token)} title="Copy invitation link">
+                                  <Button variant="ghost" size="icon" onClick={() => copyLink(g.token, gLang)} title="Copy invitation link">
                                     <Copy className="h-4 w-4 text-gold" />
                                   </Button>
                                   <Button variant="ghost" size="icon" onClick={() => toggleSent(g)} title={g.invite_sent_at ? "Mark as not sent" : "Mark as sent"}>

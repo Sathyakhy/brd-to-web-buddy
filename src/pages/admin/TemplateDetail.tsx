@@ -16,12 +16,17 @@ import CollapsibleSection from "@/components/admin/CollapsibleSection";
 import LetterCardStyleEditor from "@/components/admin/LetterCardStyleEditor";
 import ElementStyleEditor from "@/components/admin/ElementStyleEditor";
 import CoverInvitationStyleEditor from "@/components/admin/CoverInvitationStyleEditor";
+import GuestNameStyleEditor from "@/components/admin/GuestNameStyleEditor";
 import TitleAndCoupleSizeEditor from "@/components/admin/TitleAndCoupleSizeEditor";
 import SocialShareMetadataEditor from "@/components/admin/SocialShareMetadataEditor";
 import {
   CoverInvitationStyle,
   normalizeCoverInvitationStyle,
 } from "@/lib/coverInvitationStyle";
+import {
+  GuestNameStyle,
+  normalizeGuestNameStyle,
+} from "@/lib/guestNameStyle";
 import RsvpCardStyleEditor from "@/components/admin/RsvpCardStyleEditor";
 import MusicEditor from "@/components/admin/MusicEditor";
 import PreviewPanel from "@/components/admin/PreviewPanel";
@@ -147,6 +152,7 @@ type TemplateConfig = {
   rsvp_card_shadow_y?: number | null;
   rsvp_card_shadow_opacity?: number | null;
   cover_invitation_style?: CoverInvitationStyle;
+  guest_name_style?: GuestNameStyle;
   /** Optional ornamental frame overlay (Signature Package). PNG/SVG with
       transparent center, OR a video (MP4/WebM) — chosen from the Asset
       Library and identified by URL. `frame_type` tells the renderer
@@ -332,6 +338,7 @@ function normalizeConfig(raw: any): TemplateConfig {
     section_visibility: normalizeVisibility(r.section_visibility),
     open_button_color: r.open_button_color ?? null,
     cover_invitation_style: normalizeCoverInvitationStyle(r.cover_invitation_style ?? r.section_visibility?.cover_invitation_style ?? r.section_visibility?.cover_invitation),
+    guest_name_style: normalizeGuestNameStyle(r.guest_name_style ?? r.section_visibility?.guest_name_style),
     text_effect_config: normalizeTextEffectConfig(r.text_effect_config ?? r.text_effects),
     side_frame_config: normalizeSideFrameConfig(r.side_frame_config ?? r.section_visibility?.side_frame_config ?? r.side_frame),
     envelope_unboxing: normalizeEnvelopeConfig(r.envelope_unboxing ?? r.section_visibility?.envelope_unboxing),
@@ -1254,6 +1261,23 @@ export default function TemplateDetail() {
                       patchConfig({ cover_invitation_style: updated });
                     }}
                     defaultAccentColor={draftConfig.text_color_accent}
+                  />
+                </div>
+
+                {/* 4b. Cover Page Guest Name Style (Independent Khmer & English font, size, color) */}
+                <div className="pt-4 border-t border-border/50">
+                  <GuestNameStyleEditor
+                    config={normalizeGuestNameStyle(draftConfig.guest_name_style)}
+                    onChange={(patch) => {
+                      const updated = {
+                        ...normalizeGuestNameStyle(draftConfig.guest_name_style),
+                        ...patch,
+                      };
+                      patchConfig({ guest_name_style: updated });
+                    }}
+                    defaultAccentColor={draftConfig.text_color_accent}
+                    sampleGuestNameKm={draftConfig.sample_guest_name}
+                    sampleGuestNameEn={draftConfig.sample_guest_name}
                   />
                 </div>
 

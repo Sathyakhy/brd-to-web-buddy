@@ -76,7 +76,7 @@ export default function FloatingLanguageSwitch({
           aria-pressed={language === "km"}
           title="Switch to Khmer (ភាសាខ្មែរ)"
         >
-          KM
+          KH
         </button>
 
         {/* English Option */}

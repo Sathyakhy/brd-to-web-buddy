@@ -15,6 +15,7 @@ import { normalizeMusicSettings } from "@/lib/musicSettings";
 import { normalizeTextEffectConfig } from "@/lib/textEffects";
 import { normalizeEnvelopeConfig } from "@/lib/envelopeUnboxing";
 import { normalizeCoverInvitationStyle } from "@/lib/coverInvitationStyle";
+import { normalizeGuestNameStyle } from "@/lib/guestNameStyle";
 import Interactive3DEnvelopeUnboxing from "@/components/templates/Interactive3DEnvelopeUnboxing";
 import ErrorBoundary from "@/components/common/ErrorBoundary";
 
@@ -80,6 +81,14 @@ export default function PreviewPanel({
     (event as any).section_visibility?.cover_invitation ??
     (event as any).templateDefaults?.cover_invitation_style ??
     (event as any).template_section_visibility?.cover_invitation_style
+  );
+
+  const guestNameStyle = normalizeGuestNameStyle(
+    (event as any).guest_name_style ??
+    (event as any).section_visibility?.guest_name_style ??
+    (event as any).templateDefaults?.guest_name_style ??
+    (event as any).template_guest_name_style ??
+    (event as any).template_section_visibility?.guest_name_style
   );
 
   const [view, setView] = useState<"cover" | "invitation">(hasCover ? "cover" : "invitation");
@@ -291,7 +300,7 @@ export default function PreviewPanel({
                   }`}
                   title="Preview Khmer version"
                 >
-                  KM
+                  KH
                 </button>
                 <button
                   type="button"
@@ -436,6 +445,7 @@ export default function PreviewPanel({
                       ).monogram
                     }
                     coverInvitationStyle={coverInvitationStyle}
+                    guestNameStyle={guestNameStyle}
                     onOpen={() => {
                       setView("invitation");
                       if (envelopeConfig.enabled) {
@@ -478,6 +488,7 @@ export default function PreviewPanel({
                     ).monogram
                   }
                   coverInvitationStyle={coverInvitationStyle}
+                  guestNameStyle={guestNameStyle}
                   onOpen={() => {
                     setView("invitation");
                     if (envelopeConfig.enabled) {

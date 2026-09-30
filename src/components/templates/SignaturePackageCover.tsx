@@ -5,6 +5,10 @@ import {
   CoverInvitationStyle,
   getResolvedCoverTitleStyle,
 } from "@/lib/coverInvitationStyle";
+import {
+  GuestNameStyle,
+  getResolvedGuestNameStyle,
+} from "@/lib/guestNameStyle";
 
 type Props = {
   guestName: string;
@@ -44,6 +48,8 @@ type Props = {
   monogramEffectConfig?: MonogramShadowSettings | TextEffectConfig | null;
   /** Optional custom styling for the cover invitation title (សូមគោរពអញ្ជើញ / INVITATION) */
   coverInvitationStyle?: CoverInvitationStyle | null;
+  /** Optional custom styling for the guest name on cover */
+  guestNameStyle?: GuestNameStyle | null;
 };
 
 const FRAME = "/templates/signature-package-01/frame.png";
@@ -75,11 +81,15 @@ export default function SignaturePackageCover({
   monogramFilter,
   monogramEffectConfig,
   coverInvitationStyle,
+  guestNameStyle,
 }: Props) {
   const isEn = language === "en";
 
   // Cover invitation title custom styling (independent for Khmer & English)
   const coverTitleStyle = getResolvedCoverTitleStyle(coverInvitationStyle, isEn, "#fff8dc");
+
+  // Guest name custom styling (independent for Khmer & English)
+  const resolvedGuestStyle = getResolvedGuestNameStyle(guestNameStyle, isEn, "#a87614");
 
   const resolvedMonogramFilter = monogramFilter !== undefined
     ? (monogramFilter || "none")
@@ -277,15 +287,19 @@ export default function SignaturePackageCover({
             }}
           >
             <span
-              className="block w-full text-center font-serif font-bold truncate sp-name-shimmer"
+              className="block w-full text-center truncate sp-name-shimmer"
               style={{
-                fontSize: "clamp(1.05rem, 4vw, 1.35rem)",
+                fontFamily: resolvedGuestStyle.font,
+                fontSize: resolvedGuestStyle.fontSize.fontSize || "clamp(1.05rem, 4vw, 1.35rem)",
+                fontWeight: resolvedGuestStyle.isBold ? "bold" : (isEn ? "bold" : "normal"),
+                fontStyle: resolvedGuestStyle.isItalic ? "italic" : "normal",
                 letterSpacing: "0.04em",
-                background: nameGradient,
+                background: resolvedGuestStyle.color ? resolvedGuestStyle.color : nameGradient,
                 backgroundSize: "200% 100%",
                 WebkitBackgroundClip: "text",
                 backgroundClip: "text",
                 WebkitTextFillColor: "transparent",
+                color: resolvedGuestStyle.color,
                 filter: [
                   "drop-shadow(0 1px 0 rgba(255,255,255,0.6))",
                   `drop-shadow(0 2px 5px color-mix(in srgb, ${accent} 55%, transparent))`,

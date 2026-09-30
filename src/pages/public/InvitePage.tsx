@@ -13,6 +13,7 @@ import { LanguageCode, getDualLanguageConfig } from "@/lib/dualLanguage";
 import { normalizeMusicSettings } from "@/lib/musicSettings";
 import { normalizeEnvelopeConfig } from "@/lib/envelopeUnboxing";
 import { normalizeCoverInvitationStyle } from "@/lib/coverInvitationStyle";
+import { normalizeGuestNameStyle } from "@/lib/guestNameStyle";
 import Interactive3DEnvelopeUnboxing from "@/components/templates/Interactive3DEnvelopeUnboxing";
 import ErrorBoundary from "@/components/common/ErrorBoundary";
 
@@ -110,9 +111,16 @@ export default function InvitePage() {
         (ev as any).section_visibility,
         ev
       );
-      if (dualCfg.default_language) {
-        setLanguage(dualCfg.default_language);
-      }
+
+      const urlLang = params.get("lang") || params.get("language");
+      const normalizedUrlLang = (urlLang === "en" || urlLang === "km" || urlLang === "kh")
+        ? (urlLang === "kh" ? "km" : (urlLang as LanguageCode))
+        : null;
+
+      const tokenLang = token?.endsWith("-en") ? "en" : (token?.endsWith("-km") || token?.endsWith("-kh")) ? "km" : null;
+
+      const initialLang = normalizedUrlLang || tokenLang || dualCfg.default_language || "km";
+      setLanguage(initialLang);
 
       if (isPreview) {
         // Synthetic guest used purely for the public preview — no name,
@@ -340,6 +348,13 @@ export default function InvitePage() {
     (templateVisibility as any)?.cover_invitation_style
   );
 
+  const guestNameStyle = normalizeGuestNameStyle(
+    (event as any).guest_name_style ??
+    (event as any).section_visibility?.guest_name_style ??
+    templateDefaults.guest_name_style ??
+    (templateVisibility as any)?.guest_name_style
+  );
+
   const shouldDisableAutoPlay = isCoverActive
     ? !musicSettings.autoPlayCover
     : !musicSettings.autoPlayInvitation;
@@ -437,6 +452,7 @@ export default function InvitePage() {
               language={language}
               monogramEffectConfig={(event as any).text_effect_config ?? (event as any).section_visibility?.text_effects ?? templateDefaults.text_effect_config ?? null}
               coverInvitationStyle={coverInvitationStyle}
+              guestNameStyle={guestNameStyle}
               onOpen={handleOpenInvitation}
             />
           </div>
@@ -465,6 +481,7 @@ export default function InvitePage() {
               language={language}
               monogramEffectConfig={(event as any).text_effect_config ?? (event as any).section_visibility?.text_effects ?? templateDefaults.text_effect_config ?? null}
               coverInvitationStyle={coverInvitationStyle}
+              guestNameStyle={guestNameStyle}
               onOpen={handleOpenInvitation}
               closing={opened || unboxingActive}
             />
