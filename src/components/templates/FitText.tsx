@@ -107,7 +107,8 @@ export function FitText({
       const target = Math.max(0, available - 1);
       // Cap iterations defensively.
       for (let i = 0; i < 32 && nextSize > minPx; i++) {
-        if (inner.scrollWidth <= target) break;
+        const measured = Math.max(inner.scrollWidth, inner.getBoundingClientRect().width);
+        if (measured <= target) break;
         nextSize -= 1;
         inner.style.fontSize = `${nextSize}px`;
       }
@@ -154,6 +155,7 @@ export function FitText({
     // preview frame, lazy layout) without firing ResizeObserver again.
     const t1 = window.setTimeout(refitAfterFonts, 150);
     const t2 = window.setTimeout(refitAfterFonts, 600);
+    const memberId = idRef.current;
     return () => {
       cancelled = true;
       window.clearTimeout(t1);
@@ -163,7 +165,7 @@ export function FitText({
       if (groupId && sub) {
         const g = getGroup(groupId);
         g.subscribers.delete(sub);
-        g.members.delete(idRef.current);
+        g.members.delete(memberId);
         broadcast(groupId);
       }
     };

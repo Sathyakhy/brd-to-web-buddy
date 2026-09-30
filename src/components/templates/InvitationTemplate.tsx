@@ -626,17 +626,57 @@ export function KhmerTraditionalTemplate({ event, guestName, children, hideBackg
             if (!cell) return <div key={key} className="min-h-[1.7em]" />;
             const fullName = [cell.firstName, cell.lastName].filter(Boolean).join(" ");
             if (!fullName) return <div key={key} className="min-h-[1.7em]" />;
+
+            if (isEn) {
+              return (
+                <div key={key} className="min-w-0 w-full overflow-hidden">
+                  <FitText
+                    as="div"
+                    maxPx={16}
+                    minPx={8}
+                    className={`min-w-0 w-full overflow-hidden whitespace-nowrap ${
+                      side === "right" ? "text-right" : "text-left"
+                    }`}
+                    style={{
+                      color: colorPrimary,
+                      fontFamily: bodyFont,
+                      textShadow: bodyShadow,
+                      lineHeight: 1.7,
+                      paddingTop: "0.25em",
+                    }}
+                  >
+                    {cell.prefix ? (
+                      <span
+                        className="opacity-95 mr-1.5 whitespace-nowrap"
+                        style={{ fontFamily: bodyFont }}
+                      >
+                        {cell.prefix}
+                      </span>
+                    ) : null}
+                    <span
+                      className="font-bold tracking-wide whitespace-nowrap"
+                      style={{
+                        fontFamily: bodyFont,
+                        letterSpacing: "0.02em",
+                      }}
+                    >
+                      {fullName}
+                    </span>
+                  </FitText>
+                </div>
+              );
+            }
+
             return (
               <div
                 key={key}
                 className={`min-w-0 flex items-baseline whitespace-nowrap overflow-hidden ${
                   side === "right" ? "justify-end text-right" : "justify-start text-left"
-                } ${isEn ? "text-sm sm:text-base font-semibold" : ""}`}
+                }`}
                 style={{
                   color: colorPrimary,
-                  fontFamily: isEn ? bodyFont : undefined,
                   textShadow: bodyShadow,
-                  fontSize: isEn ? "0.95rem" : "1.05rem",
+                  fontSize: "1.05rem",
                   lineHeight: 1.7,
                   paddingTop: "0.25em",
                 }}
@@ -648,11 +688,10 @@ export function KhmerTraditionalTemplate({ event, guestName, children, hideBackg
                   {cell.prefix}
                 </span>
                 <span
-                  className={`whitespace-nowrap truncate ${isEn ? "font-bold tracking-wide" : "font-khmer-moul"}`}
+                  className="whitespace-nowrap truncate font-khmer-moul"
                   style={{
                     color: colorPrimary,
-                    fontFamily: isEn ? bodyFont : undefined,
-                    letterSpacing: isEn ? "0.02em" : "0.04em",
+                    letterSpacing: "0.04em",
                   }}
                 >
                   {fullName}
