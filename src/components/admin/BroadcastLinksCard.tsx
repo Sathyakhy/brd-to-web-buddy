@@ -8,18 +8,26 @@ export type BroadcastLinksCardProps = {
   slug: string;
   groomName?: string | null;
   brideName?: string | null;
+  groomNameEn?: string | null;
+  brideNameEn?: string | null;
   eventDate?: string | null;
   venue?: string | null;
+  venueEn?: string | null;
   title?: string | null;
+  titleEn?: string | null;
 };
 
 export default function BroadcastLinksCard({
   slug,
   groomName,
   brideName,
+  groomNameEn,
+  brideNameEn,
   eventDate,
   venue,
+  venueEn: customVenueEn,
   title,
+  titleEn,
 }: BroadcastLinksCardProps) {
   const [copiedKm, setCopiedKm] = useState(false);
   const [copiedEn, setCopiedEn] = useState(false);
@@ -41,10 +49,13 @@ export default function BroadcastLinksCard({
     return parts.join(" ").trim();
   };
 
-  const groom = cleanName(groomName) || "<Groom's Name>";
-  const bride = cleanName(brideName) || "<Bride's Name>";
-  const coupleKh = `${groom} និង ${bride}`;
-  const coupleEn = `${groom} & ${bride}`;
+  const groomKh = cleanName(groomName) || "<Groom's Name>";
+  const brideKh = cleanName(brideName) || "<Bride's Name>";
+  const groomEng = cleanName(groomNameEn) || groomKh;
+  const brideEng = cleanName(brideNameEn) || brideKh;
+
+  const coupleKh = `${groomKh} និង ${brideKh}`;
+  const coupleEn = `${groomEng} & ${brideEng}`;
 
   const dateKh = formatKhmerDateLocal(eventDate) || "<កាលបរិច្ឆេទ>";
   const dateEn = eventDate
@@ -52,7 +63,7 @@ export default function BroadcastLinksCard({
     : "<Date>";
 
   const venueKh = ((venue ?? "").split("|")[0] ?? "").trim() || "<ទីតាំង>";
-  const venueEn = ((venue ?? "").split("|")[1] ?? (venue ?? "").split("|")[0] ?? "").trim() || "<Venue>";
+  const venueEn = customVenueEn?.trim() || ((venue ?? "").split("|")[1] ?? (venue ?? "").split("|")[0] ?? "").trim() || "<Venue>";
 
   const buildKhmerMsg = () => {
     return [

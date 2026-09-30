@@ -194,6 +194,8 @@ Deno.serve(async (req) => {
 
     // -------- OG HTML MODE --------
     const token = url.searchParams.get("token")?.trim() || "";
+    const lang = url.searchParams.get("lang")?.trim() || url.searchParams.get("language")?.trim() || "";
+    const isEnglish = lang.toLowerCase() === "en" || token.toLowerCase().endsWith("-en") || token.toLowerCase() === "en";
 
     // Allowlist of trusted base origins for redirects + canonical share URLs.
     // Prevents an open-redirect / phishing vector where an attacker crafts
@@ -210,13 +212,14 @@ Deno.serve(async (req) => {
       ? rawSite.replace(/\/$/, "")
       : DEFAULT_SITE;
 
+    const langQuery = lang ? `&lang=${encodeURIComponent(lang)}` : "";
     const redirectUrl = token
-      ? `${baseSite}/${encodeURIComponent(slug)}/invite?token=${encodeURIComponent(token)}`
-      : `${baseSite}/${encodeURIComponent(slug)}/invite`;
+      ? `${baseSite}/${encodeURIComponent(slug)}/invite?token=${encodeURIComponent(token)}${langQuery}`
+      : `${baseSite}/${encodeURIComponent(slug)}/invite${lang ? `?lang=${encodeURIComponent(lang)}` : ""}`;
 
     const fallbackShareUrl = token
-      ? `https://share.21invite.online/${encodeURIComponent(slug)}/invite?token=${encodeURIComponent(token)}`
-      : `https://share.21invite.online/${encodeURIComponent(slug)}/invite`;
+      ? `https://share.21invite.online/${encodeURIComponent(slug)}/invite?token=${encodeURIComponent(token)}${langQuery}`
+      : `https://share.21invite.online/${encodeURIComponent(slug)}/invite${lang ? `?lang=${encodeURIComponent(lang)}` : ""}`;
     const rawShareUrl = url.searchParams.get("share_url")?.trim() || "";
     let canonicalShareUrl = fallbackShareUrl;
     try {
@@ -240,21 +243,24 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     const secVis = (ev?.section_visibility as Record<string, any>) || {};
-    const internalTitle =
-      (ev?.internal_title as string | null) ?? (ev?.title as string | null) ?? "";
+    const dualCfg = secVis?.dual_language || {};
+    const internalTitle = isEnglish
+      ? (dualCfg?.en?.title || (ev?.internal_title as string | null) || (ev?.title as string | null) || "")
+      : ((ev?.internal_title as string | null) ?? (ev?.title as string | null) ?? "");
 
-    const customTitle = (secVis.og_title as string | null)?.trim();
+    const customTitle = isEnglish ? (secVis.og_title_en as string | null)?.trim() : (secVis.og_title as string | null)?.trim();
     const title = customTitle
       ? customTitle
       : internalTitle
       ? `21Invite.Online — ${internalTitle}`
       : "21Invite.Online";
 
-    const customDesc = (secVis.og_description as string | null)?.trim();
-    const defaultGreet = "សូមគោរពអញ្ជើញ";
-    const defaultBody =
-      "ចូលរួម ជាអធិបតី និងជាភ្ញៀវកិត្តិយស ដើម្បីប្រសិទ្ធពរជ័យសិរិសួស្តីជ័យមង្គល ក្នុងពិធីរៀបអាពាហ៍ពិពាហ៍ កូនប្រុស កូនស្រី របស់យើងខ្ញុំ";
-    const defaultDescription = `${defaultGreet} ${defaultBody}`;
+    const customDesc = isEnglish ? (secVis.og_description_en as string | null)?.trim() : (secVis.og_description as string | null)?.trim();
+    const defaultGreet = isEnglish ? "Wedding Invitation" : "សូមគោរពអញ្ជើញ";
+    const defaultBody = isEnglish
+      ? "You are cordially invited to celebrate our wedding ceremony as our honored guest."
+      : "ចូលរួម ជាអធិបតី និងជាភ្ញៀវកិត្តិយស ដើម្បីប្រសិទ្ធពរជ័យសិរិសួស្តីជ័យមង្គល ក្នុងពិធីរៀបអាពាហ៍ពិពាហ៍ កូនប្រុស កូនស្រី របស់យើងខ្ញុំ";
+    const defaultDescription = isEnglish ? `${defaultGreet} — ${defaultBody}` : `${defaultGreet} ${defaultBody}`;
     const description = customDesc || defaultDescription;
 
     // Stable same-origin `.jpg` OG image URL. Facebook is more reliable when

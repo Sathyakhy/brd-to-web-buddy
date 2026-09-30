@@ -215,9 +215,13 @@ export default function CustomerEventDetail() {
               slug={event.slug}
               groomName={event.groom_name}
               brideName={event.bride_name}
+              groomNameEn={(event as any).dual_language_config?.en?.groom_name ?? (event as any).section_visibility?.dual_language?.en?.groom_name}
+              brideNameEn={(event as any).dual_language_config?.en?.bride_name ?? (event as any).section_visibility?.dual_language?.en?.bride_name}
               eventDate={event.event_date}
               venue={event.venue}
+              venueEn={(event as any).dual_language_config?.en?.venue ?? (event as any).section_visibility?.dual_language?.en?.venue}
               title={event.title}
+              titleEn={(event as any).dual_language_config?.en?.title ?? (event as any).section_visibility?.dual_language?.en?.title}
             />
 
             <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">

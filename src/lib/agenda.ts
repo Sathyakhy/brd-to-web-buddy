@@ -76,16 +76,26 @@ export function normalizeAgenda(raw: unknown): AgendaDay[] {
         ? d.items.map((it: any) => ({
             id: String(it?.id ?? uid()),
             time: String(it?.time ?? ""),
+            time_en: it?.time_en ? String(it.time_en) : undefined,
+            time_km: it?.time_km ? String(it.time_km) : undefined,
             icon: String(it?.icon ?? "Sparkle"),
             iconImageUrl: it?.iconImageUrl ?? null,
             label: String(it?.label ?? ""),
+            label_km: it?.label_km ? String(it.label_km) : (it?.label ? String(it.label) : undefined),
+            label_en: it?.label_en ? String(it.label_en) : undefined,
             description: it?.description ?? null,
+            description_km: it?.description_km ?? it?.description ?? null,
+            description_en: it?.description_en ?? null,
             subHeader: it?.subHeader ?? null,
+            subHeader_km: it?.subHeader_km ?? it?.subHeader ?? null,
+            subHeader_en: it?.subHeader_en ?? null,
           }))
         : [];
       return {
         id: String(d.id ?? uid()),
         title: String(d.title ?? ""),
+        title_km: d.title_km ? String(d.title_km) : (d.title ? String(d.title) : undefined),
+        title_en: d.title_en ? String(d.title_en) : undefined,
         date: d.date ?? null,
         items,
       } as AgendaDay;

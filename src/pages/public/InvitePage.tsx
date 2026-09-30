@@ -551,9 +551,13 @@ export default function InvitePage() {
           >
             <KhmerTraditionalCover
               guestName={guest.name}
-              title={event.title}
+              title={language === "en" ? (((event as any).dual_language_config?.en?.title || (event as any).section_visibility?.dual_language?.en?.title) ?? event.title) : event.title}
               backgroundUrl={(event as any).cover_background_url ?? null}
-              nameGraphicUrl={(event as any).cover_image_url ?? templateDefaults.cover_image_url ?? null}
+              nameGraphicUrl={
+                language === "en"
+                  ? ((event as any).cover_image_url_en ?? (event as any).cover_image_url ?? templateDefaults.cover_image_url ?? null)
+                  : ((event as any).cover_image_url ?? templateDefaults.cover_image_url ?? null)
+              }
               accentColor={(event as any).text_color_accent ?? null}
               openButtonColor={(event as any).open_button_color ?? (event as any).section_visibility?.open_button_color ?? (templateDefaults as any)?.open_button_color ?? null}
               language={language}
@@ -579,7 +583,7 @@ export default function InvitePage() {
           >
             <SignaturePackageCover
               guestName={guest.name}
-              title={event.title}
+              title={language === "en" ? (((event as any).dual_language_config?.en?.title || (event as any).section_visibility?.dual_language?.en?.title) ?? event.title) : event.title}
               backgroundUrl={(event as any).cover_background_url ?? null}
               frameUrl={(event as any).frame_url ?? templateDefaults.frame_url ?? null}
               frameType={((event as any).frame_type ?? templateDefaults.frame_type ?? "image") as "image" | "video"}
@@ -600,11 +604,15 @@ export default function InvitePage() {
           <Interactive3DEnvelopeUnboxing
             config={envelopeConfig}
             guestName={guest.name}
-            title={event.title}
+            title={language === "en" ? (((event as any).dual_language_config?.en?.title || (event as any).section_visibility?.dual_language?.en?.title) ?? event.title) : event.title}
             language={language}
             accentColor={accentColor}
             coverBackgroundUrl={(event as any).cover_background_url ?? null}
-            monogramGraphicUrl={(event as any).cover_image_url ?? templateDefaults.cover_image_url ?? null}
+            monogramGraphicUrl={
+              language === "en"
+                ? ((event as any).cover_image_url_en ?? (event as any).cover_image_url ?? templateDefaults.cover_image_url ?? null)
+                : ((event as any).cover_image_url ?? templateDefaults.cover_image_url ?? null)
+            }
             onComplete={handleUnboxingComplete}
           />
         )}

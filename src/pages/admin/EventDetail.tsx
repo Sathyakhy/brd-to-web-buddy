@@ -2842,9 +2842,13 @@ export default function EventDetail() {
               slug={event.slug}
               groomName={event.groom_name}
               brideName={event.bride_name}
+              groomNameEn={event.dual_language_config?.en?.groom_name ?? (event.section_visibility as any)?.dual_language?.en?.groom_name}
+              brideNameEn={event.dual_language_config?.en?.bride_name ?? (event.section_visibility as any)?.dual_language?.en?.bride_name}
               eventDate={event.event_date}
               venue={event.venue}
+              venueEn={event.dual_language_config?.en?.venue ?? (event.section_visibility as any)?.dual_language?.en?.venue}
               title={event.title}
+              titleEn={event.dual_language_config?.en?.title ?? (event.section_visibility as any)?.dual_language?.en?.title}
             />
 
         {/* RSVP stats — 4 columns on mobile (compact) so the entire snapshot
