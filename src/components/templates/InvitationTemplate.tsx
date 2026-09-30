@@ -1658,7 +1658,7 @@ export function KhmerTraditionalTemplate({ event, guestName, children, hideBackg
               cardShadowOpacity: (children.props as any).cardShadowOpacity ?? rsvpCardShadowOpacity,
               rsvpTitle: (children.props as any).rsvpTitle ?? rawEv.rsvp_title ?? rawVis.rsvp_title ?? rsvpStyle.rsvp_title ?? rawTplVis.rsvp_title ?? rawTplDef.rsvp_title ?? null,
               rsvpTitleEn: (children.props as any).rsvpTitleEn ?? rawEv.rsvp_title_en ?? rawVis.rsvp_title_en ?? rsvpStyle.rsvp_title_en ?? rawTplVis.rsvp_title_en ?? rawTplDef.rsvp_title_en ?? null,
-              isOpenInvite: (children.props as any).isOpenInvite ?? (props as any).isOpenInvite ?? false,
+              isOpenInvite: (children.props as any).isOpenInvite ?? false,
               openNameLabel: (children.props as any).openNameLabel ?? rawEv.rsvp_name_label ?? rawVis.rsvp_name_label ?? rsvpStyle.rsvp_name_label ?? null,
               openNameLabelEn: (children.props as any).openNameLabelEn ?? rawEv.rsvp_name_label_en ?? rawVis.rsvp_name_label_en ?? rsvpStyle.rsvp_name_label_en ?? null,
               openNamePlaceholder: (children.props as any).openNamePlaceholder ?? rawEv.rsvp_name_placeholder ?? rawVis.rsvp_name_placeholder ?? null,
