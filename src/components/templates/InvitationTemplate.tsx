@@ -622,6 +622,8 @@ export function KhmerTraditionalTemplate({ event, guestName, children, hideBackg
 
           if (!gf && !gm && !bf && !bm) return null;
 
+          const parentsGroupId = `en-parents-${(event as any).id ?? (event as any).slug ?? "event"}`;
+
           const renderCell = (cell: ReturnType<typeof parseCell>, key: string, side: "left" | "right" = "left") => {
             if (!cell) return <div key={key} className="min-h-[1.7em]" />;
             const fullName = [cell.firstName, cell.lastName].filter(Boolean).join(" ");
@@ -634,6 +636,7 @@ export function KhmerTraditionalTemplate({ event, guestName, children, hideBackg
                     as="div"
                     maxPx={16}
                     minPx={8}
+                    groupId={parentsGroupId}
                     className={`min-w-0 w-full overflow-hidden whitespace-nowrap ${
                       side === "right" ? "text-right" : "text-left"
                     }`}
