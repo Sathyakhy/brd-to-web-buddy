@@ -83,6 +83,8 @@ export function FitText({
     const inner = innerRef.current;
     if (!wrap || !inner) return;
 
+    const memberId = idRef.current;
+
     // Subscribe FIRST so we receive every broadcast — including the one
     // our own `fit()` triggers below and any from siblings that mounted
     // earlier in this same commit.
@@ -163,7 +165,6 @@ export function FitText({
     // preview frame, lazy layout) without firing ResizeObserver again.
     const t1 = window.setTimeout(refitAfterFonts, 150);
     const t2 = window.setTimeout(refitAfterFonts, 600);
-    const memberId = idRef.current;
     return () => {
       cancelled = true;
       window.clearTimeout(t1);
