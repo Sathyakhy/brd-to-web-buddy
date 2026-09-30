@@ -57,27 +57,32 @@ export default function CustomerEventDetail() {
     if (!id || !user) return;
     setLoading(true);
 
-    const { data: link } = await supabase
-      .from("event_customers")
-      .select("id")
-      .eq("event_id", id)
-      .eq("user_id", user.id)
-      .maybeSingle();
+    try {
+      const { data: link } = await supabase
+        .from("event_customers")
+        .select("id")
+        .eq("event_id", id)
+        .eq("user_id", user.id)
+        .maybeSingle();
 
-    if (!link) {
-      setAuthorized(false);
+      if (!link) {
+        setAuthorized(false);
+        return;
+      }
+      setAuthorized(true);
+
+      const [evRes, gRes] = await Promise.all([
+        supabase.from("events").select("*").eq("id", id).maybeSingle(),
+        supabase.from("guests").select("*").eq("event_id", id).order("created_at", { ascending: false }),
+      ]);
+      setEvent(evRes.data as Event | null);
+      setGuests((gRes.data ?? []) as Guest[]);
+    } catch (err: any) {
+      console.error("Error loading customer event:", err);
+      toast.error(err?.message || "Failed to load event");
+    } finally {
       setLoading(false);
-      return;
     }
-    setAuthorized(true);
-
-    const [evRes, gRes] = await Promise.all([
-      supabase.from("events").select("*").eq("id", id).maybeSingle(),
-      supabase.from("guests").select("*").eq("event_id", id).order("created_at", { ascending: false }),
-    ]);
-    setEvent(evRes.data as Event | null);
-    setGuests((gRes.data ?? []) as Guest[]);
-    setLoading(false);
   };
 
   useEffect(() => { load(); }, [id, user]);

@@ -230,188 +230,199 @@ export default function EventDetail() {
   const load = async () => {
     if (!id) return;
     setLoading(true);
-    const [evRes, gRes, linksRes, rolesRes, profilesRes, tplRes] = await Promise.all([
-      supabase.from("events").select("*").eq("id", id).maybeSingle(),
-      supabase.from("guests").select("*").eq("event_id", id).order("created_at", { ascending: false }),
-      supabase.from("event_customers").select("user_id").eq("event_id", id),
-      supabase.from("user_roles").select("user_id, role").eq("role", "customer" as any),
-      supabase.from("profiles").select("user_id, email, display_name").order("display_name", { ascending: true }),
-      supabase.from("templates").select("slug, config"),
-    ]);
-    if (evRes.error) toast.error(evRes.error.message);
-    // Build the template-slug → section_visibility and default config map.
-    const tplMap: Record<string, SectionVisibility> = {};
-    const tplDefMap: Record<string, any> = {};
-    for (const t of (tplRes.data ?? []) as any[]) {
-      tplMap[t.slug] = normalizeVisibility((t.config ?? {}).section_visibility);
-      tplDefMap[t.slug] = t.config ?? {};
-    }
-    setTemplateVisibilityBySlug(tplMap);
-    setTemplateDefaultsBySlug(tplDefMap);
-    const raw = evRes.data as any;
-    if (raw) {
-      const normalized = normalizeAgenda(raw.agenda_days);
-      const days = normalized.length
-        ? normalized
-        : buildLegacyAgenda({ ceremony_time: raw.ceremony_time, reception_time: raw.reception_time });
-      const view: AgendaViewStyle = raw.agenda_view_style === "card" ? "card" : "list";
-      const galleryLayout: "grid" | "mosaic" = raw.gallery_layout === "mosaic" ? "mosaic" : "grid";
-      const contactsList = normalizeContacts(raw.contacts);
-      const contacts = contactsList.length ? contactsList : buildLegacyContacts(raw.contact_phone);
-      const rawVis = (raw.section_visibility as any) ?? {};
-      const section_visibility = {
-        ...rawVis,
-        ...normalizeVisibility(raw.section_visibility),
-      };
-      const dual_language_config = getDualLanguageConfig(
-        raw.dual_language_config ?? rawVis.dual_language ?? raw.section_visibility,
-        raw
-      );
-      const open_button_color = raw.open_button_color ?? rawVis.open_button_color ?? null;
-      const text_effect_config = normalizeTextEffectConfig(
-        raw.text_effect_config ?? rawVis.text_effects ?? rawVis.text_effect_config ?? raw
-      );
-      const reception_title = (raw as any).reception_title ?? rawVis.reception_title ?? null;
-      const details_message = (raw as any).details_message ?? rawVis.details_message ?? null;
-      const agenda_bg_color = (raw as any).agenda_bg_color ?? rawVis.agenda_style?.bg_color ?? rawVis.agenda_bg_color ?? null;
-      const agenda_bg_opacity = (raw as any).agenda_bg_opacity ?? rawVis.agenda_style?.bg_opacity ?? rawVis.agenda_bg_opacity ?? null;
-      const agenda_asset_color = (raw as any).agenda_asset_color ?? rawVis.agenda_style?.asset_color ?? rawVis.agenda_asset_color ?? null;
-      const map_button_bg_color = (raw as any).map_button_bg_color ?? rawVis.map_button_bg_color ?? null;
-      const map_button_bg_opacity = typeof (raw as any).map_button_bg_opacity === "number" ? (raw as any).map_button_bg_opacity : (typeof rawVis.map_button_bg_opacity === "number" ? rawVis.map_button_bg_opacity : null);
-      const countdown_bg_color = (raw as any).countdown_bg_color ?? rawVis.countdown_bg_color ?? null;
-      const countdown_bg_opacity = typeof (raw as any).countdown_bg_opacity === "number" ? (raw as any).countdown_bg_opacity : (typeof rawVis.countdown_bg_opacity === "number" ? rawVis.countdown_bg_opacity : null);
-      const rsvp_title = (raw as any).rsvp_title ?? rawVis.rsvp_title ?? rawVis.rsvp_style?.rsvp_title ?? null;
-      const rsvp_title_en = (raw as any).rsvp_title_en ?? rawVis.rsvp_title_en ?? rawVis.rsvp_style?.rsvp_title_en ?? null;
-      const rsvp_bg_color = (raw as any).rsvp_bg_color ?? rawVis.rsvp_bg_color ?? rawVis.rsvp_style?.bg_color ?? null;
-      const rsvp_bg_opacity = typeof (raw as any).rsvp_bg_opacity === "number" ? (raw as any).rsvp_bg_opacity : (typeof rawVis.rsvp_bg_opacity === "number" ? rawVis.rsvp_bg_opacity : (typeof rawVis.rsvp_style?.bg_opacity === "number" ? rawVis.rsvp_style?.bg_opacity : null));
-      const rsvp_header_font = (raw as any).rsvp_header_font ?? rawVis.rsvp_header_font ?? rawVis.rsvp_style?.header_font ?? null;
-      const rsvp_header_font_en = (raw as any).rsvp_header_font_en ?? rawVis.rsvp_header_font_en ?? rawVis.rsvp_style?.header_font_en ?? null;
-      const rsvp_body_font = (raw as any).rsvp_body_font ?? rawVis.rsvp_body_font ?? rawVis.rsvp_style?.body_font ?? null;
-      const rsvp_body_font_en = (raw as any).rsvp_body_font_en ?? rawVis.rsvp_body_font_en ?? rawVis.rsvp_style?.body_font_en ?? null;
-      const rsvp_header_effect = (raw as any).rsvp_header_effect ?? rawVis.rsvp_header_effect ?? rawVis.rsvp_style?.header_effect ?? null;
-      const rsvp_header_effect_color = (raw as any).rsvp_header_effect_color ?? rawVis.rsvp_header_effect_color ?? rawVis.rsvp_style?.header_effect_color ?? null;
-      const rsvp_header_effect_blur = typeof (raw as any).rsvp_header_effect_blur === "number" ? (raw as any).rsvp_header_effect_blur : (typeof rawVis.rsvp_header_effect_blur === "number" ? rawVis.rsvp_header_effect_blur : (typeof rawVis.rsvp_style?.header_effect_blur === "number" ? rawVis.rsvp_style?.header_effect_blur : null));
-      const rsvp_header_effect_x = typeof (raw as any).rsvp_header_effect_x === "number" ? (raw as any).rsvp_header_effect_x : (typeof rawVis.rsvp_header_effect_x === "number" ? rawVis.rsvp_header_effect_x : (typeof rawVis.rsvp_style?.header_effect_x === "number" ? rawVis.rsvp_style?.header_effect_x : null));
-      const rsvp_header_effect_y = typeof (raw as any).rsvp_header_effect_y === "number" ? (raw as any).rsvp_header_effect_y : (typeof rawVis.rsvp_header_effect_y === "number" ? rawVis.rsvp_header_effect_y : (typeof rawVis.rsvp_style?.header_effect_y === "number" ? rawVis.rsvp_style?.header_effect_y : null));
-      const rsvp_header_effect_opacity = typeof (raw as any).rsvp_header_effect_opacity === "number" ? (raw as any).rsvp_header_effect_opacity : (typeof rawVis.rsvp_header_effect_opacity === "number" ? rawVis.rsvp_header_effect_opacity : (typeof rawVis.rsvp_style?.header_effect_opacity === "number" ? rawVis.rsvp_style?.header_effect_opacity : null));
-      const rsvp_card_shadow_type = (raw as any).rsvp_card_shadow_type ?? rawVis.rsvp_card_shadow_type ?? rawVis.rsvp_style?.card_shadow_type ?? null;
-      const rsvp_card_shadow_color = (raw as any).rsvp_card_shadow_color ?? rawVis.rsvp_card_shadow_color ?? rawVis.rsvp_style?.card_shadow_color ?? null;
-      const rsvp_card_shadow_blur = typeof (raw as any).rsvp_card_shadow_blur === "number" ? (raw as any).rsvp_card_shadow_blur : (typeof rawVis.rsvp_card_shadow_blur === "number" ? rawVis.rsvp_card_shadow_blur : (typeof rawVis.rsvp_style?.card_shadow_blur === "number" ? rawVis.rsvp_style?.card_shadow_blur : null));
-      const rsvp_card_shadow_spread = typeof (raw as any).rsvp_card_shadow_spread === "number" ? (raw as any).rsvp_card_shadow_spread : (typeof rawVis.rsvp_card_shadow_spread === "number" ? rawVis.rsvp_card_shadow_spread : (typeof rawVis.rsvp_style?.card_shadow_spread === "number" ? rawVis.rsvp_style?.card_shadow_spread : null));
-      const rsvp_card_shadow_x = typeof (raw as any).rsvp_card_shadow_x === "number" ? (raw as any).rsvp_card_shadow_x : (typeof rawVis.rsvp_card_shadow_x === "number" ? rawVis.rsvp_card_shadow_x : (typeof rawVis.rsvp_style?.card_shadow_x === "number" ? rawVis.rsvp_style?.card_shadow_x : null));
-      const rsvp_card_shadow_y = typeof (raw as any).rsvp_card_shadow_y === "number" ? (raw as any).rsvp_card_shadow_y : (typeof rawVis.rsvp_card_shadow_y === "number" ? rawVis.rsvp_card_shadow_y : (typeof rawVis.rsvp_style?.card_shadow_y === "number" ? rawVis.rsvp_style?.card_shadow_y : null));
-      const rsvp_card_shadow_opacity = typeof (raw as any).rsvp_card_shadow_opacity === "number" ? (raw as any).rsvp_card_shadow_opacity : (typeof rawVis.rsvp_card_shadow_opacity === "number" ? rawVis.rsvp_card_shadow_opacity : (typeof rawVis.rsvp_style?.card_shadow_opacity === "number" ? rawVis.rsvp_style?.card_shadow_opacity : null));
-      const side_frame_config = normalizeSideFrameConfig(
-        raw.side_frame_config ?? rawVis.side_frame_config ?? rawVis.side_frame
-      );
-      const cover_invitation_style = normalizeCoverInvitationStyle(
-        (raw as any).cover_invitation_style ?? rawVis.cover_invitation_style ?? rawVis.cover_invitation
-      );
-      const guest_name_style = normalizeGuestNameStyle(
-        (raw as any).guest_name_style ?? rawVis.guest_name_style
-      );
-      const page_title_font_size_km = (raw as any).page_title_font_size_km ?? rawVis.page_title_font_size_km ?? null;
-      const page_title_font_size_en = (raw as any).page_title_font_size_en ?? rawVis.page_title_font_size_en ?? null;
-      const couple_font_size_km = (raw as any).couple_font_size_km ?? rawVis.couple_font_size_km ?? null;
-      const couple_font_size_en = (raw as any).couple_font_size_en ?? rawVis.couple_font_size_en ?? null;
-      const og_image_url = (raw as any).og_image_url ?? rawVis.og_image_url ?? rawVis.share_image_url ?? null;
-      const og_title = (raw as any).og_title ?? rawVis.og_title ?? rawVis.share_title ?? null;
-      const og_description = (raw as any).og_description ?? rawVis.og_description ?? rawVis.share_description ?? null;
-      const envelope_unboxing = normalizeEnvelopeConfig(
-        (raw as any).envelope_unboxing ?? rawVis.envelope_unboxing
-      );
-      const header_font = (raw as any).header_font ?? rawVis.header_font ?? null;
-      const header_font_km = (raw as any).header_font_km ?? rawVis.header_font_km ?? header_font;
-      const header_font_en = (raw as any).header_font_en ?? rawVis.header_font_en ?? null;
-      const body_font = (raw as any).body_font ?? rawVis.body_font ?? null;
-      const body_font_km = (raw as any).body_font_km ?? rawVis.body_font_km ?? body_font;
-      const body_font_en = (raw as any).body_font_en ?? rawVis.body_font_en ?? null;
-      const music_autoplay_cover = (raw as any).music_autoplay_cover ?? rawVis.music_autoplay_cover ?? true;
-      const music_autoplay_invitation = (raw as any).music_autoplay_invitation ?? rawVis.music_autoplay_invitation ?? true;
-      const music_autoplay_mode = (raw as any).music_autoplay_mode ?? rawVis.music_autoplay_mode ?? "both";
-      setEvent({
-        ...raw,
-        agenda_days: days,
-        agenda_view_style: view,
-        agenda_bg_color,
-        agenda_bg_opacity,
-        agenda_asset_color,
-        reception_title,
-        details_message,
-        map_button_bg_color,
-        map_button_bg_opacity,
-        countdown_bg_color,
-        countdown_bg_opacity,
-        rsvp_title,
-        rsvp_title_en,
-        rsvp_bg_color,
-        rsvp_bg_opacity,
-        rsvp_header_font,
-        rsvp_header_font_en,
-        rsvp_body_font,
-        rsvp_body_font_en,
-        rsvp_header_effect,
-        rsvp_header_effect_color,
-        rsvp_header_effect_blur,
-        rsvp_header_effect_x,
-        rsvp_header_effect_y,
-        rsvp_header_effect_opacity,
-        rsvp_card_shadow_type,
-        rsvp_card_shadow_color,
-        rsvp_card_shadow_blur,
-        rsvp_card_shadow_spread,
-        rsvp_card_shadow_x,
-        rsvp_card_shadow_y,
-        rsvp_card_shadow_opacity,
-        side_frame_config,
-        cover_invitation_style,
-        guest_name_style,
-        page_title_font_size_km,
-        page_title_font_size_en,
-        couple_font_size_km,
-        couple_font_size_en,
-        og_image_url,
-        og_title,
-        og_description,
-        envelope_unboxing,
-        gallery_layout: galleryLayout,
-        contacts,
-        section_visibility,
-        dual_language_config,
-        open_button_color,
-        text_effect_config,
-        header_font,
-        header_font_km,
-        header_font_en,
-        body_font,
-        body_font_km,
-        body_font_en,
-        music_autoplay_cover,
-        music_autoplay_invitation,
-        music_autoplay_mode,
-      } as any);
-    } else {
-      setEvent(null);
-    }
-    const guestLangs = (rawVis.guest_languages || {}) as Record<string, string>;
-    const loadedGuests: Guest[] = ((gRes.data ?? []) as any[]).map(g => {
-      let lang: "km" | "en" | null = null;
-      if (g.token?.endsWith("-en")) lang = "en";
-      else if (g.token?.endsWith("-km") || g.token?.endsWith("-kh")) lang = "km";
-      else if (guestLangs[g.id] === "en" || guestLangs[g.id] === "km") lang = guestLangs[g.id] as "km" | "en";
-      return {
-        ...g,
-        default_language: lang,
-      };
-    });
-    setGuests(loadedGuests);
+    try {
+      const [evRes, gRes, linksRes, rolesRes, profilesRes, tplRes] = await Promise.all([
+        supabase.from("events").select("*").eq("id", id).maybeSingle(),
+        supabase.from("guests").select("*").eq("event_id", id).order("created_at", { ascending: false }),
+        supabase.from("event_customers").select("user_id").eq("event_id", id),
+        supabase.from("user_roles").select("user_id, role").eq("role", "customer" as any),
+        supabase.from("profiles").select("user_id, email, display_name").order("display_name", { ascending: true }),
+        supabase.from("templates").select("slug, config"),
+      ]);
+      if (evRes.error) {
+        console.error("Error loading event:", evRes.error);
+        toast.error(evRes.error.message);
+      }
+      // Build the template-slug → section_visibility and default config map.
+      const tplMap: Record<string, SectionVisibility> = {};
+      const tplDefMap: Record<string, any> = {};
+      for (const t of (tplRes.data ?? []) as any[]) {
+        tplMap[t.slug] = normalizeVisibility((t.config ?? {}).section_visibility);
+        tplDefMap[t.slug] = t.config ?? {};
+      }
+      setTemplateVisibilityBySlug(tplMap);
+      setTemplateDefaultsBySlug(tplDefMap);
+      const raw = evRes.data as any;
+      let rawVis: Record<string, any> = {};
 
-    // Build the list of customer-role profiles + already-linked ids.
-    const customerIds = new Set((rolesRes.data ?? []).map((r: any) => r.user_id));
-    const allProfiles = (profilesRes.data ?? []) as CustomerProfile[];
-    setCustomers(allProfiles.filter(p => customerIds.has(p.user_id)));
-    setLinkedCustomerIds(new Set((linksRes.data ?? []).map((l: any) => l.user_id)));
-    setLoading(false);
+      if (raw) {
+        const normalized = normalizeAgenda(raw.agenda_days);
+        const days = normalized.length
+          ? normalized
+          : buildLegacyAgenda({ ceremony_time: raw.ceremony_time, reception_time: raw.reception_time });
+        const view: AgendaViewStyle = raw.agenda_view_style === "card" ? "card" : "list";
+        const galleryLayout: "grid" | "mosaic" = raw.gallery_layout === "mosaic" ? "mosaic" : "grid";
+        const contactsList = normalizeContacts(raw.contacts);
+        const contacts = contactsList.length ? contactsList : buildLegacyContacts(raw.contact_phone);
+        rawVis = (raw.section_visibility as any) ?? {};
+        const section_visibility = {
+          ...rawVis,
+          ...normalizeVisibility(raw.section_visibility),
+        };
+        const dual_language_config = getDualLanguageConfig(
+          raw.dual_language_config ?? rawVis.dual_language ?? raw.section_visibility,
+          raw
+        );
+        const open_button_color = raw.open_button_color ?? rawVis.open_button_color ?? null;
+        const text_effect_config = normalizeTextEffectConfig(
+          raw.text_effect_config ?? rawVis.text_effects ?? rawVis.text_effect_config ?? raw
+        );
+        const reception_title = (raw as any).reception_title ?? rawVis.reception_title ?? null;
+        const details_message = (raw as any).details_message ?? rawVis.details_message ?? null;
+        const agenda_bg_color = (raw as any).agenda_bg_color ?? rawVis.agenda_style?.bg_color ?? rawVis.agenda_bg_color ?? null;
+        const agenda_bg_opacity = (raw as any).agenda_bg_opacity ?? rawVis.agenda_style?.bg_opacity ?? rawVis.agenda_bg_opacity ?? null;
+        const agenda_asset_color = (raw as any).agenda_asset_color ?? rawVis.agenda_style?.asset_color ?? rawVis.agenda_asset_color ?? null;
+        const map_button_bg_color = (raw as any).map_button_bg_color ?? rawVis.map_button_bg_color ?? null;
+        const map_button_bg_opacity = typeof (raw as any).map_button_bg_opacity === "number" ? (raw as any).map_button_bg_opacity : (typeof rawVis.map_button_bg_opacity === "number" ? rawVis.map_button_bg_opacity : null);
+        const countdown_bg_color = (raw as any).countdown_bg_color ?? rawVis.countdown_bg_color ?? null;
+        const countdown_bg_opacity = typeof (raw as any).countdown_bg_opacity === "number" ? (raw as any).countdown_bg_opacity : (typeof rawVis.countdown_bg_opacity === "number" ? rawVis.countdown_bg_opacity : null);
+        const rsvp_title = (raw as any).rsvp_title ?? rawVis.rsvp_title ?? rawVis.rsvp_style?.rsvp_title ?? null;
+        const rsvp_title_en = (raw as any).rsvp_title_en ?? rawVis.rsvp_title_en ?? rawVis.rsvp_style?.rsvp_title_en ?? null;
+        const rsvp_bg_color = (raw as any).rsvp_bg_color ?? rawVis.rsvp_bg_color ?? rawVis.rsvp_style?.bg_color ?? null;
+        const rsvp_bg_opacity = typeof (raw as any).rsvp_bg_opacity === "number" ? (raw as any).rsvp_bg_opacity : (typeof rawVis.rsvp_bg_opacity === "number" ? rawVis.rsvp_bg_opacity : (typeof rawVis.rsvp_style?.bg_opacity === "number" ? rawVis.rsvp_style?.bg_opacity : null));
+        const rsvp_header_font = (raw as any).rsvp_header_font ?? rawVis.rsvp_header_font ?? rawVis.rsvp_style?.header_font ?? null;
+        const rsvp_header_font_en = (raw as any).rsvp_header_font_en ?? rawVis.rsvp_header_font_en ?? rawVis.rsvp_style?.header_font_en ?? null;
+        const rsvp_body_font = (raw as any).rsvp_body_font ?? rawVis.rsvp_body_font ?? rawVis.rsvp_style?.body_font ?? null;
+        const rsvp_body_font_en = (raw as any).rsvp_body_font_en ?? rawVis.rsvp_body_font_en ?? rawVis.rsvp_style?.body_font_en ?? null;
+        const rsvp_header_effect = (raw as any).rsvp_header_effect ?? rawVis.rsvp_header_effect ?? rawVis.rsvp_style?.header_effect ?? null;
+        const rsvp_header_effect_color = (raw as any).rsvp_header_effect_color ?? rawVis.rsvp_header_effect_color ?? rawVis.rsvp_style?.header_effect_color ?? null;
+        const rsvp_header_effect_blur = typeof (raw as any).rsvp_header_effect_blur === "number" ? (raw as any).rsvp_header_effect_blur : (typeof rawVis.rsvp_header_effect_blur === "number" ? rawVis.rsvp_header_effect_blur : (typeof rawVis.rsvp_style?.header_effect_blur === "number" ? rawVis.rsvp_style?.header_effect_blur : null));
+        const rsvp_header_effect_x = typeof (raw as any).rsvp_header_effect_x === "number" ? (raw as any).rsvp_header_effect_x : (typeof rawVis.rsvp_header_effect_x === "number" ? rawVis.rsvp_header_effect_x : (typeof rawVis.rsvp_style?.header_effect_x === "number" ? rawVis.rsvp_style?.header_effect_x : null));
+        const rsvp_header_effect_y = typeof (raw as any).rsvp_header_effect_y === "number" ? (raw as any).rsvp_header_effect_y : (typeof rawVis.rsvp_header_effect_y === "number" ? rawVis.rsvp_header_effect_y : (typeof rawVis.rsvp_style?.header_effect_y === "number" ? rawVis.rsvp_style?.header_effect_y : null));
+        const rsvp_header_effect_opacity = typeof (raw as any).rsvp_header_effect_opacity === "number" ? (raw as any).rsvp_header_effect_opacity : (typeof rawVis.rsvp_header_effect_opacity === "number" ? rawVis.rsvp_header_effect_opacity : (typeof rawVis.rsvp_style?.header_effect_opacity === "number" ? rawVis.rsvp_style?.header_effect_opacity : null));
+        const rsvp_card_shadow_type = (raw as any).rsvp_card_shadow_type ?? rawVis.rsvp_card_shadow_type ?? rawVis.rsvp_style?.card_shadow_type ?? null;
+        const rsvp_card_shadow_color = (raw as any).rsvp_card_shadow_color ?? rawVis.rsvp_card_shadow_color ?? rawVis.rsvp_style?.card_shadow_color ?? null;
+        const rsvp_card_shadow_blur = typeof (raw as any).rsvp_card_shadow_blur === "number" ? (raw as any).rsvp_card_shadow_blur : (typeof rawVis.rsvp_card_shadow_blur === "number" ? rawVis.rsvp_card_shadow_blur : (typeof rawVis.rsvp_style?.card_shadow_blur === "number" ? rawVis.rsvp_style?.card_shadow_blur : null));
+        const rsvp_card_shadow_spread = typeof (raw as any).rsvp_card_shadow_spread === "number" ? (raw as any).rsvp_card_shadow_spread : (typeof rawVis.rsvp_card_shadow_spread === "number" ? rawVis.rsvp_card_shadow_spread : (typeof rawVis.rsvp_style?.card_shadow_spread === "number" ? rawVis.rsvp_style?.card_shadow_spread : null));
+        const rsvp_card_shadow_x = typeof (raw as any).rsvp_card_shadow_x === "number" ? (raw as any).rsvp_card_shadow_x : (typeof rawVis.rsvp_card_shadow_x === "number" ? rawVis.rsvp_card_shadow_x : (typeof rawVis.rsvp_style?.card_shadow_x === "number" ? rawVis.rsvp_style?.card_shadow_x : null));
+        const rsvp_card_shadow_y = typeof (raw as any).rsvp_card_shadow_y === "number" ? (raw as any).rsvp_card_shadow_y : (typeof rawVis.rsvp_card_shadow_y === "number" ? rawVis.rsvp_card_shadow_y : (typeof rawVis.rsvp_style?.card_shadow_y === "number" ? rawVis.rsvp_style?.card_shadow_y : null));
+        const rsvp_card_shadow_opacity = typeof (raw as any).rsvp_card_shadow_opacity === "number" ? (raw as any).rsvp_card_shadow_opacity : (typeof rawVis.rsvp_card_shadow_opacity === "number" ? rawVis.rsvp_card_shadow_opacity : (typeof rawVis.rsvp_style?.card_shadow_opacity === "number" ? rawVis.rsvp_style?.card_shadow_opacity : null));
+        const side_frame_config = normalizeSideFrameConfig(
+          raw.side_frame_config ?? rawVis.side_frame_config ?? rawVis.side_frame
+        );
+        const cover_invitation_style = normalizeCoverInvitationStyle(
+          (raw as any).cover_invitation_style ?? rawVis.cover_invitation_style ?? rawVis.cover_invitation
+        );
+        const guest_name_style = normalizeGuestNameStyle(
+          (raw as any).guest_name_style ?? rawVis.guest_name_style
+        );
+        const page_title_font_size_km = (raw as any).page_title_font_size_km ?? rawVis.page_title_font_size_km ?? null;
+        const page_title_font_size_en = (raw as any).page_title_font_size_en ?? rawVis.page_title_font_size_en ?? null;
+        const couple_font_size_km = (raw as any).couple_font_size_km ?? rawVis.couple_font_size_km ?? null;
+        const couple_font_size_en = (raw as any).couple_font_size_en ?? rawVis.couple_font_size_en ?? null;
+        const og_image_url = (raw as any).og_image_url ?? rawVis.og_image_url ?? rawVis.share_image_url ?? null;
+        const og_title = (raw as any).og_title ?? rawVis.og_title ?? rawVis.share_title ?? null;
+        const og_description = (raw as any).og_description ?? rawVis.og_description ?? rawVis.share_description ?? null;
+        const envelope_unboxing = normalizeEnvelopeConfig(
+          (raw as any).envelope_unboxing ?? rawVis.envelope_unboxing
+        );
+        const header_font = (raw as any).header_font ?? rawVis.header_font ?? null;
+        const header_font_km = (raw as any).header_font_km ?? rawVis.header_font_km ?? header_font;
+        const header_font_en = (raw as any).header_font_en ?? rawVis.header_font_en ?? null;
+        const body_font = (raw as any).body_font ?? rawVis.body_font ?? null;
+        const body_font_km = (raw as any).body_font_km ?? rawVis.body_font_km ?? body_font;
+        const body_font_en = (raw as any).body_font_en ?? rawVis.body_font_en ?? null;
+        const music_autoplay_cover = (raw as any).music_autoplay_cover ?? rawVis.music_autoplay_cover ?? true;
+        const music_autoplay_invitation = (raw as any).music_autoplay_invitation ?? rawVis.music_autoplay_invitation ?? true;
+        const music_autoplay_mode = (raw as any).music_autoplay_mode ?? rawVis.music_autoplay_mode ?? "both";
+        setEvent({
+          ...raw,
+          agenda_days: days,
+          agenda_view_style: view,
+          agenda_bg_color,
+          agenda_bg_opacity,
+          agenda_asset_color,
+          reception_title,
+          details_message,
+          map_button_bg_color,
+          map_button_bg_opacity,
+          countdown_bg_color,
+          countdown_bg_opacity,
+          rsvp_title,
+          rsvp_title_en,
+          rsvp_bg_color,
+          rsvp_bg_opacity,
+          rsvp_header_font,
+          rsvp_header_font_en,
+          rsvp_body_font,
+          rsvp_body_font_en,
+          rsvp_header_effect,
+          rsvp_header_effect_color,
+          rsvp_header_effect_blur,
+          rsvp_header_effect_x,
+          rsvp_header_effect_y,
+          rsvp_header_effect_opacity,
+          rsvp_card_shadow_type,
+          rsvp_card_shadow_color,
+          rsvp_card_shadow_blur,
+          rsvp_card_shadow_spread,
+          rsvp_card_shadow_x,
+          rsvp_card_shadow_y,
+          rsvp_card_shadow_opacity,
+          side_frame_config,
+          cover_invitation_style,
+          guest_name_style,
+          page_title_font_size_km,
+          page_title_font_size_en,
+          couple_font_size_km,
+          couple_font_size_en,
+          og_image_url,
+          og_title,
+          og_description,
+          envelope_unboxing,
+          gallery_layout: galleryLayout,
+          contacts,
+          section_visibility,
+          dual_language_config,
+          open_button_color,
+          text_effect_config,
+          header_font,
+          header_font_km,
+          header_font_en,
+          body_font,
+          body_font_km,
+          body_font_en,
+          music_autoplay_cover,
+          music_autoplay_invitation,
+          music_autoplay_mode,
+        } as any);
+      } else {
+        setEvent(null);
+      }
+      const guestLangs = (rawVis.guest_languages || {}) as Record<string, string>;
+      const loadedGuests: Guest[] = ((gRes.data ?? []) as any[]).map(g => {
+        let lang: "km" | "en" | null = null;
+        if (g.token?.endsWith("-en")) lang = "en";
+        else if (g.token?.endsWith("-km") || g.token?.endsWith("-kh")) lang = "km";
+        else if (guestLangs[g.id] === "en" || guestLangs[g.id] === "km") lang = guestLangs[g.id] as "km" | "en";
+        return {
+          ...g,
+          default_language: lang,
+        };
+      });
+      setGuests(loadedGuests);
+
+      // Build the list of customer-role profiles + already-linked ids.
+      const customerIds = new Set((rolesRes.data ?? []).map((r: any) => r.user_id));
+      const allProfiles = (profilesRes.data ?? []) as CustomerProfile[];
+      setCustomers(allProfiles.filter(p => customerIds.has(p.user_id)));
+      setLinkedCustomerIds(new Set((linksRes.data ?? []).map((l: any) => l.user_id)));
+    } catch (err: any) {
+      console.error("Failed to load event:", err);
+      toast.error(err?.message || "Failed to load event details");
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => { load(); }, [id]);
