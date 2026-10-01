@@ -55,13 +55,13 @@ export function normalizeMusicSettings(raw: any): MusicSettings {
     raw.section_visibility?.music_autoplay_mode ||
     raw.section_visibility?.music_settings?.mode;
 
-  if (mode === "cover") {
+  if (mode === "cover" || mode === "cover_only") {
     return {
       autoPlayCover: coverProp !== undefined ? Boolean(coverProp) : true,
       autoPlayInvitation: invProp !== undefined ? Boolean(invProp) : false,
     };
   }
-  if (mode === "invitation") {
+  if (mode === "invitation" || mode === "invitation_only") {
     return {
       autoPlayCover: coverProp !== undefined ? Boolean(coverProp) : false,
       autoPlayInvitation: invProp !== undefined ? Boolean(invProp) : true,
