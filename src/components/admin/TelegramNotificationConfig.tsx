@@ -48,37 +48,6 @@ export default function TelegramNotificationConfig({
 
   const activeBotToken = (botToken || "").trim() || DEFAULT_TELEGRAM_BOT_TOKEN;
 
-  // Background listener: check for /help, /rsvp, /summary commands in the Telegram group every 3s
-  useEffect(() => {
-    if (!chatId?.trim()) return;
-
-    const checkCommands = () => {
-      processTelegramBotCommands({
-        botToken: activeBotToken,
-        getEventDataForChat: async (targetChatId) => {
-          if (targetChatId === chatId.trim()) {
-            return {
-              eventTitle,
-              eventDate,
-              guests: guests || [],
-            };
-          }
-          return null;
-        },
-      })
-        .then((res) => {
-          if (res.processedCount > 0) {
-            toast.success(`🤖 Bot responded to ${res.processedCount} command(s) in Telegram!`);
-          }
-        })
-        .catch(() => {});
-    };
-
-    checkCommands();
-    const interval = setInterval(checkCommands, 3000);
-    return () => clearInterval(interval);
-  }, [chatId, activeBotToken, eventTitle, eventDate, guests]);
-
   const handleTest = async () => {
     if (!chatId?.trim()) {
       toast.error("Please enter a Telegram Chat ID or click 'Auto-Detect Group' first.");

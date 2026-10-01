@@ -21,12 +21,14 @@ import CustomerEvents from "./pages/customer/CustomerEvents.tsx";
 import CustomerEventDetail from "./pages/customer/CustomerEventDetail.tsx";
 import GatePage from "./pages/public/GatePage.tsx";
 import InvitePage from "./pages/public/InvitePage.tsx";
+import TelegramBotListener from "./components/common/TelegramBotListener.tsx";
 
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
+      <TelegramBotListener />
       <Toaster />
       <Sonner />
       <BrowserRouter>
