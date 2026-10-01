@@ -29,6 +29,12 @@ export function ThemeProvider({ children, defaultTheme = "dark" }: { children: R
 
 export function useTheme() {
   const ctx = useContext(ThemeContext);
-  if (!ctx) throw new Error("useTheme must be used within ThemeProvider");
+  if (!ctx) {
+    return {
+      theme: "dark" as Theme,
+      setTheme: () => {},
+      toggle: () => {},
+    };
+  }
   return ctx;
 }
