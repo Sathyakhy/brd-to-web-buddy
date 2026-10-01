@@ -136,7 +136,7 @@ describe("Telegram Notification Utility", () => {
       expect(chunks.length).toBeGreaterThan(0);
       const text = chunks.join("\n");
       expect(text).toContain("Kunsong &amp; Kimsing Wedding");
-      expect(text).toContain("Total Headcount");
+      expect(text).toContain("Attending");
       expect(text).toContain("5</b> នាក់ (Pax)"); // 2 + 3 = 5 pax
       expect(text).toContain("Sok San");
       expect(text).toContain("2</b> នាក់ (Pax)");

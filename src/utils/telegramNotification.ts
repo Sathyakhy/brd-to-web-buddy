@@ -366,7 +366,8 @@ export function formatTelegramRsvpDetailList(params: {
     `━━━━━━━━━━━━━━━━━━`,
     `💍 <b>កម្មវិធី (Event):</b> ${safeTitle}`,
     ...(formattedDate ? [`📅 <b>កាលបរិច្ឆេទ (Date):</b> ${formattedDate}`] : []),
-    `👥 <b>ចំនួនភ្ញៀវសរុប (Total Headcount):</b> <b>${totalPax}</b> នាក់ (Pax) — ${attending.length} ក្រុម`,
+    `👥 <b>យល់ព្រមចូលរួម (Attending):</b> <b>${totalPax}</b> នាក់ (Pax) — ${attending.length} ក្រុម`,
+    `❌ <b>មិនអាចចូលរួម (Declined):</b> <b>${declined.length}</b> នាក់`,
     `━━━━━━━━━━━━━━━━━━`,
     `<b>បញ្ជីភ្ញៀវយល់ព្រមចូលរួម (Attending Guests & Wishes):</b>`,
     ``,
@@ -391,10 +392,12 @@ export function formatTelegramRsvpDetailList(params: {
     });
   }
 
-  if (declined.length > 0) {
-    bodyLines.push(``);
-    bodyLines.push(`━━━━━━━━━━━━━━━━━━`);
-    bodyLines.push(`❌ <b>ភ្ញៀវសុំទោសមិនអាចចូលរួម / Declined & Regrets (${declined.length} នាក់):</b>`);
+  bodyLines.push(``);
+  bodyLines.push(`━━━━━━━━━━━━━━━━━━`);
+  bodyLines.push(`❌ <b>ភ្ញៀវសុំទោសមិនអាចចូលរួម / Declined & Regrets (${declined.length} នាក់):</b>`);
+  if (declined.length === 0) {
+    bodyLines.push(`<i>គ្មានភ្ញៀវបដិសេធទេ / None</i>`);
+  } else {
     declined.forEach((g, idx) => {
       const { name, wishes } = extractGuestNameAndWishes(g);
       const safeGName = escapeTelegramHtml(name);
