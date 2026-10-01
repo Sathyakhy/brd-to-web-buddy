@@ -2682,7 +2682,7 @@ export default function EventDetail() {
               eventTitle={event.title}
               eventDate={event.event_date}
               guests={visibleGuests}
-              onChange={(patch) => {
+              onChange={async (patch) => {
                 const currentVis = (event.section_visibility as any) ?? {};
                 const nextVis = {
                   ...currentVis,
@@ -2693,6 +2693,19 @@ export default function EventDetail() {
                   ...patch,
                   section_visibility: nextVis,
                 });
+                try {
+                  const { error } = await supabase
+                    .from("events")
+                    .update({ section_visibility: nextVis })
+                    .eq("id", event.id);
+                  if (error) {
+                    console.warn("Failed to persist telegram settings:", error.message);
+                  } else {
+                    toast.success("Telegram notification settings saved");
+                  }
+                } catch (err: any) {
+                  console.warn("Failed to save telegram settings:", err);
+                }
               }}
             />
           </div>
@@ -3033,7 +3046,7 @@ export default function EventDetail() {
               eventTitle={event.title}
               eventDate={event.event_date}
               guests={visibleGuests}
-              onChange={(patch) => {
+              onChange={async (patch) => {
                 const currentVis = (event.section_visibility as any) ?? {};
                 const nextVis = {
                   ...currentVis,
@@ -3044,6 +3057,19 @@ export default function EventDetail() {
                   ...patch,
                   section_visibility: nextVis,
                 });
+                try {
+                  const { error } = await supabase
+                    .from("events")
+                    .update({ section_visibility: nextVis })
+                    .eq("id", event.id);
+                  if (error) {
+                    console.warn("Failed to persist telegram settings:", error.message);
+                  } else {
+                    toast.success("Telegram notification settings saved");
+                  }
+                } catch (err: any) {
+                  console.warn("Failed to save telegram settings:", err);
+                }
               }}
             />
           </div>
