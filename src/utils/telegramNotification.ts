@@ -394,14 +394,14 @@ export function formatTelegramRsvpDetailList(params: {
   if (declined.length > 0) {
     bodyLines.push(``);
     bodyLines.push(`━━━━━━━━━━━━━━━━━━`);
-    bodyLines.push(`❌ <b>ភ្ញៀវសុំទោសមិនអាចចូលរួម / Declined (${declined.length} នាក់):</b>`);
+    bodyLines.push(`❌ <b>ភ្ញៀវសុំទោសមិនអាចចូលរួម / Declined & Regrets (${declined.length} នាក់):</b>`);
     declined.forEach((g, idx) => {
       const { name, wishes } = extractGuestNameAndWishes(g);
       const safeGName = escapeTelegramHtml(name);
       const safeWishes = escapeTelegramHtml(wishes);
-      let item = `${idx + 1}. <s>${safeGName}</s>`;
+      let item = `${idx + 1}. <b>${safeGName}</b> — ❌ <i>មិនអាចចូលរួម (Declined)</i>`;
       if (safeWishes) {
-        item += ` (<i>"${safeWishes}"</i>)`;
+        item += `\n   💬 <i>"${safeWishes}"</i>`;
       }
       bodyLines.push(item);
     });
