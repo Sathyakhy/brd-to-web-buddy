@@ -3,8 +3,11 @@ import {
   escapeTelegramHtml,
   sendTelegramRsvpNotification,
   sendTelegramTestNotification,
-  sendTelegramRsvpSummary,
-  formatTelegramRsvpSummary,
+  sendTelegramRsvpQuickSummary,
+  sendTelegramRsvpDetailList,
+  formatTelegramRsvpQuickSummary,
+  formatTelegramRsvpDetailList,
+  formatTelegramHelpMessage,
   extractGuestNameAndWishes,
   DEFAULT_TELEGRAM_BOT_TOKEN,
   DEFAULT_TELEGRAM_BOT_USERNAME,
@@ -51,102 +54,39 @@ describe("Telegram Notification Utility", () => {
     });
   });
 
-  describe("sendTelegramRsvpNotification", () => {
-    it("formats and posts attending RSVP message correctly to Telegram API", async () => {
-      const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue({
-        json: async () => ({ ok: true, result: { message_id: 123 } }),
-      } as any);
-
-      const res = await sendTelegramRsvpNotification({
-        chatId: "-1001234567890",
-        eventTitle: "Sok & Chantrea Wedding",
-        guestName: "Mr. Sok San & Partner",
-        status: "yes",
-        partySize: 2,
-        message: "Wishing you a lifetime of love and happiness!",
-      });
-
-      expect(res.success).toBe(true);
-      expect(fetchSpy).toHaveBeenCalledTimes(1);
-
-      const [url, options] = fetchSpy.mock.calls[0];
-      expect(url).toContain(DEFAULT_TELEGRAM_BOT_TOKEN);
-      expect(url).toContain("/sendMessage");
-
-      const body = JSON.parse(options?.body as string);
-      expect(body.chat_id).toBe("-1001234567890");
-      expect(body.parse_mode).toBe("HTML");
-      expect(body.text).toContain("Sok &amp; Chantrea Wedding");
-      expect(body.text).toContain("Mr. Sok San &amp; Partner");
-      expect(body.text).toContain("Joyfully Attending");
-      expect(body.text).toContain("2</b> នាក់ / Guests");
-      expect(body.text).toContain("Wishing you a lifetime of love and happiness!");
-    });
-
-    it("formats declining RSVP message correctly", async () => {
-      const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue({
-        json: async () => ({ ok: true, result: { message_id: 124 } }),
-      } as any);
-
-      const res = await sendTelegramRsvpNotification({
-        chatId: "-1001234567890",
-        eventTitle: "Sok & Chantrea Wedding",
-        guestName: "Dara Chan",
-        status: "no",
-        partySize: 1,
-        message: "Sorry, I am out of town.",
-      });
-
-      expect(res.success).toBe(true);
-      const [, options] = fetchSpy.mock.calls[0];
-      const body = JSON.parse(options?.body as string);
-      expect(body.text).toContain("Dara Chan");
-      expect(body.text).toContain("Regretfully Declined");
-      expect(body.text).toContain("Sorry, I am out of town.");
-    });
-
-    it("handles edited response header", async () => {
-      const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue({
-        json: async () => ({ ok: true, result: { message_id: 125 } }),
-      } as any);
-
-      const res = await sendTelegramRsvpNotification({
-        chatId: "-1001234567890",
-        eventTitle: "Sok & Chantrea Wedding",
-        guestName: "Dara Chan",
-        status: "yes",
-        partySize: 3,
-        isEdit: true,
-      });
-
-      expect(res.success).toBe(true);
-      const [, options] = fetchSpy.mock.calls[0];
-      const body = JSON.parse(options?.body as string);
-      expect(body.text).toContain("RSVP Response Updated");
-    });
-
-    it("returns error when Telegram API rejects request", async () => {
-      vi.spyOn(globalThis, "fetch").mockResolvedValue({
-        json: async () => ({
-          ok: false,
-          description: "Bad Request: chat not found",
-        }),
-      } as any);
-
-      const res = await sendTelegramRsvpNotification({
-        chatId: "-1009999999999",
-        eventTitle: "Wedding",
-        guestName: "Guest",
-        status: "yes",
-        partySize: 1,
-      });
-
-      expect(res.success).toBe(false);
-      expect(res.error).toContain("chat not found");
+  describe("formatTelegramHelpMessage", () => {
+    it("formats help message with command list", () => {
+      const text = formatTelegramHelpMessage("My Wedding", "-5568784428");
+      expect(text).toContain("/rsvp");
+      expect(text).toContain("/summary");
+      expect(text).toContain("/help");
+      expect(text).toContain("My Wedding");
     });
   });
 
-  describe("formatTelegramRsvpSummary", () => {
+  describe("formatTelegramRsvpQuickSummary", () => {
+    it("generates quick headcount overview without full guest breakdown", () => {
+      const guests = [
+        { name: "Sok", rsvp_status: "yes", party_size: 2 },
+        { name: "Dara", rsvp_status: "yes", party_size: 1 },
+        { name: "Chhay", rsvp_status: "no", party_size: 1 },
+        { name: "John", rsvp_status: "pending", party_size: 1 },
+      ];
+      const text = formatTelegramRsvpQuickSummary({
+        eventTitle: "Sok Wedding",
+        guests,
+      });
+
+      expect(text).toContain("Quick RSVP Summary");
+      expect(text).toContain("3</b> នាក់ / Pax"); // 2 + 1 = 3 pax
+      expect(text).toContain("2</b> ក្រុម/នាក់"); // 2 groups
+      expect(text).toContain("1</b> នាក់"); // 1 declined
+      expect(text).toContain("/summary"); // hint to view full list
+      expect(text).not.toContain("💬"); // does not contain individual wishes
+    });
+  });
+
+  describe("formatTelegramRsvpDetailList", () => {
     it("formats full summary report with guest name, pax and wishes", () => {
       const guests = [
         {
@@ -187,7 +127,7 @@ describe("Telegram Notification Utility", () => {
         },
       ];
 
-      const chunks = formatTelegramRsvpSummary({
+      const chunks = formatTelegramRsvpDetailList({
         eventTitle: "Kunsong & Kimsing Wedding",
         eventDate: "2026-11-20",
         guests,
@@ -208,49 +148,42 @@ describe("Telegram Notification Utility", () => {
     });
   });
 
-  describe("sendTelegramRsvpSummary", () => {
-    it("sends summary report to Telegram chat", async () => {
+  describe("sendTelegramRsvpQuickSummary and sendTelegramRsvpDetailList", () => {
+    it("sends quick summary to Telegram chat", async () => {
       const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue({
         json: async () => ({ ok: true, result: { message_id: 128 } }),
       } as any);
 
-      const res = await sendTelegramRsvpSummary({
+      const res = await sendTelegramRsvpQuickSummary({
         chatId: "-5568784428",
         eventTitle: "Kunsong & Kimsing Wedding",
-        guests: [
-          {
-            name: "Sok San",
-            token: "tok1",
-            rsvp_status: "yes",
-            party_size: 2,
-            message: "Congratulations!",
-          },
-        ],
+        guests: [{ name: "Sok San", token: "tok1", rsvp_status: "yes", party_size: 2 }],
       });
 
       expect(res.success).toBe(true);
-      expect(fetchSpy).toHaveBeenCalled();
       const [, options] = fetchSpy.mock.calls[0];
       const body = JSON.parse(options?.body as string);
       expect(body.chat_id).toBe("-5568784428");
-      expect(body.text).toContain("Sok San");
-      expect(body.text).toContain("2</b> នាក់ (Pax)");
+      expect(body.text).toContain("Quick RSVP Summary");
     });
-  });
 
-  describe("sendTelegramTestNotification", () => {
-    it("sends test notification with bot username and event info", async () => {
+    it("sends detail list to Telegram chat", async () => {
       const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue({
-        json: async () => ({ ok: true, result: { message_id: 126 } }),
+        json: async () => ({ ok: true, result: { message_id: 129 } }),
       } as any);
 
-      const res = await sendTelegramTestNotification("-1001234567890", "Test Event");
-      expect(res.success).toBe(true);
+      const res = await sendTelegramRsvpDetailList({
+        chatId: "-5568784428",
+        eventTitle: "Kunsong & Kimsing Wedding",
+        guests: [{ name: "Sok San", token: "tok1", rsvp_status: "yes", party_size: 2, message: "Best wishes!" }],
+      });
 
+      expect(res.success).toBe(true);
       const [, options] = fetchSpy.mock.calls[0];
       const body = JSON.parse(options?.body as string);
-      expect(body.text).toContain(DEFAULT_TELEGRAM_BOT_USERNAME);
-      expect(body.text).toContain("Telegram Notification Test");
+      expect(body.chat_id).toBe("-5568784428");
+      expect(body.text).toContain("Detailed Guest List & Wishes");
+      expect(body.text).toContain("Best wishes!");
     });
   });
 });

@@ -51,11 +51,12 @@ Deno.serve(async (req) => {
 
     const chatId = String(msg.chat.id);
     const text = msg.text.trim();
+    const cmd = text.toLowerCase().split(/\s+/)[0].replace(/@\w+/g, "");
 
-    // Check for supported commands
-    const isSummary = text.startsWith("/summary") || text.startsWith("/report");
-    const isRsvp = text.startsWith("/rsvp");
-    const isHelp = text.startsWith("/help") || text.startsWith("/start");
+    // Check for supported commands (case-insensitive & bot username stripped)
+    const isSummary = cmd === "/summary" || cmd === "/detail" || cmd === "/guests" || cmd === "/list" || cmd === "/report";
+    const isRsvp = cmd === "/rsvp" || cmd === "/quick" || cmd === "/stats";
+    const isHelp = cmd === "/help" || cmd === "/start";
 
     if (!isSummary && !isRsvp && !isHelp) {
       return new Response(JSON.stringify({ ok: true }), {

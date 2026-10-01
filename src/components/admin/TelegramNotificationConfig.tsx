@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Send, CheckCircle2, RefreshCw, ExternalLink, Bot, FileText, Check } from "lucide-react";
+import { Send, CheckCircle2, RefreshCw, ExternalLink, Bot, FileText, Check, BarChart2, ListChecks } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,7 +9,8 @@ import {
   DEFAULT_TELEGRAM_BOT_TOKEN,
   DEFAULT_TELEGRAM_BOT_USERNAME,
   sendTelegramTestNotification,
-  sendTelegramRsvpSummary,
+  sendTelegramRsvpQuickSummary,
+  sendTelegramRsvpDetailList,
   fetchRecentTelegramChats,
   processTelegramBotCommands,
   DetectedTelegramChat,
@@ -39,14 +40,15 @@ export default function TelegramNotificationConfig({
   onChange,
 }: Props) {
   const [testing, setTesting] = useState(false);
-  const [sharingSummary, setSharingSummary] = useState(false);
+  const [sharingQuick, setSharingQuick] = useState(false);
+  const [sharingDetail, setSharingDetail] = useState(false);
   const [detecting, setDetecting] = useState(false);
   const [detectedChats, setDetectedChats] = useState<DetectedTelegramChat[]>([]);
   const [showTokenInput, setShowTokenInput] = useState(false);
 
   const activeBotToken = (botToken || "").trim() || DEFAULT_TELEGRAM_BOT_TOKEN;
 
-  // Background listener: check for /summary commands in the Telegram group every 10s
+  // Background listener: check for /help, /rsvp, /summary commands in the Telegram group every 3s
   useEffect(() => {
     if (!chatId?.trim()) return;
 
@@ -73,7 +75,7 @@ export default function TelegramNotificationConfig({
     };
 
     checkCommands();
-    const interval = setInterval(checkCommands, 10000);
+    const interval = setInterval(checkCommands, 3000);
     return () => clearInterval(interval);
   }, [chatId, activeBotToken, eventTitle, eventDate, guests]);
 
@@ -97,14 +99,14 @@ export default function TelegramNotificationConfig({
     }
   };
 
-  const handleShareSummary = async () => {
+  const handleShareQuickSummary = async () => {
     if (!chatId?.trim()) {
       toast.error("Please enter a Telegram Chat ID or click 'Auto-Detect Group' first.");
       return;
     }
-    setSharingSummary(true);
+    setSharingQuick(true);
     try {
-      const res = await sendTelegramRsvpSummary({
+      const res = await sendTelegramRsvpQuickSummary({
         chatId,
         botToken: activeBotToken,
         eventTitle,
@@ -112,14 +114,40 @@ export default function TelegramNotificationConfig({
         guests: guests || [],
       });
       if (res.success) {
-        toast.success("RSVP Summary & guest wishes sent to Telegram group! 📊");
+        toast.success("Quick RSVP Summary sent to Telegram group! 📊");
       } else {
-        toast.error(`Telegram error: ${res.error || "Failed to send summary"}`);
+        toast.error(`Telegram error: ${res.error || "Failed to send quick summary"}`);
       }
     } catch (err: any) {
-      toast.error(err?.message || "Failed to send summary");
+      toast.error(err?.message || "Failed to send quick summary");
     } finally {
-      setSharingSummary(false);
+      setSharingQuick(false);
+    }
+  };
+
+  const handleShareDetailList = async () => {
+    if (!chatId?.trim()) {
+      toast.error("Please enter a Telegram Chat ID or click 'Auto-Detect Group' first.");
+      return;
+    }
+    setSharingDetail(true);
+    try {
+      const res = await sendTelegramRsvpDetailList({
+        chatId,
+        botToken: activeBotToken,
+        eventTitle,
+        eventDate,
+        guests: guests || [],
+      });
+      if (res.success) {
+        toast.success("Detailed guest list & wishes sent to Telegram group! 📋");
+      } else {
+        toast.error(`Telegram error: ${res.error || "Failed to send detail list"}`);
+      }
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to send detail list");
+    } finally {
+      setSharingDetail(false);
     }
   };
 
@@ -169,7 +197,7 @@ export default function TelegramNotificationConfig({
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h3 className="font-semibold text-base">Telegram RSVP Notifications & /summary</h3>
+              <h3 className="font-semibold text-base">Telegram RSVP Notifications & Bot Commands</h3>
               <span
                 className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
                   enabled && chatId
@@ -181,7 +209,7 @@ export default function TelegramNotificationConfig({
               </span>
             </div>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Instant alerts on RSVP response, plus group <code>/summary</code> command for guest list, pax & wishes.
+              Live alerts on every response, plus group commands for quick summary (<code>/rsvp</code>) and detailed wishes (<code>/summary</code>).
             </p>
           </div>
         </div>
@@ -217,23 +245,33 @@ export default function TelegramNotificationConfig({
             </a>{" "}
             to your wedding team or couple's Telegram group.
           </li>
-          <li>Send any message in that group (e.g. <i>"Hello bot"</i>).</li>
+          <li>Send any message in that group (e.g. <i>"Hello"</i>).</li>
           <li>
             Click <strong>"Auto-Detect Group"</strong> below to automatically grab the Group Chat ID, or type it manually.
           </li>
         </ol>
-        <div className="pt-1 text-[11px] text-foreground font-medium flex items-center gap-1 border-t border-border/50">
-          <span>💡 Telegram Group Commands:</span>
-          <span className="font-mono bg-black/10 dark:bg-white/10 px-1.5 py-0.5 rounded text-[10px]">/summary</span>
-          <span>shares attending guests, pax & wishes.</span>
-          <span className="font-mono bg-black/10 dark:bg-white/10 px-1.5 py-0.5 rounded text-[10px]">/rsvp</span>
-          <span>shares counts overview.</span>
+        <div className="pt-2 border-t border-border/50 space-y-1 text-[11px] text-foreground">
+          <div className="font-semibold text-[#229ED9]">Commands you can type directly in your Telegram group:</div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5 pt-0.5">
+            <div className="bg-background/80 p-2 rounded-lg border border-border">
+              <span className="font-mono font-bold text-foreground">/rsvp</span>
+              <p className="text-[10px] text-muted-foreground mt-0.5">Quick summary of headcount & counts</p>
+            </div>
+            <div className="bg-background/80 p-2 rounded-lg border border-border">
+              <span className="font-mono font-bold text-foreground">/summary</span>
+              <p className="text-[10px] text-muted-foreground mt-0.5">Full guest list, pax & wishes</p>
+            </div>
+            <div className="bg-background/80 p-2 rounded-lg border border-border">
+              <span className="font-mono font-bold text-foreground">/help</span>
+              <p className="text-[10px] text-muted-foreground mt-0.5">Command instructions</p>
+            </div>
+          </div>
         </div>
       </div>
 
       {/* Inputs */}
       <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
-        <div className="md:col-span-6 space-y-1.5">
+        <div className="md:col-span-5 space-y-1.5">
           <Label className="text-xs font-medium flex items-center justify-between">
             <span>Telegram Group Chat ID <span className="text-destructive">*</span></span>
             <span className="text-[11px] text-muted-foreground font-normal">e.g. -5568784428</span>
@@ -247,14 +285,14 @@ export default function TelegramNotificationConfig({
           />
         </div>
 
-        <div className="md:col-span-6 flex flex-wrap items-center gap-2">
+        <div className="md:col-span-7 flex flex-wrap items-center gap-2">
           <Button
             type="button"
             variant="outline"
             size="sm"
             onClick={handleAutoDetect}
             disabled={detecting}
-            className="flex-1 h-10 text-xs"
+            className="flex-1 min-w-[100px] h-10 text-xs"
           >
             <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${detecting ? "animate-spin" : ""}`} />
             {detecting ? "Detecting…" : "Auto-Detect"}
@@ -266,7 +304,7 @@ export default function TelegramNotificationConfig({
             size="sm"
             onClick={handleTest}
             disabled={testing || !chatId}
-            className="flex-1 h-10 text-xs"
+            className="flex-1 min-w-[90px] h-10 text-xs"
           >
             <Send className="h-3.5 w-3.5 mr-1.5" />
             {testing ? "Testing…" : "Test Alert"}
@@ -274,14 +312,27 @@ export default function TelegramNotificationConfig({
 
           <Button
             type="button"
+            variant="outline"
             size="sm"
-            onClick={handleShareSummary}
-            disabled={sharingSummary || !chatId}
-            className="flex-1 h-10 text-xs bg-[#229ED9] hover:bg-[#1e8bc0] text-white"
-            title="Share current guest list, pax & wishes to the group"
+            onClick={handleShareQuickSummary}
+            disabled={sharingQuick || !chatId}
+            className="flex-1 min-w-[110px] h-10 text-xs font-medium"
+            title="Share quick headcount overview (/rsvp) to Telegram group"
           >
-            <FileText className="h-3.5 w-3.5 mr-1.5" />
-            {sharingSummary ? "Sharing…" : "Share /summary"}
+            <BarChart2 className="h-3.5 w-3.5 mr-1.5 text-gold" />
+            {sharingQuick ? "Sending…" : "Quick /rsvp"}
+          </Button>
+
+          <Button
+            type="button"
+            size="sm"
+            onClick={handleShareDetailList}
+            disabled={sharingDetail || !chatId}
+            className="flex-1 min-w-[130px] h-10 text-xs bg-[#229ED9] hover:bg-[#1e8bc0] text-white font-medium"
+            title="Share complete guest list, individual pax & wishes (/summary) to Telegram group"
+          >
+            <ListChecks className="h-3.5 w-3.5 mr-1.5" />
+            {sharingDetail ? "Sharing…" : "Detail /summary"}
           </Button>
         </div>
       </div>

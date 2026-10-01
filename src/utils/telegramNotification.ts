@@ -28,7 +28,7 @@ export type TelegramRsvpNotificationParams = {
 };
 
 /**
- * Sends an RSVP notification to the specified Telegram group chat ID.
+ * Sends an instant notification when a guest submits an RSVP.
  */
 export async function sendTelegramRsvpNotification(params: TelegramRsvpNotificationParams): Promise<{
   success: boolean;
@@ -146,6 +146,11 @@ export async function sendTelegramTestNotification(
     `ℹ️ <i>រាល់ពេលដែលមានភ្ញៀវឆ្លើយតប RSVP ប្រព័ន្ធនឹងផ្ញើសារស្វ័យប្រវត្តិចូលមកកាន់ក្រុមនេះ។</i>`,
     `<i>(RSVP responses for this event will be pushed automatically to this group.)</i>`,
     "━━━━━━━━━━━━━━━━━━",
+    `💡 <b>ពាក្យបញ្ជាក្នុងក្រុម / Group Commands:</b>`,
+    `• <b>/rsvp</b> — របាយការណ៍សង្ខេប (Quick summary of headcount & RSVP counts)`,
+    `• <b>/summary</b> — បញ្ជីឈ្មោះភ្ញៀវលម្អិត និងពាក្យជូនពរ (Detailed guest list, pax & wishes)`,
+    `• <b>/help</b> — បង្ហាញការណែនាំ (Help menu)`,
+    "━━━━━━━━━━━━━━━━━━",
     `⏰ <i>${phnomPenhTime} (Phnom Penh)</i>`,
   ];
 
@@ -239,17 +244,9 @@ export function extractGuestNameAndWishes(g: any): { name: string; wishes: strin
 }
 
 /**
- * Builds formatted Telegram HTML chunks for the full RSVP summary report,
- * ensuring each chunk stays under 3800 characters to prevent Telegram API truncation.
+ * Helper to partition guests into visible, attending, declined, and pending.
  */
-export function formatTelegramRsvpSummary(params: {
-  eventTitle: string;
-  eventDate?: string | null;
-  guests: any[];
-}): string[] {
-  const { eventTitle, eventDate, guests } = params;
-
-  // Filter out unassigned broadcast slots
+function partitionGuests(guests: any[]) {
   const visible = guests.filter((g) => {
     const isUnassigned =
       g.token?.startsWith("broadcast-") &&
@@ -263,6 +260,65 @@ export function formatTelegramRsvpSummary(params: {
   const declined = visible.filter((g) => g.rsvp_status === "no");
   const pending = visible.filter((g) => g.rsvp_status === "pending");
   const totalPax = attending.reduce((sum, g) => sum + (Number(g.party_size) || 1), 0);
+
+  return { visible, attending, declined, pending, totalPax };
+}
+
+/**
+ * 1. FORMAT QUICK SUMMARY (for /rsvp or /quick)
+ * Concise overview: Headcount/Pax, Attending count, Declined count, Pending count.
+ */
+export function formatTelegramRsvpQuickSummary(params: {
+  eventTitle: string;
+  eventDate?: string | null;
+  guests: any[];
+}): string {
+  const { eventTitle, eventDate, guests } = params;
+  const { attending, declined, pending, totalPax } = partitionGuests(guests);
+
+  const safeTitle = escapeTelegramHtml(eventTitle || "Wedding Celebration");
+  const formattedDate = eventDate ? escapeTelegramHtml(new Date(eventDate).toLocaleDateString("en-GB")) : "";
+
+  const phnomPenhTime = new Date().toLocaleString("en-GB", {
+    timeZone: "Asia/Phnom_Penh",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+  });
+
+  const lines = [
+    `📊 <b>របាយការណ៍សង្ខេបវត្តមាន / Quick RSVP Summary</b>`,
+    `━━━━━━━━━━━━━━━━━━`,
+    `💍 <b>កម្មវិធី (Event):</b> ${safeTitle}`,
+    ...(formattedDate ? [`📅 <b>កាលបរិច្ឆេទ (Date):</b> ${formattedDate}`] : []),
+    `👥 <b>ចំនួនភ្ញៀវចូលរួមសរុប (Total Attending):</b> <b>${totalPax}</b> នាក់ / Pax`,
+    `━━━━━━━━━━━━━━━━━━`,
+    `✅ <b>យល់ព្រមចូលរួម (Attending):</b> <b>${attending.length}</b> ក្រុម/នាក់`,
+    `❌ <b>មិនអាចចូលរួម (Declined):</b> <b>${declined.length}</b> នាក់`,
+    `⏳ <b>កំពុងរង់ចាំ (Pending):</b> <b>${pending.length}</b> នាក់`,
+    `━━━━━━━━━━━━━━━━━━`,
+    `💡 <i>វាយ <b>/summary</b> ដើម្បីមើលបញ្ជីឈ្មោះភ្ញៀវចូលរួម និងពាក្យជូនពរលម្អិត។</i>`,
+    `<i>(Type /summary to view full guest names, pax & wishes.)</i>`,
+    `⏰ <i>${phnomPenhTime} (Phnom Penh)</i>`,
+  ];
+
+  return lines.join("\n");
+}
+
+/**
+ * 2. FORMAT DETAILED GUEST LIST & WISHES (for /summary or /detail)
+ * Comprehensive breakdown: every attending guest's name, individual pax, and their personal wishes.
+ */
+export function formatTelegramRsvpDetailList(params: {
+  eventTitle: string;
+  eventDate?: string | null;
+  guests: any[];
+}): string[] {
+  const { eventTitle, eventDate, guests } = params;
+  const { attending, declined, pending, totalPax } = partitionGuests(guests);
 
   const safeTitle = escapeTelegramHtml(eventTitle || "Wedding Celebration");
   const formattedDate = eventDate ? escapeTelegramHtml(new Date(eventDate).toLocaleDateString("en-GB")) : "";
@@ -278,16 +334,13 @@ export function formatTelegramRsvpSummary(params: {
   });
 
   const header = [
-    `📊 <b>របាយការណ៍វត្តមានភ្ញៀវ និងពាក្យជូនពរ / RSVP Summary & Wishes</b>`,
+    `📋 <b>បញ្ជីឈ្មោះភ្ញៀវ និងពាក្យជូនពរ / Detailed Guest List & Wishes</b>`,
     `━━━━━━━━━━━━━━━━━━`,
     `💍 <b>កម្មវិធី (Event):</b> ${safeTitle}`,
     ...(formattedDate ? [`📅 <b>កាលបរិច្ឆេទ (Date):</b> ${formattedDate}`] : []),
-    `👥 <b>ចំនួនភ្ញៀវចូលរួមសរុប (Total Headcount):</b> <b>${totalPax}</b> នាក់ (Pax)`,
-    `✅ <b>យល់ព្រមចូលរួម (Attending):</b> <b>${attending.length}</b> ក្រុម/នាក់`,
-    `❌ <b>មិនអាចចូលរួម (Declined):</b> <b>${declined.length}</b> នាក់`,
-    `⏳ <b>កំពុងរង់ចាំ (Pending):</b> <b>${pending.length}</b> នាក់`,
+    `👥 <b>ចំនួនភ្ញៀវសរុប (Total Headcount):</b> <b>${totalPax}</b> នាក់ (Pax) — ${attending.length} ក្រុម`,
     `━━━━━━━━━━━━━━━━━━`,
-    `📋 <b>បញ្ជីឈ្មោះភ្ញៀវយល់ព្រមចូលរួម (Attending Guests & Wishes):</b>`,
+    `<b>បញ្ជីភ្ញៀវយល់ព្រមចូលរួម (Attending Guests & Wishes):</b>`,
     ``,
   ];
 
@@ -354,9 +407,33 @@ export function formatTelegramRsvpSummary(params: {
 }
 
 /**
- * Sends the full RSVP Summary report (guest names, pax, wishes, headcount) to the Telegram group.
+ * 3. FORMAT HELP MESSAGE (for /help or /start)
  */
-export async function sendTelegramRsvpSummary(params: {
+export function formatTelegramHelpMessage(eventTitle?: string | null, chatId?: string | null): string {
+  const safeEvent = eventTitle ? escapeTelegramHtml(eventTitle) : null;
+  return [
+    `🤖 <b>21Invite.Online RSVP Bot (@${DEFAULT_TELEGRAM_BOT_USERNAME})</b>`,
+    `━━━━━━━━━━━━━━━━━━`,
+    `សួស្តី! ខ្ញុំជា Bot សម្រាប់ទទួលដំណឹង RSVP និងរបាយការណ៍វត្តមានភ្ញៀវ។`,
+    `<i>(Hello! I am your automated wedding RSVP & guest management bot.)</i>`,
+    ``,
+    `📌 <b>ពាក្យបញ្ជាដែលមាន / Available Commands:</b>`,
+    `• <b>/rsvp</b> — របាយការណ៍សង្ខេប (Quick summary of headcount & RSVP counts)`,
+    `• <b>/summary</b> — បញ្ជីឈ្មោះភ្ញៀវលម្អិត និងពាក្យជូនពរ (Detailed guest list, pax & wishes)`,
+    `• <b>/help</b> — បង្ហាញការណែនាំនេះ (Show this help message)`,
+    `━━━━━━━━━━━━━━━━━━`,
+    ...(safeEvent
+      ? [`💍 <b>កម្មវិធីដែលបានភ្ជាប់ (Linked Event):</b> ${safeEvent}`]
+      : chatId
+      ? [`Group Chat ID: <code>${chatId}</code>`, `<i>(Please link this Chat ID in your event dashboard.)</i>`]
+      : []),
+  ].join("\n");
+}
+
+/**
+ * Sends the Quick RSVP Summary (/rsvp) to the Telegram group.
+ */
+export async function sendTelegramRsvpQuickSummary(params: {
   chatId: string;
   botToken?: string | null;
   eventTitle: string;
@@ -371,7 +448,49 @@ export async function sendTelegramRsvpSummary(params: {
     return { success: false, error: "Missing Telegram Chat ID" };
   }
 
-  const chunks = formatTelegramRsvpSummary({ eventTitle, eventDate, guests });
+  const text = formatTelegramRsvpQuickSummary({ eventTitle, eventDate, guests });
+
+  try {
+    const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        chat_id: targetChatId,
+        text,
+        parse_mode: "HTML",
+        disable_web_page_preview: true,
+      }),
+    });
+
+    const data = await res.json();
+    if (!data.ok) {
+      return { success: false, error: data.description || "Failed to send quick summary" };
+    }
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err?.message || "Network error" };
+  }
+}
+
+/**
+ * Sends the Detailed Guest List & Wishes (/summary) to the Telegram group.
+ */
+export async function sendTelegramRsvpDetailList(params: {
+  chatId: string;
+  botToken?: string | null;
+  eventTitle: string;
+  eventDate?: string | null;
+  guests: any[];
+}): Promise<{ success: boolean; error?: string }> {
+  const { chatId, botToken, eventTitle, eventDate, guests } = params;
+  const token = (botToken || "").trim() || DEFAULT_TELEGRAM_BOT_TOKEN;
+  const targetChatId = (chatId || "").trim();
+
+  if (!targetChatId) {
+    return { success: false, error: "Missing Telegram Chat ID" };
+  }
+
+  const chunks = formatTelegramRsvpDetailList({ eventTitle, eventDate, guests });
 
   try {
     for (const chunk of chunks) {
@@ -388,12 +507,11 @@ export async function sendTelegramRsvpSummary(params: {
 
       const data = await res.json();
       if (!data.ok) {
-        return { success: false, error: data.description || "Failed to send summary" };
+        return { success: false, error: data.description || "Failed to send detailed list" };
       }
     }
     return { success: true };
   } catch (err: any) {
-    console.error("Failed to send RSVP summary to Telegram:", err);
     return { success: false, error: err?.message || "Network error" };
   }
 }
@@ -401,7 +519,8 @@ export async function sendTelegramRsvpSummary(params: {
 let lastHandledUpdateOffset = 0;
 
 /**
- * Checks for commands like /summary or /rsvp in Telegram updates and replies with the event summary.
+ * Checks for commands (/help, /rsvp, /summary) in Telegram updates and replies immediately.
+ * Handles case-insensitivity (/Help, /Summary, /RSVP) and bot username suffixes.
  */
 export async function processTelegramBotCommands(params: {
   botToken?: string | null;
@@ -415,8 +534,8 @@ export async function processTelegramBotCommands(params: {
 
   try {
     const url = lastHandledUpdateOffset > 0
-      ? `https://api.telegram.org/bot${token}/getUpdates?offset=${lastHandledUpdateOffset}`
-      : `https://api.telegram.org/bot${token}/getUpdates`;
+      ? `https://api.telegram.org/bot${token}/getUpdates?offset=${lastHandledUpdateOffset}&limit=20`
+      : `https://api.telegram.org/bot${token}/getUpdates?limit=20`;
 
     const res = await fetch(url, { method: "GET" });
     const data = await res.json();
@@ -434,12 +553,29 @@ export async function processTelegramBotCommands(params: {
       if (!msg || !msg.chat || !msg.text) continue;
 
       const chatId = String(msg.chat.id);
-      const text = msg.text.trim().toLowerCase();
+      const rawText = msg.text.trim();
+      // Normalize command: lowercased, first word, remove @botname (e.g. "/Help@EInvitation_Bot" -> "/help")
+      const cmd = rawText.toLowerCase().split(/\s+/)[0].replace(/@\w+/g, "");
 
-      if (text.startsWith("/summary") || text.startsWith("/report") || text.startsWith("/rsvp")) {
+      if (cmd === "/help" || cmd === "/start") {
+        const eventData = await params.getEventDataForChat(chatId);
+        const helpText = formatTelegramHelpMessage(eventData?.eventTitle, chatId);
+
+        await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            chat_id: chatId,
+            text: helpText,
+            parse_mode: "HTML",
+          }),
+        });
+        processed++;
+      } else if (cmd === "/rsvp" || cmd === "/quick" || cmd === "/stats") {
+        // 1. Quick Summary Command
         const eventData = await params.getEventDataForChat(chatId);
         if (eventData) {
-          await sendTelegramRsvpSummary({
+          await sendTelegramRsvpQuickSummary({
             chatId,
             botToken: token,
             eventTitle: eventData.eventTitle,
@@ -448,7 +584,30 @@ export async function processTelegramBotCommands(params: {
           });
           processed++;
         } else {
-          // Send not found notice
+          await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              chat_id: chatId,
+              text: `⚠️ <b>រកមិនឃើញកម្មវិធី / No Event Linked</b>\nChat ID: <code>${chatId}</code>\nសូមភ្ជាប់ Chat ID នេះក្នុងផ្ទាំងគ្រប់គ្រងកម្មវិធីរបស់អ្នក។`,
+              parse_mode: "HTML",
+            }),
+          });
+          processed++;
+        }
+      } else if (cmd === "/summary" || cmd === "/detail" || cmd === "/guests" || cmd === "/list" || cmd === "/report") {
+        // 2. Detailed Guest List & Wishes Command
+        const eventData = await params.getEventDataForChat(chatId);
+        if (eventData) {
+          await sendTelegramRsvpDetailList({
+            chatId,
+            botToken: token,
+            eventTitle: eventData.eventTitle,
+            eventDate: eventData.eventDate,
+            guests: eventData.guests,
+          });
+          processed++;
+        } else {
           await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -474,4 +633,3 @@ export async function processTelegramBotCommands(params: {
     return { processedCount: 0 };
   }
 }
-
