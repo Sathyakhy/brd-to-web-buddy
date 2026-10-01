@@ -49,7 +49,7 @@ export default function TelegramNotificationConfig({
 
   const activeBotToken = (botToken || "").trim() || DEFAULT_TELEGRAM_BOT_TOKEN;
 
-  // Safe live listener: Checks for /rsvp, /summary, /help commands in the linked Telegram group every 2.5s
+  // Safe live listener: Checks for /rsvp, /summary, /help commands in the linked Telegram group
   useEffect(() => {
     if (!enabled || !chatId?.trim() || detecting) return;
 
@@ -57,7 +57,7 @@ export default function TelegramNotificationConfig({
     let isBusy = false;
 
     const pollCommands = async () => {
-      if (isCancelled || isBusy || detecting) return;
+      if (isCancelled || isBusy || detecting || document.hidden) return;
       isBusy = true;
       try {
         const res = await processTelegramBotCommands({
@@ -75,14 +75,13 @@ export default function TelegramNotificationConfig({
         });
         if (!isCancelled && res.processedCount > 0) {
           setListeningCount((prev) => prev + res.processedCount);
-          toast.success(`🤖 Bot replied to ${res.processedCount} command(s) in your Telegram group!`);
         }
       } catch (_) {}
       isBusy = false;
     };
 
     pollCommands();
-    const interval = setInterval(pollCommands, 2500);
+    const interval = setInterval(pollCommands, 4000);
 
     return () => {
       isCancelled = true;

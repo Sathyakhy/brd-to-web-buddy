@@ -338,6 +338,7 @@ export default function InvitePage() {
   };
 
   const [duplicatePending, setDuplicatePending] = useState<DuplicatePending | null>(null);
+  const lastDispatchedTelegramRef = useRef<{ key: string; time: number }>({ key: "", time: 0 });
 
   const triggerTelegramNotification = (
     respondentName: string,
@@ -351,6 +352,17 @@ export default function InvitePage() {
     const enabled = vis.telegram_notifications_enabled !== false;
     const chatId = vis.telegram_chat_id || (event as any).telegram_chat_id;
     const botToken = vis.telegram_bot_token || (event as any).telegram_bot_token;
+
+    const dispatchKey = `${slug}:${respondentName}:${rsvpStatus}:${size}:${wishes}:${isEdit}`;
+    const now = Date.now();
+    if (
+      lastDispatchedTelegramRef.current.key === dispatchKey &&
+      now - lastDispatchedTelegramRef.current.time < 8000
+    ) {
+      // Prevent duplicate notification dispatch
+      return;
+    }
+    lastDispatchedTelegramRef.current = { key: dispatchKey, time: now };
 
     if (chatId && enabled) {
       sendTelegramRsvpNotification({

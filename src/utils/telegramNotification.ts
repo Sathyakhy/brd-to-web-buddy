@@ -517,10 +517,12 @@ export async function sendTelegramRsvpDetailList(params: {
 }
 
 let lastHandledUpdateOffset = 0;
+const processedUpdateIds = new Set<number>();
 
 /**
  * Checks for commands (/help, /rsvp, /summary) in Telegram updates and replies immediately.
  * Handles case-insensitivity (/Help, /Summary, /RSVP) and bot username suffixes.
+ * Guards against replaying historical past messages on initial load.
  */
 export async function processTelegramBotCommands(params: {
   botToken?: string | null;
@@ -544,13 +546,32 @@ export async function processTelegramBotCommands(params: {
       return { processedCount: 0 };
     }
 
+    // On initial cold boot, advance the offset to the latest update without replaying old historical messages:
+    if (lastHandledUpdateOffset === 0) {
+      const maxId = Math.max(...data.result.map((u: any) => u.update_id));
+      lastHandledUpdateOffset = maxId + 1;
+      return { processedCount: 0 };
+    }
+
     let processed = 0;
+    const nowSec = Math.floor(Date.now() / 1000);
 
     for (const update of data.result) {
       lastHandledUpdateOffset = Math.max(lastHandledUpdateOffset, update.update_id + 1);
 
+      if (processedUpdateIds.has(update.update_id)) continue;
+      processedUpdateIds.add(update.update_id);
+      if (processedUpdateIds.size > 200) {
+        // Keep set size bounded
+        const first = processedUpdateIds.values().next().value;
+        if (first !== undefined) processedUpdateIds.delete(first);
+      }
+
       const msg = update.message || update.channel_post;
       if (!msg || !msg.chat || !msg.text) continue;
+
+      // Ignore messages older than 45 seconds
+      if (msg.date && (nowSec - msg.date) > 45) continue;
 
       const chatId = String(msg.chat.id);
       const rawText = msg.text.trim();
