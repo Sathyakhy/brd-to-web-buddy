@@ -2680,6 +2680,8 @@ export default function EventDetail() {
               chatId={(event.section_visibility as any)?.telegram_chat_id || (event as any).telegram_chat_id || ""}
               botToken={(event.section_visibility as any)?.telegram_bot_token || (event as any).telegram_bot_token || ""}
               eventTitle={event.title}
+              eventDate={event.event_date}
+              guests={visibleGuests}
               onChange={(patch) => {
                 const currentVis = (event.section_visibility as any) ?? {};
                 const nextVis = {
@@ -3029,6 +3031,8 @@ export default function EventDetail() {
               chatId={(event.section_visibility as any)?.telegram_chat_id || (event as any).telegram_chat_id || ""}
               botToken={(event.section_visibility as any)?.telegram_bot_token || (event as any).telegram_bot_token || ""}
               eventTitle={event.title}
+              eventDate={event.event_date}
+              guests={visibleGuests}
               onChange={(patch) => {
                 const currentVis = (event.section_visibility as any) ?? {};
                 const nextVis = {

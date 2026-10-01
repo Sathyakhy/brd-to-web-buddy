@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Check, X, Heart, Minus, Plus, Sparkles, User, MessageSquareHeart, Pencil, CheckCircle2, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -148,11 +148,21 @@ export default function RsvpCard({
   const hasRecordedResponse = status === "yes" || status === "no";
   const [isEditing, setIsEditing] = useState(false);
 
+  // Close edit mode on status change
   useEffect(() => {
     if (status === "yes" || status === "no") {
       setIsEditing(false);
     }
   }, [status]);
+
+  // When a save submission completes, ensure edit mode is closed
+  const prevSubmittingRef = useRef(submitting);
+  useEffect(() => {
+    if (prevSubmittingRef.current && !submitting) {
+      setIsEditing(false);
+    }
+    prevSubmittingRef.current = submitting;
+  }, [submitting]);
 
   useEffect(() => {
     if (guestName && guestName !== "Honored Guest" && guestName !== "ភ្ញៀវកិត្តិយស" && guestName !== "open" && guestName !== "preview") {
@@ -255,10 +265,14 @@ export default function RsvpCard({
       toast.error(isEn ? "Please enter your name or family name" : "សូមបញ្ចូលឈ្មោះរបស់អ្នក ឬគ្រួសារ");
       return;
     }
+    // Immediately exit edit mode so user sees the locked saved view
+    setIsEditing(false);
     onSubmit?.(chosenStatus, partySize, message, isOpenInvite ? customName.trim() : guestName);
   };
 
-  const displayName = isOpenInvite ? (customName.trim() || (isEn ? "Honored Guest" : "ភ្ញៀវកិត្តិយស")) : (guestName || (isEn ? "Honored Guest" : "ភ្ញៀវកិត្តិយស"));
+  const displayName = isOpenInvite
+    ? (customName.trim() || guestName || (isEn ? "Honored Guest" : "ភ្ញៀវកិត្តិយស"))
+    : (guestName || (isEn ? "Honored Guest" : "ភ្ញៀវកិត្តិយស"));
 
   return (
     <section

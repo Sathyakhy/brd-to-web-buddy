@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Send, CheckCircle2, AlertCircle, RefreshCw, ExternalLink, Bell, Bot } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Send, CheckCircle2, RefreshCw, ExternalLink, Bot, FileText, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,7 +9,9 @@ import {
   DEFAULT_TELEGRAM_BOT_TOKEN,
   DEFAULT_TELEGRAM_BOT_USERNAME,
   sendTelegramTestNotification,
+  sendTelegramRsvpSummary,
   fetchRecentTelegramChats,
+  processTelegramBotCommands,
   DetectedTelegramChat,
 } from "@/utils/telegramNotification";
 
@@ -18,6 +20,8 @@ type Props = {
   chatId: string;
   botToken?: string;
   eventTitle: string;
+  eventDate?: string | null;
+  guests?: any[];
   onChange: (patch: {
     telegram_notifications_enabled?: boolean;
     telegram_chat_id?: string;
@@ -30,14 +34,48 @@ export default function TelegramNotificationConfig({
   chatId,
   botToken,
   eventTitle,
+  eventDate,
+  guests = [],
   onChange,
 }: Props) {
   const [testing, setTesting] = useState(false);
+  const [sharingSummary, setSharingSummary] = useState(false);
   const [detecting, setDetecting] = useState(false);
   const [detectedChats, setDetectedChats] = useState<DetectedTelegramChat[]>([]);
   const [showTokenInput, setShowTokenInput] = useState(false);
 
   const activeBotToken = (botToken || "").trim() || DEFAULT_TELEGRAM_BOT_TOKEN;
+
+  // Background listener: check for /summary commands in the Telegram group every 10s
+  useEffect(() => {
+    if (!chatId?.trim()) return;
+
+    const checkCommands = () => {
+      processTelegramBotCommands({
+        botToken: activeBotToken,
+        getEventDataForChat: async (targetChatId) => {
+          if (targetChatId === chatId.trim()) {
+            return {
+              eventTitle,
+              eventDate,
+              guests: guests || [],
+            };
+          }
+          return null;
+        },
+      })
+        .then((res) => {
+          if (res.processedCount > 0) {
+            toast.success(`🤖 Bot responded to ${res.processedCount} command(s) in Telegram!`);
+          }
+        })
+        .catch(() => {});
+    };
+
+    checkCommands();
+    const interval = setInterval(checkCommands, 10000);
+    return () => clearInterval(interval);
+  }, [chatId, activeBotToken, eventTitle, eventDate, guests]);
 
   const handleTest = async () => {
     if (!chatId?.trim()) {
@@ -56,6 +94,32 @@ export default function TelegramNotificationConfig({
       toast.error(err?.message || "Failed to send test message");
     } finally {
       setTesting(false);
+    }
+  };
+
+  const handleShareSummary = async () => {
+    if (!chatId?.trim()) {
+      toast.error("Please enter a Telegram Chat ID or click 'Auto-Detect Group' first.");
+      return;
+    }
+    setSharingSummary(true);
+    try {
+      const res = await sendTelegramRsvpSummary({
+        chatId,
+        botToken: activeBotToken,
+        eventTitle,
+        eventDate,
+        guests: guests || [],
+      });
+      if (res.success) {
+        toast.success("RSVP Summary & guest wishes sent to Telegram group! 📊");
+      } else {
+        toast.error(`Telegram error: ${res.error || "Failed to send summary"}`);
+      }
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to send summary");
+    } finally {
+      setSharingSummary(false);
     }
   };
 
@@ -91,6 +155,11 @@ export default function TelegramNotificationConfig({
     }
   };
 
+  const attendingCount = guests.filter((g) => g.rsvp_status === "yes").length;
+  const totalPax = guests
+    .filter((g) => g.rsvp_status === "yes")
+    .reduce((sum, g) => sum + (Number(g.party_size) || 1), 0);
+
   return (
     <div className="space-y-5 rounded-2xl border border-border p-5 bg-card/60 backdrop-blur">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-4">
@@ -100,7 +169,7 @@ export default function TelegramNotificationConfig({
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h3 className="font-semibold text-base">Telegram RSVP Notifications</h3>
+              <h3 className="font-semibold text-base">Telegram RSVP Notifications & /summary</h3>
               <span
                 className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
                   enabled && chatId
@@ -112,7 +181,7 @@ export default function TelegramNotificationConfig({
               </span>
             </div>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Receive instant alerts in your Telegram group whenever guests accept or decline the RSVP.
+              Instant alerts on RSVP response, plus group <code>/summary</code> command for guest list, pax & wishes.
             </p>
           </div>
         </div>
@@ -153,25 +222,32 @@ export default function TelegramNotificationConfig({
             Click <strong>"Auto-Detect Group"</strong> below to automatically grab the Group Chat ID, or type it manually.
           </li>
         </ol>
+        <div className="pt-1 text-[11px] text-foreground font-medium flex items-center gap-1 border-t border-border/50">
+          <span>💡 Telegram Group Commands:</span>
+          <span className="font-mono bg-black/10 dark:bg-white/10 px-1.5 py-0.5 rounded text-[10px]">/summary</span>
+          <span>shares attending guests, pax & wishes.</span>
+          <span className="font-mono bg-black/10 dark:bg-white/10 px-1.5 py-0.5 rounded text-[10px]">/rsvp</span>
+          <span>shares counts overview.</span>
+        </div>
       </div>
 
       {/* Inputs */}
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
-        <div className="md:col-span-8 space-y-1.5">
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
+        <div className="md:col-span-6 space-y-1.5">
           <Label className="text-xs font-medium flex items-center justify-between">
             <span>Telegram Group Chat ID <span className="text-destructive">*</span></span>
-            <span className="text-[11px] text-muted-foreground font-normal">Supergroups start with -100</span>
+            <span className="text-[11px] text-muted-foreground font-normal">e.g. -5568784428</span>
           </Label>
           <Input
             type="text"
             value={chatId || ""}
             onChange={(e) => onChange({ telegram_chat_id: e.target.value.trim() })}
-            placeholder="e.g. -1002345678901"
+            placeholder="e.g. -1002345678901 or -5568784428"
             className="h-10 text-sm font-mono"
           />
         </div>
 
-        <div className="md:col-span-4 flex items-center gap-2">
+        <div className="md:col-span-6 flex flex-wrap items-center gap-2">
           <Button
             type="button"
             variant="outline"
@@ -186,13 +262,26 @@ export default function TelegramNotificationConfig({
 
           <Button
             type="button"
+            variant="outline"
             size="sm"
             onClick={handleTest}
             disabled={testing || !chatId}
-            className="flex-1 h-10 text-xs bg-[#229ED9] hover:bg-[#1e8bc0] text-white"
+            className="flex-1 h-10 text-xs"
           >
             <Send className="h-3.5 w-3.5 mr-1.5" />
-            {testing ? "Sending…" : "Test"}
+            {testing ? "Testing…" : "Test Alert"}
+          </Button>
+
+          <Button
+            type="button"
+            size="sm"
+            onClick={handleShareSummary}
+            disabled={sharingSummary || !chatId}
+            className="flex-1 h-10 text-xs bg-[#229ED9] hover:bg-[#1e8bc0] text-white"
+            title="Share current guest list, pax & wishes to the group"
+          >
+            <FileText className="h-3.5 w-3.5 mr-1.5" />
+            {sharingSummary ? "Sharing…" : "Share /summary"}
           </Button>
         </div>
       </div>
@@ -224,6 +313,19 @@ export default function TelegramNotificationConfig({
               </button>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* Live Status indicator */}
+      {chatId && (
+        <div className="p-2.5 rounded-xl bg-muted/40 border border-border flex items-center justify-between text-xs text-muted-foreground">
+          <span className="flex items-center gap-1.5">
+            <Check className="h-3.5 w-3.5 text-emerald-600" />
+            Connected to Chat ID: <strong className="font-mono text-foreground">{chatId}</strong>
+          </span>
+          <span>
+            Current: <strong className="text-foreground">{attendingCount}</strong> attending ({totalPax} pax)
+          </span>
         </div>
       )}
 
