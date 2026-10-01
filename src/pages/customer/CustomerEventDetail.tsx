@@ -15,6 +15,7 @@ import { generateToken, formatDateTime } from "@/lib/invitation";
 import { RsvpBadge } from "@/components/admin/RsvpBadge";
 import PreviewPanel from "@/components/admin/PreviewPanel";
 import BroadcastLinksCard from "@/components/admin/BroadcastLinksCard";
+import TelegramNotificationConfig from "@/components/admin/TelegramNotificationConfig";
 import type { TemplateData } from "@/components/templates/InvitationTemplate";
 
 type Event = TemplateData & {
@@ -361,6 +362,39 @@ export default function CustomerEventDetail() {
             </div>
           ))}
         </div>
+
+        {/* Telegram RSVP Notifications */}
+        <TelegramNotificationConfig
+          enabled={(event.section_visibility as any)?.telegram_notifications_enabled !== false && Boolean((event.section_visibility as any)?.telegram_chat_id || (event as any).telegram_chat_id)}
+          chatId={(event.section_visibility as any)?.telegram_chat_id || (event as any).telegram_chat_id || ""}
+          botToken={(event.section_visibility as any)?.telegram_bot_token || (event as any).telegram_bot_token || ""}
+          eventTitle={event.title}
+          onChange={async (patch) => {
+            const currentVis = (event.section_visibility as any) ?? {};
+            const nextVis = {
+              ...currentVis,
+              ...patch,
+            };
+            setEvent({
+              ...event,
+              ...patch,
+              section_visibility: nextVis,
+            });
+            try {
+              const { error } = await supabase
+                .from("events")
+                .update({ section_visibility: nextVis })
+                .eq("id", event.id);
+              if (error) {
+                console.warn("Failed to persist telegram settings:", error.message);
+              } else {
+                toast.success("Telegram notification settings saved");
+              }
+            } catch (err: any) {
+              console.warn("Failed to save telegram settings:", err);
+            }
+          }}
+        />
 
         <section className="rounded-xl border border-border bg-card shadow-soft">
           <div className="p-5 border-b border-border flex items-center justify-between">

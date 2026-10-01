@@ -26,6 +26,7 @@ import {
   AlertDialogFooter,
 } from "@/components/ui/alert-dialog";
 import { UserCheck } from "lucide-react";
+import { sendTelegramRsvpNotification } from "@/utils/telegramNotification";
 
 type Event = TemplateData & {
   id: string; slug: string; template: string;
@@ -338,6 +339,35 @@ export default function InvitePage() {
 
   const [duplicatePending, setDuplicatePending] = useState<DuplicatePending | null>(null);
 
+  const triggerTelegramNotification = (
+    respondentName: string,
+    rsvpStatus: "yes" | "no",
+    size: number,
+    wishes: string,
+    isEdit: boolean
+  ) => {
+    if (!event) return;
+    const vis = (event.section_visibility as any) ?? {};
+    const enabled = vis.telegram_notifications_enabled !== false;
+    const chatId = vis.telegram_chat_id || (event as any).telegram_chat_id;
+    const botToken = vis.telegram_bot_token || (event as any).telegram_bot_token;
+
+    if (chatId && enabled) {
+      sendTelegramRsvpNotification({
+        chatId,
+        botToken,
+        eventTitle: event.title || "Wedding Invitation",
+        guestName: respondentName,
+        status: rsvpStatus,
+        partySize: size,
+        message: wishes,
+        isEdit,
+        language,
+        eventSlug: slug,
+      }).catch((err) => console.warn("Telegram notification dispatch error:", err));
+    }
+  };
+
   const executeRsvpSubmission = async (opts: {
     targetTokenOverride?: string | null;
     status: "yes" | "no";
@@ -394,6 +424,7 @@ export default function InvitePage() {
               ? (status === "yes" ? "Thank you for accepting 💛" : "Your response has been recorded")
               : (status === "yes" ? "សូមអរគុណសម្រាប់ការឆ្លើយតបចូលរួម 💛" : "សូមអរគុណ ការឆ្លើយតបរបស់អ្នកត្រូវបានកត់ត្រា")
           );
+          triggerTelegramNotification(gName || newG.name, status, size, msg, false);
           setSubmitting(false);
           return;
         }
@@ -492,6 +523,14 @@ export default function InvitePage() {
         language === "en"
           ? (status === "yes" ? "Thank you for accepting 💛" : "Your response has been recorded")
           : (status === "yes" ? "សូមអរគុណសម្រាប់ការឆ្លើយតបចូលរួម 💛" : "សូមអរគុណ ការឆ្លើយតបរបស់អ្នកត្រូវបានកត់ត្រា")
+      );
+
+      triggerTelegramNotification(
+        updated.name || gName,
+        status,
+        size,
+        msg,
+        Boolean(targetTokenOverride && targetTokenOverride === chosenToken)
       );
     } catch (err: any) {
       console.error("RSVP error:", err);

@@ -63,6 +63,7 @@ import { thumbUrl } from "@/lib/imageUrl";
 import TextEffectsEditor from "@/components/admin/TextEffectsEditor";
 import MonogramEffectEditor from "@/components/admin/MonogramEffectEditor";
 import FontSelector from "@/components/admin/FontSelector";
+import TelegramNotificationConfig from "@/components/admin/TelegramNotificationConfig";
 import SideFrameEditor from "@/components/admin/SideFrameEditor";
 import CoverInvitationStyleEditor from "@/components/admin/CoverInvitationStyleEditor";
 import GuestNameStyleEditor from "@/components/admin/GuestNameStyleEditor";
@@ -2666,6 +2667,35 @@ export default function EventDetail() {
           </div>
         </CollapsibleSection>
 
+        {/* Telegram RSVP Notifications */}
+        <CollapsibleSection
+          title="Telegram RSVP Notifications"
+          description="Push instant notifications to a Telegram group whenever a guest responds to the RSVP."
+          defaultOpen={Boolean((event.section_visibility as any)?.telegram_chat_id || (event as any).telegram_chat_id)}
+          rightSlot={sectionSave}
+        >
+          <div className="pt-2">
+            <TelegramNotificationConfig
+              enabled={(event.section_visibility as any)?.telegram_notifications_enabled !== false && Boolean((event.section_visibility as any)?.telegram_chat_id || (event as any).telegram_chat_id)}
+              chatId={(event.section_visibility as any)?.telegram_chat_id || (event as any).telegram_chat_id || ""}
+              botToken={(event.section_visibility as any)?.telegram_bot_token || (event as any).telegram_bot_token || ""}
+              eventTitle={event.title}
+              onChange={(patch) => {
+                const currentVis = (event.section_visibility as any) ?? {};
+                const nextVis = {
+                  ...currentVis,
+                  ...patch,
+                };
+                setEvent({
+                  ...event,
+                  ...patch,
+                  section_visibility: nextVis,
+                });
+              }}
+            />
+          </div>
+        </CollapsibleSection>
+
         {/* Agenda editor (multi-day, list/card view) */}
         <CollapsibleSection title="Agenda" defaultOpen={false} rightSlot={sectionSave}>
           <div className="pt-2">
@@ -2985,6 +3015,35 @@ export default function EventDetail() {
             </div>
           ))}
         </div>
+
+        {/* Telegram RSVP Notifications */}
+        <CollapsibleSection
+          title="Telegram RSVP Notifications"
+          description="Push real-time alerts to a Telegram group when guests respond to the RSVP."
+          defaultOpen={Boolean((event.section_visibility as any)?.telegram_chat_id || (event as any).telegram_chat_id)}
+          rightSlot={sectionSave}
+        >
+          <div className="pt-2">
+            <TelegramNotificationConfig
+              enabled={(event.section_visibility as any)?.telegram_notifications_enabled !== false && Boolean((event.section_visibility as any)?.telegram_chat_id || (event as any).telegram_chat_id)}
+              chatId={(event.section_visibility as any)?.telegram_chat_id || (event as any).telegram_chat_id || ""}
+              botToken={(event.section_visibility as any)?.telegram_bot_token || (event as any).telegram_bot_token || ""}
+              eventTitle={event.title}
+              onChange={(patch) => {
+                const currentVis = (event.section_visibility as any) ?? {};
+                const nextVis = {
+                  ...currentVis,
+                  ...patch,
+                };
+                setEvent({
+                  ...event,
+                  ...patch,
+                  section_visibility: nextVis,
+                });
+              }}
+            />
+          </div>
+        </CollapsibleSection>
 
         {/* Guests */}
         <CollapsibleSection
