@@ -120,6 +120,35 @@ export default function CustomerEventDetail() {
           }
         }
 
+        // Restore prior confirmed respondents if missing from the database:
+        const priorResponses = [
+          { name: "Mike Kang and Wife", token: "broadcast-en-mike-kang", party_size: 2, rsvp_status: "yes", message: "[Mike Kang and Wife] Congratulations 🍾", responded_at: "2026-10-01T12:37:00Z" },
+          { name: "Ms Sao Sovannaroth", token: "broadcast-en-sao-sovannaroth", party_size: 1, rsvp_status: "yes", message: "[Ms Sao Sovannaroth]", responded_at: "2026-10-01T12:41:00Z" },
+          { name: "Yi ping", token: "broadcast-en-yi-ping", party_size: 1, rsvp_status: "yes", message: "[Yi ping]", responded_at: "2026-10-01T12:42:00Z" },
+          { name: "Srunpitu Heng", token: "broadcast-en-srunpitu-heng", party_size: 2, rsvp_status: "yes", message: "[Srunpitu Heng] Wishing you both all the best.", responded_at: "2026-10-01T12:43:00Z" },
+          { name: "Emma and Orn", token: "broadcast-en-emma-orn", party_size: 2, rsvp_status: "yes", message: "[Emma and Orn] Congratulations to this wonderful lovebirds! We are happy to be able to be part of you guys’ journey starting a new life together! Me and Orn wishes you both nothing but happiness and success in every walks of life!", responded_at: "2026-10-01T12:45:18Z" },
+        ];
+
+        for (const prior of priorResponses) {
+          const exists = rawGuestList.some(g =>
+            g.name === prior.name ||
+            g.token === prior.token ||
+            (g.message && g.message.includes(`[${prior.name}]`))
+          );
+          if (!exists) {
+            toSeed.push({
+              event_id: id,
+              name: prior.name,
+              token: prior.token,
+              party_size: prior.party_size,
+              rsvp_status: prior.rsvp_status,
+              message: prior.message,
+              responded_at: prior.responded_at,
+            });
+            allEnTokens.push(prior.token);
+          }
+        }
+
         if (toSeed.length > 0) {
           supabase.from("guests").insert(toSeed).select("*").then(({ data }) => {
             if (data && data.length) {
