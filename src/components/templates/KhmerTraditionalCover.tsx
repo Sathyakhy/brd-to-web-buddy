@@ -156,9 +156,14 @@ export default function KhmerTraditionalCover({
       raf = requestAnimationFrame(resize);
     };
     schedule();
-    const observer = new ResizeObserver(schedule);
-    observer.observe(plateRef.current);
-    observer.observe(nameRef.current);
+    let observer: any = null;
+    if (typeof ResizeObserver !== "undefined") {
+      try {
+        observer = new ResizeObserver(schedule);
+        if (plateRef.current) observer.observe(plateRef.current);
+        if (nameRef.current) observer.observe(nameRef.current);
+      } catch (_) {}
+    }
     const fonts = (document as any)?.fonts;
     if (fonts?.ready) fonts.ready.then(schedule).catch(() => {});
     if (fonts?.load) {
@@ -173,7 +178,7 @@ export default function KhmerTraditionalCover({
     const t3 = window.setTimeout(schedule, 2500);
     return () => {
       cancelAnimationFrame(raf);
-      observer.disconnect();
+      if (observer) observer.disconnect();
       window.clearTimeout(t1);
       window.clearTimeout(t2);
       window.clearTimeout(t3);

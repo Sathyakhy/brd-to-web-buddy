@@ -2429,3 +2429,5 @@ export const TEMPLATES = [
   { value: "essentials-package-01", label: "essentials-package-01", desc: "Deep red & gold, ornate" },
   { value: "signature-package-01", label: "signature-package-01", desc: "Navy & champagne, minimal" },
 ];
+
+export default InvitationTemplate;

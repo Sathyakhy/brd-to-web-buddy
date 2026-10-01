@@ -143,11 +143,16 @@ export function FitText({
 
     fit();
     let raf = 0;
-    const ro = new ResizeObserver(() => {
-      cancelAnimationFrame(raf);
-      raf = requestAnimationFrame(fit);
-    });
-    ro.observe(wrap);
+    let ro: any = null;
+    if (typeof ResizeObserver !== "undefined") {
+      try {
+        ro = new ResizeObserver(() => {
+          cancelAnimationFrame(raf);
+          raf = requestAnimationFrame(fit);
+        });
+        if (wrap) ro.observe(wrap);
+      } catch (_) {}
+    }
 
     // Re-fit once webfonts finish loading — Khmer fonts in particular
     // load asynchronously and change glyph widths after the initial
@@ -170,7 +175,7 @@ export function FitText({
       window.clearTimeout(t1);
       window.clearTimeout(t2);
       cancelAnimationFrame(raf);
-      ro.disconnect();
+      if (ro) ro.disconnect();
       if (groupId && sub) {
         const g = getGroup(groupId);
         g.subscribers.delete(sub);

@@ -65,20 +65,31 @@ export function FitParagraph({
       const countRenderedLines = () => {
         const content = contentRef.current;
         if (!content) return 1;
-        const range = document.createRange();
-        range.selectNodeContents(content);
-        const rects = Array.from(range.getClientRects());
-        range.detach?.();
-        if (!rects.length) return 1;
-
-        const tops: number[] = [];
-        for (const rect of rects) {
-          const top = Math.round(rect.top * 10) / 10;
-          if (!tops.some((value) => Math.abs(value - top) < 0.75)) {
-            tops.push(top);
+        try {
+          if (typeof document !== "undefined" && typeof document.createRange === "function") {
+            const range = document.createRange();
+            range.selectNodeContents(content);
+            if (typeof range.getClientRects === "function") {
+              const rects = Array.from(range.getClientRects());
+              range.detach?.();
+              if (rects.length > 0) {
+                const tops: number[] = [];
+                for (const rect of rects) {
+                  const top = Math.round(rect.top * 10) / 10;
+                  if (!tops.some((value) => Math.abs(value - top) < 0.75)) {
+                    tops.push(top);
+                  }
+                }
+                return tops.length || 1;
+              }
+            }
           }
-        }
-        return tops.length || 1;
+        } catch (_) {}
+
+        // Fallback: estimate line count from height
+        const height = content.scrollHeight || content.clientHeight || 0;
+        const estLineHeight = (minPx || 14) * (lineHeight || 1.4);
+        return Math.max(1, Math.round(height / (estLineHeight || 20)));
       };
 
       let lo = minPx;
@@ -100,17 +111,20 @@ export function FitParagraph({
     };
 
     fit();
-    // Defer ResizeObserver-triggered fits to the next frame to avoid the
-    // "ResizeObserver loop completed with undelivered notifications" warning.
     let raf = 0;
-    const ro = new ResizeObserver(() => {
-      cancelAnimationFrame(raf);
-      raf = requestAnimationFrame(fit);
-    });
-    ro.observe(wrap);
+    let ro: any = null;
+    if (typeof ResizeObserver !== "undefined") {
+      try {
+        ro = new ResizeObserver(() => {
+          cancelAnimationFrame(raf);
+          raf = requestAnimationFrame(fit);
+        });
+        if (wrap) ro.observe(wrap);
+      } catch (_) {}
+    }
     return () => {
       cancelAnimationFrame(raf);
-      ro.disconnect();
+      if (ro) ro.disconnect();
     };
   }, [children, maxLines, maxPx, minPx, lineHeight]);
 
