@@ -45,8 +45,50 @@ export default function TelegramNotificationConfig({
   const [detecting, setDetecting] = useState(false);
   const [detectedChats, setDetectedChats] = useState<DetectedTelegramChat[]>([]);
   const [showTokenInput, setShowTokenInput] = useState(false);
+  const [listeningCount, setListeningCount] = useState(0);
 
   const activeBotToken = (botToken || "").trim() || DEFAULT_TELEGRAM_BOT_TOKEN;
+
+  // Safe live listener: Checks for /rsvp, /summary, /help commands in the linked Telegram group every 2.5s
+  useEffect(() => {
+    if (!enabled || !chatId?.trim() || detecting) return;
+
+    let isCancelled = false;
+    let isBusy = false;
+
+    const pollCommands = async () => {
+      if (isCancelled || isBusy || detecting) return;
+      isBusy = true;
+      try {
+        const res = await processTelegramBotCommands({
+          botToken: activeBotToken,
+          getEventDataForChat: async (targetChatId) => {
+            if (targetChatId === chatId.trim()) {
+              return {
+                eventTitle,
+                eventDate,
+                guests: guests || [],
+              };
+            }
+            return null;
+          },
+        });
+        if (!isCancelled && res.processedCount > 0) {
+          setListeningCount((prev) => prev + res.processedCount);
+          toast.success(`🤖 Bot replied to ${res.processedCount} command(s) in your Telegram group!`);
+        }
+      } catch (_) {}
+      isBusy = false;
+    };
+
+    pollCommands();
+    const interval = setInterval(pollCommands, 2500);
+
+    return () => {
+      isCancelled = true;
+      clearInterval(interval);
+    };
+  }, [enabled, chatId, activeBotToken, eventTitle, eventDate, guests, detecting]);
 
   const handleTest = async () => {
     if (!chatId?.trim()) {
@@ -176,6 +218,12 @@ export default function TelegramNotificationConfig({
               >
                 {enabled && chatId ? "Active" : "Disabled"}
               </span>
+              {enabled && chatId && (
+                <span className="inline-flex items-center gap-1 text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-ping" />
+                  Live Listening
+                </span>
+              )}
             </div>
             <p className="text-xs text-muted-foreground mt-0.5">
               Live alerts on every response, plus group commands for quick summary (<code>/rsvp</code>) and detailed wishes (<code>/summary</code>).
