@@ -84,10 +84,14 @@ export default {
 
     const slug = inviteMatch[1];
     const token = url.searchParams.get("token") || "";
+    const lang = url.searchParams.get("lang") || url.searchParams.get("language") || "";
 
     const fnUrl = new URL(SUPABASE_FN_URL);
     fnUrl.searchParams.set("slug", slug);
     fnUrl.searchParams.set("token", token);
+    if (lang) {
+      fnUrl.searchParams.set("lang", lang);
+    }
     fnUrl.searchParams.set("site", ROOT_SITE);
 
     // Keep the token in the canonical preview URL so Messenger preserves it

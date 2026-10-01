@@ -34,12 +34,12 @@ export default function BroadcastLinksCard({
   const [copiedMsgKm, setCopiedMsgKm] = useState(false);
   const [copiedMsgEn, setCopiedMsgEn] = useState(false);
 
-  // Link URLs
-  const khmerShareUrl = `https://share.21invite.online/${encodeURIComponent(slug)}/invite?lang=km`;
-  const englishShareUrl = `https://share.21invite.online/${encodeURIComponent(slug)}/invite?lang=en`;
+  // Link URLs with explicit tokens for Khmer and English broadcast links
+  const khmerShareUrl = `https://share.21invite.online/${encodeURIComponent(slug)}/invite?token=broadcast-km`;
+  const englishShareUrl = `https://share.21invite.online/${encodeURIComponent(slug)}/invite?token=broadcast-en`;
 
-  const khmerDirectUrl = `/${slug}/invite?lang=km`;
-  const englishDirectUrl = `/${slug}/invite?lang=en`;
+  const khmerDirectUrl = `/${slug}/invite?token=broadcast-km`;
+  const englishDirectUrl = `/${slug}/invite?token=broadcast-en`;
 
   const cleanName = (raw?: string | null) => {
     if (!raw) return "";
@@ -49,13 +49,17 @@ export default function BroadcastLinksCard({
     return parts.join(" ").trim();
   };
 
+  const hasKhmer = (s: string) => /[\u1780-\u17ff\u19e0-\u19ff]/.test(s);
+
   const groomKh = cleanName(groomName) || "<Groom's Name>";
   const brideKh = cleanName(brideName) || "<Bride's Name>";
-  const groomEng = cleanName(groomNameEn) || groomKh;
-  const brideEng = cleanName(brideNameEn) || brideKh;
+  const groomEng = cleanName(groomNameEn) || (!hasKhmer(groomKh) ? groomKh : "");
+  const brideEng = cleanName(brideNameEn) || (!hasKhmer(brideKh) ? brideKh : "");
 
   const coupleKh = `${groomKh} និង ${brideKh}`;
-  const coupleEn = `${groomEng} & ${brideEng}`;
+  const coupleEn = (groomEng && brideEng)
+    ? `${groomEng} & ${brideEng}`
+    : (titleEn?.trim() || "the Bride & Groom");
 
   const dateKh = formatKhmerDateLocal(eventDate) || "<កាលបរិច្ឆេទ>";
   const dateEn = eventDate

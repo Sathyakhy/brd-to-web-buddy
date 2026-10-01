@@ -76,8 +76,44 @@ export default function CustomerEventDetail() {
         supabase.from("events").select("*").eq("id", id).maybeSingle(),
         supabase.from("guests").select("*").eq("event_id", id).order("created_at", { ascending: false }),
       ]);
-      setEvent(evRes.data as Event | null);
-      setGuests((gRes.data ?? []) as Guest[]);
+      const loadedEvent = evRes.data as Event | null;
+      setEvent(loadedEvent);
+
+      const guestList = (gRes.data ?? []) as Guest[];
+
+      // Auto-seed broadcast tokens if not present so submit_rsvp succeeds on Supabase
+      if (loadedEvent) {
+        const hasBroadcastKm = guestList.some(g => g.token === "broadcast-km" || g.token === `${loadedEvent.slug}-km`);
+        const hasBroadcastEn = guestList.some(g => g.token === "broadcast-en" || g.token === `${loadedEvent.slug}-en`);
+        if (!hasBroadcastKm || !hasBroadcastEn) {
+          const toSeed: any[] = [];
+          if (!hasBroadcastKm) {
+            toSeed.push({
+              event_id: id,
+              name: "ភ្ញៀវកិត្តិយស (Broadcast Khmer)",
+              token: "broadcast-km",
+              party_size: 1,
+              rsvp_status: "pending",
+            });
+          }
+          if (!hasBroadcastEn) {
+            toSeed.push({
+              event_id: id,
+              name: "Honored Guest (Broadcast English)",
+              token: "broadcast-en",
+              party_size: 1,
+              rsvp_status: "pending",
+            });
+          }
+          supabase.from("guests").insert(toSeed).select("*").then(({ data }) => {
+            if (data && data.length) {
+              setGuests(prev => [...(data as any[]), ...prev]);
+            }
+          });
+        }
+      }
+
+      setGuests(guestList);
     } catch (err: any) {
       console.error("Error loading customer event:", err);
       toast.error(err?.message || "Failed to load event");
@@ -104,14 +140,16 @@ export default function CustomerEventDetail() {
 
   const copyLink = (token: string, lang?: "km" | "en") => {
     if (!event) return "";
-    const l = lang ?? (token.endsWith("-en") ? "en" : "km");
-    const url = `https://share.21invite.online/${encodeURIComponent(event.slug)}/invite?token=${encodeURIComponent(token)}&lang=${l}`;
+    const base = token.replace(/-(en|km|kh)$/i, "");
+    const effectiveToken = lang === "en" ? `${base}-en` : (lang === "km" ? `${base}-km` : token);
+    const url = `https://share.21invite.online/${encodeURIComponent(event.slug)}/invite?token=${encodeURIComponent(effectiveToken)}`;
     navigator.clipboard.writeText(url);
     toast.success("Invitation link copied");
   };
 
   const regenerate = async (g: Guest) => {
-    const newToken = generateToken(12);
+    const currentLang = getGuestLang(g);
+    const newToken = `${generateToken(12)}-${currentLang}`;
     const { error } = await supabase.from("guests").update({ token: newToken }).eq("id", g.id);
     if (error) return toast.error(error.message);
     toast.success("Token regenerated");

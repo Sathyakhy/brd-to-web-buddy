@@ -56,6 +56,8 @@ type Props = {
   coverInvitationStyle?: CoverInvitationStyle | null;
   /** Optional custom styling for the guest name on cover */
   guestNameStyle?: GuestNameStyle | null;
+  /** Optional couple title / names in English for the English cover screen */
+  coupleTitleEn?: string | null;
   onOpen: () => void;
 };
 
@@ -82,6 +84,7 @@ export default function KhmerTraditionalCover({
   monogramEffectConfig,
   coverInvitationStyle,
   guestNameStyle,
+  coupleTitleEn,
   onOpen,
 }: Props) {
   const isEn = language === "en";
@@ -225,14 +228,35 @@ export default function KhmerTraditionalCover({
       <div
         className="relative z-10 flex flex-col items-center w-full"
       >
-      {/* Center decorative name graphic */}
+      {/* Center decorative name graphic or English typography */}
       <div className="flex items-center justify-center mt-0 mb-1 sm:mb-2">
-        <img
-          src={nameImg}
-          alt={title}
-          className="w-[clamp(220px,22vw,340px)] max-w-[80%]"
-          style={{ filter: resolvedMonogramFilter }}
-        />
+        {isEn && (!nameGraphicUrl || nameGraphicUrl === DEFAULT_NAME) ? (
+          <div className="flex flex-col items-center justify-center my-2 sm:my-3 px-4 max-w-[90%]">
+            <div
+              className="font-serif text-2xl sm:text-3xl lg:text-4xl tracking-wide font-medium italic text-center drop-shadow-sm"
+              style={{
+                color: accent,
+                background: `linear-gradient(180deg, color-mix(in srgb, ${accent} 40%, #ffffff) 0%, ${accent} 100%)`,
+                WebkitBackgroundClip: "text",
+                WebkitTextFillColor: "transparent",
+                filter: resolvedMonogramFilter !== "none" ? resolvedMonogramFilter : "drop-shadow(0 2px 4px rgba(255,255,255,0.7))",
+              }}
+            >
+              {coupleTitleEn || title || "Wedding Celebration"}
+            </div>
+            <div
+              className="w-20 h-0.5 my-2 opacity-80"
+              style={{ background: `linear-gradient(90deg, transparent, ${accent}, transparent)` }}
+            />
+          </div>
+        ) : (
+          <img
+            src={nameImg}
+            alt={title}
+            className="w-[clamp(220px,22vw,340px)] max-w-[80%]"
+            style={{ filter: resolvedMonogramFilter }}
+          />
+        )}
       </div>
 
       {/* "សូមគោរពអញ្ជើញ" / "INVITATION" */}

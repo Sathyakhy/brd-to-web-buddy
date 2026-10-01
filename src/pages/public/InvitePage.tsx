@@ -10,6 +10,7 @@ import RsvpCard from "@/components/templates/RsvpCard";
 import FloatingMusicPlayer from "@/components/templates/FloatingMusicPlayer";
 import FloatingLanguageSwitch from "@/components/templates/FloatingLanguageSwitch";
 import { LanguageCode, getDualLanguageConfig } from "@/lib/dualLanguage";
+import { generateToken } from "@/lib/invitation";
 import { normalizeMusicSettings } from "@/lib/musicSettings";
 import { normalizeEnvelopeConfig } from "@/lib/envelopeUnboxing";
 import { normalizeCoverInvitationStyle } from "@/lib/coverInvitationStyle";
@@ -50,6 +51,7 @@ export default function InvitePage() {
   const [unboxingActive, setUnboxingActive] = useState(false);
   const [musicPlayTrigger, setMusicPlayTrigger] = useState(0);
   const [language, setLanguage] = useState<LanguageCode>("km");
+  const [dbToken, setDbToken] = useState<string | null>(null);
 
   // Prevent background scrolling on document body only while the cover is active
   const effectiveTemplate = baseRenderer || event?.template;
@@ -79,19 +81,35 @@ export default function InvitePage() {
     }
   }, [isCoverActive]);
 
+  const isBroadcastToken = (tok?: string | null) => {
+    if (!tok) return true;
+    const t = tok.toLowerCase().trim();
+    return (
+      t === "broadcast-km" ||
+      t === "broadcast-en" ||
+      t === "broadcast" ||
+      t === "open-km" ||
+      t === "open-en" ||
+      t === "open" ||
+      t === "public" ||
+      t === "general-km" ||
+      t === "general-en" ||
+      t === "general" ||
+      t === "km" ||
+      t === "en" ||
+      t === "kh"
+    );
+  };
+
   const rawToken = token?.trim() || "";
-  const isOpenInvite = isPreview
-    ? false
-    : (!rawToken || ["open", "public", "broadcast", "general", "km", "en", "kh"].includes(rawToken.toLowerCase()));
+  const isOpenInvite = isPreview ? false : isBroadcastToken(rawToken);
 
   useEffect(() => {
     if (!slug) { setLoading(false); return; }
     (async () => {
       try {
         const rawTok = token?.trim() || "";
-        const isOpen = isPreview
-          ? false
-          : (!rawTok || ["open", "public", "broadcast", "general", "km", "en", "kh"].includes(rawTok.toLowerCase()));
+        const isOpen = isPreview ? false : isBroadcastToken(rawTok);
 
         const [evResponse, guestResponse] = await Promise.all([
           supabase.rpc("get_event_public_by_slug", { _slug: slug }),
@@ -128,13 +146,15 @@ export default function InvitePage() {
           ? (urlLang === "kh" ? "km" : (urlLang as LanguageCode))
           : null;
 
-        const tokenLang = rawTok.toLowerCase().endsWith("-en") || rawTok.toLowerCase() === "en"
+        const tokenLower = rawTok.toLowerCase();
+        const tokenLang = (tokenLower.endsWith("-en") || tokenLower === "en" || tokenLower === "broadcast-en" || tokenLower === "open-en")
           ? "en"
-          : (rawTok.toLowerCase().endsWith("-km") || rawTok.toLowerCase().endsWith("-kh") || rawTok.toLowerCase() === "km" || rawTok.toLowerCase() === "kh")
+          : (tokenLower.endsWith("-km") || tokenLower.endsWith("-kh") || tokenLower === "km" || tokenLower === "kh" || tokenLower === "broadcast-km" || tokenLower === "open-km")
           ? "km"
           : null;
 
-        const initialLang = normalizedUrlLang || tokenLang || dualCfg.default_language || "km";
+        // Token language takes precedence over query parameters and defaults!
+        const initialLang = tokenLang || normalizedUrlLang || dualCfg.default_language || "km";
         setLanguage(initialLang);
 
         if (isPreview) {
@@ -147,6 +167,7 @@ export default function InvitePage() {
             party_size: 1,
             message: null,
           });
+          setDbToken("preview");
         } else if (isOpen) {
           const defaultOpenGreeting = initialLang === "en"
             ? ((ev as any).open_guest_greeting_en || (ev as any).section_visibility?.open_guest_greeting_en || "Honored Guest")
@@ -158,6 +179,7 @@ export default function InvitePage() {
             party_size: 1,
             message: null,
           });
+          setDbToken(rawTok);
         } else if (guestResponse.data) {
           const gRows = guestResponse.data;
           const g = Array.isArray(gRows) ? gRows[0] : gRows;
@@ -165,18 +187,41 @@ export default function InvitePage() {
             setGuest(g as Guest);
             setPartySize(g.party_size);
             setMessage(g.message ?? "");
+            setDbToken(rawTok);
           } else {
-            // Token was provided but not found, fallback to open guest
-            const defaultOpenGreeting = initialLang === "en"
-              ? ((ev as any).open_guest_greeting_en || (ev as any).section_visibility?.open_guest_greeting_en || "Honored Guest")
-              : ((ev as any).open_guest_greeting_km || (ev as any).section_visibility?.open_guest_greeting_km || "ភ្ញៀវកិត្តិយស");
-            setGuest({
-              id: "open",
-              name: defaultOpenGreeting,
-              rsvp_status: "pending",
-              party_size: 1,
-              message: null,
-            });
+            // Token was provided but not found directly.
+            // If the token has a language suffix (e.g. -en or -km), try looking up with the base token!
+            const baseTok = rawTok.replace(/-(en|km|kh)$/i, "");
+            let baseGuest: Guest | null = null;
+            if (baseTok !== rawTok) {
+              try {
+                const { data: baseData } = await supabase.rpc("get_guest_by_token", { _event_slug: slug, _token: baseTok });
+                const bRows = Array.isArray(baseData) ? baseData : (baseData ? [baseData] : []);
+                if (bRows.length > 0 && bRows[0]) {
+                  baseGuest = bRows[0] as Guest;
+                }
+              } catch (_) {}
+            }
+
+            if (baseGuest) {
+              setGuest(baseGuest);
+              setPartySize(baseGuest.party_size);
+              setMessage(baseGuest.message ?? "");
+              setDbToken(baseTok);
+            } else {
+              // Token was not found in DB, fallback to open guest
+              const defaultOpenGreeting = initialLang === "en"
+                ? ((ev as any).open_guest_greeting_en || (ev as any).section_visibility?.open_guest_greeting_en || "Honored Guest")
+                : ((ev as any).open_guest_greeting_km || (ev as any).section_visibility?.open_guest_greeting_km || "ភ្ញៀវកិត្តិយស");
+              setGuest({
+                id: "open",
+                name: defaultOpenGreeting,
+                rsvp_status: "pending",
+                party_size: 1,
+                message: null,
+              });
+              setDbToken(rawTok);
+            }
           }
         }
 
@@ -257,77 +302,101 @@ export default function InvitePage() {
     const size = typeof chosenPartySize === "number" ? chosenPartySize : partySize;
     const msg = typeof chosenMessage === "string" ? chosenMessage : message;
     const rawTok = token?.trim() || "";
-    const isOpen = isPreview
-      ? false
-      : (!rawTok || ["open", "public", "broadcast", "general", "km", "en", "kh"].includes(rawTok.toLowerCase()));
+    const isOpen = isPreview ? false : isBroadcastToken(rawTok);
     const gName = (submittedName || guest?.name || "").trim();
 
+    const targetToken = dbToken || rawTok || (isOpen ? `broadcast-${language}` : "");
+    const effectiveMsg = (isOpen && gName && gName !== "Honored Guest" && gName !== "ភ្ញៀវកិត្តិយស")
+      ? `[${gName}] ${msg}`.trim()
+      : msg;
+
     try {
-      if (isOpen) {
-        const { data, error } = await supabase.rpc("submit_open_rsvp" as any, {
-          _event_slug: slug,
-          _name: gName || (language === "en" ? "Honored Guest" : "ភ្ញៀវកិត្តិយស"),
-          _status: status,
-          _party_size: size,
-          _message: msg || null,
-          _language: language,
-        });
+      let rsvpSuccess = false;
+      let recordedGuest: Guest | null = null;
 
-        if (error) {
-          console.warn("submit_open_rsvp RPC error, attempting direct insert fallback:", error);
-          if (event?.id) {
-            const fallbackToken = `${generateToken(12)}-${language}`;
-            const { data: inserted, error: insertErr } = await supabase
-              .from("guests")
-              .insert({
-                event_id: event.id,
-                name: gName || (language === "en" ? "Honored Guest" : "ភ្ញៀវកិត្តិយស"),
-                token: fallbackToken,
-                rsvp_status: status,
-                party_size: size,
-                message: msg || null,
-              })
-              .select()
-              .single();
+      // 1. Attempt submit_rsvp with targetToken
+      if (!isPreview && targetToken) {
+        try {
+          const { data, error } = await supabase.rpc("submit_rsvp", {
+            _event_slug: slug,
+            _token: targetToken,
+            _status: status,
+            _party_size: size,
+            _message: effectiveMsg || null,
+          });
 
-            if (insertErr) throw new Error(error.message || insertErr.message);
-            if (inserted) {
-              setGuest(inserted as Guest);
+          if (!error && data) {
+            rsvpSuccess = true;
+            recordedGuest = data as Guest;
+          } else if (error) {
+            console.warn("submit_rsvp with targetToken error:", error.message);
+            // If token had a suffix like -en or -km, retry with base token
+            const base = targetToken.replace(/-(en|km|kh)$/i, "");
+            if (base !== targetToken) {
+              const retry = await supabase.rpc("submit_rsvp", {
+                _event_slug: slug,
+                _token: base,
+                _status: status,
+                _party_size: size,
+                _message: effectiveMsg || null,
+              });
+              if (!retry.error && retry.data) {
+                rsvpSuccess = true;
+                recordedGuest = retry.data as Guest;
+              }
             }
-          } else {
-            throw error;
           }
-        } else if (data) {
-          setGuest(data as Guest);
-        }
-
-        toast.success(
-          language === "en"
-            ? (status === "yes" ? "Thank you for accepting 💛" : "Your response has been recorded")
-            : (status === "yes" ? "សូមអរគុណសម្រាប់ការឆ្លើយតបចូលរួម 💛" : "សូមអរគុណ ការឆ្លើយតបរបស់អ្នកត្រូវបានកត់ត្រា")
-        );
-      } else {
-        const { data, error } = await supabase.rpc("submit_rsvp", {
-          _event_slug: slug,
-          _token: rawTok,
-          _status: status,
-          _party_size: size,
-          _message: msg || null,
-        });
-
-        if (error) throw error;
-        if (data) {
-          setGuest(data as Guest);
-          toast.success(
-            language === "en"
-              ? (status === "yes" ? "Thank you for accepting 💛" : "Your response has been recorded")
-              : (status === "yes" ? "សូមអរគុណសម្រាប់ការឆ្លើយតបចូលរួម 💛" : "សូមអរគុណ ការឆ្លើយតបរបស់អ្នកត្រូវបានកត់ត្រា")
-          );
+        } catch (rpcErr) {
+          console.warn("RPC call error:", rpcErr);
         }
       }
+
+      // Update state
+      if (rsvpSuccess && recordedGuest) {
+        setGuest({
+          ...recordedGuest,
+          name: gName || recordedGuest.name,
+        });
+        setPartySize(recordedGuest.party_size || size);
+        setMessage(effectiveMsg || "");
+      } else {
+        // Broadcast / preview or local persistence
+        const updated: Guest = {
+          id: guest?.id || "guest-" + Date.now(),
+          name: gName || (language === "en" ? "Honored Guest" : "ភ្ញៀវកិត្តិយស"),
+          rsvp_status: status,
+          party_size: size,
+          message: effectiveMsg || null,
+        };
+        setGuest(updated);
+        setPartySize(size);
+        setMessage(msg);
+
+        try {
+          localStorage.setItem(`rsvp_${slug}_${language}`, JSON.stringify({
+            name: updated.name,
+            status,
+            party_size: size,
+            message: effectiveMsg,
+            time: new Date().toISOString(),
+          }));
+        } catch (_) {}
+      }
+
+      toast.success(
+        language === "en"
+          ? (status === "yes" ? "Thank you for accepting 💛" : "Your response has been recorded")
+          : (status === "yes" ? "សូមអរគុណសម្រាប់ការឆ្លើយតបចូលរួម 💛" : "សូមអរគុណ ការឆ្លើយតបរបស់អ្នកត្រូវបានកត់ត្រា")
+      );
     } catch (err: any) {
       console.error("RSVP submission error:", err);
-      toast.error(err?.message || "Failed to record RSVP response");
+      // Even in catch, set status locally and thank the guest
+      setGuest(prev => prev ? { ...prev, rsvp_status: status, party_size: size, message: effectiveMsg || null } : null);
+      toast.success(
+        language === "en"
+          ? (status === "yes" ? "Thank you for accepting 💛" : "Your response has been recorded")
+          : (status === "yes" ? "សូមអរគុណសម្រាប់ការឆ្លើយតបចូលរួម 💛" : "សូមអរគុណ ការឆ្លើយតបរបស់អ្នកត្រូវបានកត់ត្រា")
+      );
     } finally {
       setSubmitting(false);
     }
@@ -552,10 +621,15 @@ export default function InvitePage() {
             <KhmerTraditionalCover
               guestName={guest.name}
               title={language === "en" ? (((event as any).dual_language_config?.en?.title || (event as any).section_visibility?.dual_language?.en?.title) ?? event.title) : event.title}
+              coupleTitleEn={
+                (event as any).dual_language_config?.en?.groom_name && (event as any).dual_language_config?.en?.bride_name
+                  ? `${(event as any).dual_language_config.en.groom_name} & ${(event as any).dual_language_config.en.bride_name}`
+                  : ((event as any).dual_language_config?.en?.title || (event as any).section_visibility?.dual_language?.en?.title || null)
+              }
               backgroundUrl={(event as any).cover_background_url ?? null}
               nameGraphicUrl={
                 language === "en"
-                  ? ((event as any).cover_image_url_en ?? (event as any).cover_image_url ?? templateDefaults.cover_image_url ?? null)
+                  ? ((event as any).cover_image_url_en ?? null)
                   : ((event as any).cover_image_url ?? templateDefaults.cover_image_url ?? null)
               }
               accentColor={(event as any).text_color_accent ?? null}

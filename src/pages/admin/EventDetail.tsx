@@ -401,7 +401,39 @@ export default function EventDetail() {
         setEvent(null);
       }
       const guestLangs = (rawVis.guest_languages || {}) as Record<string, string>;
-      const loadedGuests: Guest[] = ((gRes.data ?? []) as any[]).map(g => {
+      const rawGuestList = ((gRes.data ?? []) as any[]);
+
+      // Auto-seed broadcast tokens if not present so submit_rsvp succeeds on Supabase
+      const hasBroadcastKm = rawGuestList.some(g => g.token === "broadcast-km" || g.token === `${raw.slug}-km`);
+      const hasBroadcastEn = rawGuestList.some(g => g.token === "broadcast-en" || g.token === `${raw.slug}-en`);
+      if (!hasBroadcastKm || !hasBroadcastEn) {
+        const toSeed: any[] = [];
+        if (!hasBroadcastKm) {
+          toSeed.push({
+            event_id: id,
+            name: "ភ្ញៀវកិត្តិយស (Broadcast Khmer)",
+            token: "broadcast-km",
+            party_size: 1,
+            rsvp_status: "pending",
+          });
+        }
+        if (!hasBroadcastEn) {
+          toSeed.push({
+            event_id: id,
+            name: "Honored Guest (Broadcast English)",
+            token: "broadcast-en",
+            party_size: 1,
+            rsvp_status: "pending",
+          });
+        }
+        supabase.from("guests").insert(toSeed).select("*").then(({ data }) => {
+          if (data && data.length) {
+            setGuests(prev => [...(data as any[]), ...prev]);
+          }
+        });
+      }
+
+      const loadedGuests: Guest[] = rawGuestList.map(g => {
         let lang: "km" | "en" | null = null;
         if (g.token?.endsWith("-en")) lang = "en";
         else if (g.token?.endsWith("-km") || g.token?.endsWith("-kh")) lang = "km";
@@ -958,18 +990,18 @@ export default function EventDetail() {
    */
   const buildShareUrl = (token: string, lang?: "km" | "en") => {
     if (!event) return "";
-    const l = lang ?? (token.endsWith("-en") ? "en" : token.endsWith("-km") || token.endsWith("-kh") ? "km" : undefined);
-    const langQuery = l ? `&lang=${l}` : "";
-    return `https://share.21invite.online/${encodeURIComponent(event.slug)}/invite?token=${encodeURIComponent(token)}${langQuery}`;
+    const base = token.replace(/-(en|km|kh)$/i, "");
+    const effectiveToken = lang === "en" ? `${base}-en` : (lang === "km" ? `${base}-km` : token);
+    return `https://share.21invite.online/${encodeURIComponent(event.slug)}/invite?token=${encodeURIComponent(effectiveToken)}`;
   };
 
   /** Short, branded invitation URL guests will actually see when the host
    *  copies/pastes the link into a chat. */
   const buildBrandedUrl = (token: string, lang?: "km" | "en") => {
     if (!event) return "";
-    const l = lang ?? (token.endsWith("-en") ? "en" : token.endsWith("-km") || token.endsWith("-kh") ? "km" : undefined);
-    const langQuery = l ? `&lang=${l}` : "";
-    return `https://21invite.online/${event.slug}/invite?token=${encodeURIComponent(token)}${langQuery}`;
+    const base = token.replace(/-(en|km|kh)$/i, "");
+    const effectiveToken = lang === "en" ? `${base}-en` : (lang === "km" ? `${base}-km` : token);
+    return `https://21invite.online/${event.slug}/invite?token=${encodeURIComponent(effectiveToken)}`;
   };
 
   /** Render the ready-to-send Khmer invitation message a host can paste
@@ -1016,13 +1048,19 @@ export default function EventDetail() {
       const parts = target.split("|").map(s => s.trim()).filter(Boolean);
       return parts.join(" ").trim();
     };
-    const groom = cleanName(event.groom_name) || "Groom";
-    const bride = cleanName(event.bride_name) || "Bride";
-    const couple = `${groom} & ${bride}`;
+    const hasKhmer = (s: string) => /[\u1780-\u17ff\u19e0-\u19ff]/.test(s);
+    const enGroom = cleanName((event as any).dual_language_config?.en?.groom_name ?? (event.section_visibility as any)?.dual_language?.en?.groom_name);
+    const enBride = cleanName((event as any).dual_language_config?.en?.bride_name ?? (event.section_visibility as any)?.dual_language?.en?.bride_name);
+    const groom = enGroom || (!hasKhmer(cleanName(event.groom_name)) ? cleanName(event.groom_name) : "");
+    const bride = enBride || (!hasKhmer(cleanName(event.bride_name)) ? cleanName(event.bride_name) : "");
+    const enTitle = (event as any).dual_language_config?.en?.title ?? (event.section_visibility as any)?.dual_language?.en?.title;
+    const couple = (groom && bride) ? `${groom} & ${bride}` : (enTitle?.trim() || "the Bride & Groom");
+
     const dateStr = event.event_date
       ? new Date(event.event_date).toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })
       : "<Date>";
-    const venue = ((event.venue ?? "").split("|")[1] ?? (event.venue ?? "").split("|")[0] ?? "").trim() || "<Venue>";
+    const customVenueEn = (event as any).dual_language_config?.en?.venue ?? (event.section_visibility as any)?.dual_language?.en?.venue;
+    const venue = customVenueEn?.trim() || ((event.venue ?? "").split("|")[1] ?? (event.venue ?? "").split("|")[0] ?? "").trim() || "<Venue>";
     const link = buildShareUrl(token, "en");
 
     return [
