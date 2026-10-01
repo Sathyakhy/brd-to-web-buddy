@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Check, X, Heart, Minus, Plus, Sparkles, User, MessageSquareHeart } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Check, X, Heart, Minus, Plus, Sparkles, User, MessageSquareHeart, Pencil, CheckCircle2, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -144,6 +144,27 @@ export default function RsvpCard({
   const [customName, setCustomName] = useState(isGenericOpenGuest ? "" : (guestName || ""));
   const [partySize, setPartySize] = useState(isGenericOpenGuest ? 1 : (initialPartySize || 1));
   const [message, setMessage] = useState(isGenericOpenGuest ? "" : (initialMessage || ""));
+
+  const hasRecordedResponse = status === "yes" || status === "no";
+  const [isEditing, setIsEditing] = useState(false);
+
+  useEffect(() => {
+    if (status === "yes" || status === "no") {
+      setIsEditing(false);
+    }
+  }, [status]);
+
+  useEffect(() => {
+    if (guestName && guestName !== "Honored Guest" && guestName !== "ភ្ញៀវកិត្តិយស" && guestName !== "open" && guestName !== "preview") {
+      setCustomName(guestName);
+    }
+    if (typeof initialPartySize === "number" && initialPartySize > 0) {
+      setPartySize(initialPartySize);
+    }
+    if (typeof initialMessage === "string") {
+      setMessage(initialMessage);
+    }
+  }, [guestName, initialPartySize, initialMessage]);
 
   const accent = accentColor || "#db9b0f";
   const primary = primaryColor || "#3a2a00";
@@ -350,148 +371,257 @@ export default function RsvpCard({
         <div className="h-px flex-1" style={{ background: `linear-gradient(to right, transparent, ${accent}80, transparent)` }} />
       </div>
 
-      {/* Guest Name input field (for Open Broadcast Links) */}
-      {isOpenInvite && (
-        <div className="mb-5 space-y-1.5 text-left">
-          <Label
-            className={`flex items-center gap-1.5 text-xs sm:text-sm ${resolvedBodyFont ? "font-semibold" : (isEn ? "font-medium" : "font-khmer-koulen")}`}
-            style={{ color: accent, fontFamily: resolvedBodyFont }}
-          >
-            <User className="h-3.5 w-3.5" style={{ color: accent }} />
-            {isEn
-              ? (openNameLabelEn?.trim() || "Your Name / Family Name")
-              : (openNameLabel?.trim() || "ឈ្មោះរបស់អ្នក ឬគ្រួសារ")}
-            <span className="text-red-500 font-bold">*</span>
-          </Label>
-          <Input
-            type="text"
-            value={customName}
-            onChange={(e) => setCustomName(e.target.value)}
-            disabled={preview || submitting}
-            placeholder={
-              isEn
-                ? (openNamePlaceholderEn?.trim() || "e.g. Mr. John Smith & Guest")
-                : (openNamePlaceholder?.trim() || "ឧ. លោក សុខ សំណាង និងភរិយា")
-            }
-            className={`h-11 sm:h-12 text-sm sm:text-base border transition-all ${
-              resolvedBodyFont ? "" : (isEn ? "font-sans" : "font-khmer-siemreap")
-            }`}
+      {/* When guest has already submitted and not currently editing, show the saved response view */}
+      {hasRecordedResponse && !isEditing ? (
+        <div className="space-y-4 my-3 text-center">
+          <div
+            className="rounded-2xl p-5 border text-center space-y-3.5 transition-all shadow-sm"
             style={{
-              background: "rgba(255,255,255,0.65)",
-              borderColor: `${accent}66`,
-              color: primary,
-              fontFamily: resolvedBodyFont,
+              backgroundColor: status === "yes" ? "rgba(34,197,94,0.08)" : "rgba(239,68,68,0.08)",
+              borderColor: status === "yes" ? "rgba(34,197,94,0.35)" : "rgba(239,68,68,0.35)",
             }}
-          />
-        </div>
-      )}
-
-      {/* Party Size Counter */}
-      <div className="space-y-3">
-        <Label
-          className={`block text-center text-xs sm:text-sm ${resolvedBodyFont ? "font-semibold" : (isEn ? "font-medium uppercase tracking-wider" : "font-khmer-koulen")}`}
-          style={{ color: accent, fontFamily: resolvedBodyFont }}
-        >
-          {isEn
-            ? (partySizeLabelEn?.trim() || "Number of Guests")
-            : (partySizeLabel?.trim() || "ចំនួនភ្ញៀវ")}
-        </Label>
-        <div className="flex items-center justify-center gap-4">
-          <button
-            type="button"
-            onClick={() => setPartySize(Math.max(1, partySize - 1))}
-            className="h-11 w-11 rounded-full flex items-center justify-center transition-all disabled:opacity-40"
-            style={{ border: `1px solid ${accent}66`, background: "rgba(255,255,255,0.55)", color: accent }}
-            disabled={preview || partySize <= 1}
-            aria-label="Decrease guests"
           >
-            <Minus className="h-4 w-4" />
-          </button>
-          <div className="min-w-[80px] text-center">
-            <div className={`text-4xl sm:text-5xl leading-none ${resolvedHeaderFont ? "font-bold" : (isEn ? "font-serif font-bold" : "font-khmer-moul")}`} style={{ color: accent, fontFamily: resolvedHeaderFont }}>
-              {partySize.toString().padStart(2, "0")}
+            <div className="flex items-center justify-center gap-2">
+              {status === "yes" ? (
+                <CheckCircle2 className="h-6 w-6 text-green-600 dark:text-green-400 shrink-0" />
+              ) : (
+                <XCircle className="h-6 w-6 text-red-500 shrink-0" />
+              )}
+              <h4
+                className={`text-base sm:text-lg font-bold ${
+                  status === "yes" ? "text-green-700 dark:text-green-400" : "text-red-700 dark:text-red-400"
+                }`}
+                style={{ fontFamily: resolvedBodyFont }}
+              >
+                {status === "yes"
+                  ? (isEn ? "You have Joyfully Accepted 💛" : "ការឆ្លើយតបរបស់អ្នក៖ យល់ព្រមចូលរួម 💛")
+                  : (isEn ? "You have Regretfully Declined" : "ការឆ្លើយតបរបស់អ្នក៖ សុំទោស មិនអាចចូលរួម")}
+              </h4>
             </div>
-            <div
-              className={`text-xs mt-1 ${resolvedBodyFont ? "font-medium" : (isEn ? "font-sans uppercase tracking-wider" : "font-khmer-koulen")}`}
-              style={{ color: primary, fontFamily: resolvedBodyFont }}
+
+            <div className="py-2.5 px-3.5 rounded-xl bg-white/70 dark:bg-black/30 border border-black/5 dark:border-white/10 space-y-2 text-xs sm:text-sm text-left">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-muted-foreground">{isEn ? "Guest / Family Name:" : "ឈ្មោះភ្ញៀវ ឬគ្រួសារ៖"}</span>
+                <span className="font-semibold text-right break-words" style={{ color: primary, fontFamily: resolvedBodyFont }}>
+                  {displayName}
+                </span>
+              </div>
+              {status === "yes" && (
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-muted-foreground">{isEn ? "Number of Guests:" : "ចំនួនភ្ញៀវ៖"}</span>
+                  <span className="font-semibold" style={{ color: primary, fontFamily: resolvedBodyFont }}>
+                    {partySize} {isEn ? (partySize > 1 ? "Guests" : "Guest") : "នាក់"}
+                  </span>
+                </div>
+              )}
+              {message && (
+                <div className="pt-2 border-t border-black/5 dark:border-white/10 text-xs text-muted-foreground italic text-center">
+                  "{message}"
+                </div>
+              )}
+            </div>
+
+            <p className="text-[11px] text-muted-foreground leading-relaxed px-2" style={{ fontFamily: resolvedBodyFont }}>
+              {isEn
+                ? "Your response is saved on this device. You cannot accept again, but you can edit your previous response at any time."
+                : "ការឆ្លើយតបរបស់អ្នកត្រូវបានរក្សាទុកនៅលើឧបករណ៍នេះ។ លោកអ្នកមិនអាចឆ្លើយតបឡើងវិញបានទេ ប៉ុន្តែអាចកែប្រែការឆ្លើយតបពីមុនបានគ្រប់ពេល។"}
+            </p>
+
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setIsEditing(true)}
+              disabled={preview || submitting}
+              className={`w-full h-11 border transition-all hover:bg-white/50 ${resolvedBodyFont ? "font-semibold" : (isEn ? "font-semibold" : "font-khmer-koulen")}`}
+              style={{
+                borderColor: `${accent}88`,
+                color: accent,
+                background: "rgba(255,255,255,0.9)",
+                fontFamily: resolvedBodyFont,
+              }}
             >
-              {isEn ? (partySize > 1 ? "Guests" : "Guest") : "នាក់"}
+              <Pencil className="h-4 w-4 mr-2" />
+              {isEn ? "Edit Response (Overwrite previous)" : "កែប្រែការឆ្លើយតប (កែប្រែទិន្នន័យចាស់)"}
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <>
+          {/* Editing notice banner */}
+          {isEditing && (
+            <div className="mb-4 p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-between text-xs text-amber-900 dark:text-amber-200">
+              <span className="flex items-center gap-1.5 font-medium">
+                <Pencil className="h-3.5 w-3.5 text-amber-600 shrink-0" />
+                {isEn ? "Editing your previous response" : "កំពុងកែប្រែការឆ្លើយតបពីមុនរបស់អ្នក"}
+              </span>
+              <button
+                type="button"
+                onClick={() => setIsEditing(false)}
+                className="text-[11px] underline hover:opacity-80 font-medium"
+              >
+                {isEn ? "Cancel" : "បោះបង់"}
+              </button>
+            </div>
+          )}
+
+          {/* Guest Name input field (for Open Broadcast Links) */}
+          {isOpenInvite && (
+            <div className="mb-5 space-y-1.5 text-left">
+              <Label
+                className={`flex items-center gap-1.5 text-xs sm:text-sm ${resolvedBodyFont ? "font-semibold" : (isEn ? "font-medium" : "font-khmer-koulen")}`}
+                style={{ color: accent, fontFamily: resolvedBodyFont }}
+              >
+                <User className="h-3.5 w-3.5" style={{ color: accent }} />
+                {isEn
+                  ? (openNameLabelEn?.trim() || "Your Name / Family Name")
+                  : (openNameLabel?.trim() || "ឈ្មោះរបស់អ្នក ឬគ្រួសារ")}
+                <span className="text-red-500 font-bold">*</span>
+              </Label>
+              <Input
+                type="text"
+                value={customName}
+                onChange={(e) => setCustomName(e.target.value)}
+                disabled={preview || submitting}
+                placeholder={
+                  isEn
+                    ? (openNamePlaceholderEn?.trim() || "e.g. Mr. John Smith & Guest")
+                    : (openNamePlaceholder?.trim() || "ឧ. លោក សុខ សំណាង និងភរិយា")
+                }
+                className={`h-11 sm:h-12 text-sm sm:text-base border transition-all ${
+                  resolvedBodyFont ? "" : (isEn ? "font-sans" : "font-khmer-siemreap")
+                }`}
+                style={{
+                  background: "rgba(255,255,255,0.65)",
+                  borderColor: `${accent}66`,
+                  color: primary,
+                  fontFamily: resolvedBodyFont,
+                }}
+              />
+            </div>
+          )}
+
+          {/* Party Size Counter */}
+          <div className="space-y-3">
+            <Label
+              className={`block text-center text-xs sm:text-sm ${resolvedBodyFont ? "font-semibold" : (isEn ? "font-medium uppercase tracking-wider" : "font-khmer-koulen")}`}
+              style={{ color: accent, fontFamily: resolvedBodyFont }}
+            >
+              {isEn
+                ? (partySizeLabelEn?.trim() || "Number of Guests")
+                : (partySizeLabel?.trim() || "ចំនួនភ្ញៀវ")}
+            </Label>
+            <div className="flex items-center justify-center gap-4">
+              <button
+                type="button"
+                onClick={() => setPartySize(Math.max(1, partySize - 1))}
+                className="h-11 w-11 rounded-full flex items-center justify-center transition-all disabled:opacity-40"
+                style={{ border: `1px solid ${accent}66`, background: "rgba(255,255,255,0.55)", color: accent }}
+                disabled={preview || partySize <= 1}
+                aria-label="Decrease guests"
+              >
+                <Minus className="h-4 w-4" />
+              </button>
+              <div className="min-w-[80px] text-center">
+                <div className={`text-4xl sm:text-5xl leading-none ${resolvedHeaderFont ? "font-bold" : (isEn ? "font-serif font-bold" : "font-khmer-moul")}`} style={{ color: accent, fontFamily: resolvedHeaderFont }}>
+                  {partySize.toString().padStart(2, "0")}
+                </div>
+                <div
+                  className={`text-xs mt-1 ${resolvedBodyFont ? "font-medium" : (isEn ? "font-sans uppercase tracking-wider" : "font-khmer-koulen")}`}
+                  style={{ color: primary, fontFamily: resolvedBodyFont }}
+                >
+                  {isEn ? (partySize > 1 ? "Guests" : "Guest") : "នាក់"}
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPartySize(Math.min(20, partySize + 1))}
+                className="h-11 w-11 rounded-full flex items-center justify-center transition-all disabled:opacity-40"
+                style={{ border: `1px solid ${accent}66`, background: "rgba(255,255,255,0.55)", color: accent }}
+                disabled={preview || partySize >= 20}
+                aria-label="Increase guests"
+              >
+                <Plus className="h-4 w-4" />
+              </button>
             </div>
           </div>
-          <button
-            type="button"
-            onClick={() => setPartySize(Math.min(20, partySize + 1))}
-            className="h-11 w-11 rounded-full flex items-center justify-center transition-all disabled:opacity-40"
-            style={{ border: `1px solid ${accent}66`, background: "rgba(255,255,255,0.55)", color: accent }}
-            disabled={preview || partySize >= 20}
-            aria-label="Increase guests"
-          >
-            <Plus className="h-4 w-4" />
-          </button>
-        </div>
-      </div>
 
-      {/* Wishes / Message Field */}
-      <div className="mt-5 space-y-2 text-left">
-        <Label
-          className={`flex items-center justify-center gap-1.5 text-xs sm:text-sm text-center ${resolvedBodyFont ? "font-semibold" : (isEn ? "font-medium uppercase tracking-wider" : "font-khmer-koulen")}`}
-          style={{ color: accent, fontFamily: resolvedBodyFont }}
-        >
-          <MessageSquareHeart className="h-3.5 w-3.5" style={{ color: accent }} />
-          {isEn
-            ? (wishesLabelEn?.trim() || "Leave a warm message for the couple")
-            : (wishesLabel?.trim() || "សារជូនពរដល់ម្ចាស់ពិធី")}
-        </Label>
-        <Textarea
-          rows={3}
-          value={message}
-          onChange={e => setMessage(e.target.value)}
-          readOnly={preview}
-          placeholder={
-            isEn
-              ? (wishesPlaceholderEn?.trim() || "Wishing you both a lifetime of love, health, and joy...")
-              : (wishesPlaceholder?.trim() || "សូមជូនពរឱ្យមានសុភមង្គល និងសេចក្តីស្រឡាញ់ជារៀងរហូត…")
-          }
-          className={`resize-none text-center ${resolvedBodyFont ? "" : (isEn ? "font-sans" : "font-khmer-siemreap")}`}
-          style={{
-            background: "rgba(255,255,255,0.55)",
-            border: `1px solid ${accent}55`,
-            color: primary,
-            fontFamily: resolvedBodyFont,
-          }}
-        />
-      </div>
+          {/* Wishes / Message Field */}
+          <div className="mt-5 space-y-2 text-left">
+            <Label
+              className={`flex items-center justify-center gap-1.5 text-xs sm:text-sm text-center ${resolvedBodyFont ? "font-semibold" : (isEn ? "font-medium uppercase tracking-wider" : "font-khmer-koulen")}`}
+              style={{ color: accent, fontFamily: resolvedBodyFont }}
+            >
+              <MessageSquareHeart className="h-3.5 w-3.5" style={{ color: accent }} />
+              {isEn
+                ? (wishesLabelEn?.trim() || "Leave a warm message for the couple")
+                : (wishesLabel?.trim() || "សារជូនពរដល់ម្ចាស់ពិធី")}
+            </Label>
+            <Textarea
+              rows={3}
+              value={message}
+              onChange={e => setMessage(e.target.value)}
+              readOnly={preview}
+              placeholder={
+                isEn
+                  ? (wishesPlaceholderEn?.trim() || "Wishing you both a lifetime of love, health, and joy...")
+                  : (wishesPlaceholder?.trim() || "សូមជូនពរឱ្យមានសុភមង្គល និងសេចក្តីស្រឡាញ់ជារៀងរហូត…")
+              }
+              className={`resize-none text-center ${resolvedBodyFont ? "" : (isEn ? "font-sans" : "font-khmer-siemreap")}`}
+              style={{
+                background: "rgba(255,255,255,0.55)",
+                border: `1px solid ${accent}55`,
+                color: primary,
+                fontFamily: resolvedBodyFont,
+              }}
+            />
+          </div>
 
-      {/* Action Buttons */}
-      <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <Button
-          size="lg"
-          type="button"
-          onClick={() => handleAction("yes")}
-          disabled={preview || submitting}
-          className={`h-12 tracking-wide text-white hover:opacity-95 ${resolvedBodyFont ? "font-semibold" : (isEn ? "font-semibold" : "font-khmer-koulen")}`}
-          style={{ background: accent, boxShadow: `0 6px 18px ${accent}55`, fontFamily: resolvedBodyFont }}
-        >
-          <Check className="h-4 w-4 mr-2" />
-          {isEn
-            ? (attendingLabelEn?.trim() || "Joyfully Accept")
-            : (attendingLabel?.trim() || "យល់ព្រមចូលរួម")}
-        </Button>
-        <Button
-          size="lg"
-          type="button"
-          variant="outline"
-          onClick={() => handleAction("no")}
-          disabled={preview || submitting}
-          className={`h-12 tracking-wide bg-transparent hover:bg-white/40 ${resolvedBodyFont ? "font-semibold" : (isEn ? "font-semibold" : "font-khmer-koulen")}`}
-          style={{ borderColor: `${accent}66`, color: primary, fontFamily: resolvedBodyFont }}
-        >
-          <X className="h-4 w-4 mr-2" />
-          {isEn
-            ? (decliningLabelEn?.trim() || "Regretfully Decline")
-            : (decliningLabel?.trim() || "សុំទោស មិនអាចចូលរួម")}
-        </Button>
-      </div>
+          {/* Action Buttons */}
+          <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <Button
+              size="lg"
+              type="button"
+              onClick={() => handleAction("yes")}
+              disabled={preview || submitting}
+              className={`h-12 tracking-wide text-white hover:opacity-95 ${resolvedBodyFont ? "font-semibold" : (isEn ? "font-semibold" : "font-khmer-koulen")}`}
+              style={{ background: accent, boxShadow: `0 6px 18px ${accent}55`, fontFamily: resolvedBodyFont }}
+            >
+              <Check className="h-4 w-4 mr-2" />
+              {isEditing
+                ? (isEn ? "Save: Joyfully Accept" : "រក្សាទុក៖ យល់ព្រមចូលរួម")
+                : (isEn ? (attendingLabelEn?.trim() || "Joyfully Accept") : (attendingLabel?.trim() || "យល់ព្រមចូលរួម"))}
+            </Button>
+            <Button
+              size="lg"
+              type="button"
+              variant="outline"
+              onClick={() => handleAction("no")}
+              disabled={preview || submitting}
+              className={`h-12 tracking-wide bg-transparent hover:bg-white/40 ${resolvedBodyFont ? "font-semibold" : (isEn ? "font-semibold" : "font-khmer-koulen")}`}
+              style={{ borderColor: `${accent}66`, color: primary, fontFamily: resolvedBodyFont }}
+            >
+              <X className="h-4 w-4 mr-2" />
+              {isEditing
+                ? (isEn ? "Save: Regretfully Decline" : "រក្សាទុក៖ សុំទោស មិនអាចចូលរួម")
+                : (isEn ? (decliningLabelEn?.trim() || "Regretfully Decline") : (decliningLabel?.trim() || "សុំទោស មិនអាចចូលរួម"))}
+            </Button>
+          </div>
+
+          {isEditing && (
+            <div className="mt-2 text-center">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsEditing(false)}
+                className="text-xs text-muted-foreground hover:text-foreground"
+              >
+                {isEn ? "Cancel Editing" : "បោះបង់ការកែប្រែ"}
+              </Button>
+            </div>
+          )}
+        </>
+      )}
 
       <p className={`mt-4 text-center text-[11px] ${resolvedBodyFont ? "" : (isEn ? "font-sans" : "font-khmer-siemreap")}`} style={{ color: `${primary}99`, fontFamily: resolvedBodyFont }}>
         {preview

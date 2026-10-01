@@ -79,41 +79,116 @@ export default function CustomerEventDetail() {
       const loadedEvent = evRes.data as Event | null;
       setEvent(loadedEvent);
 
-      const guestList = (gRes.data ?? []) as Guest[];
+      const rawGuestList = (gRes.data ?? []) as any[];
 
-      // Auto-seed broadcast tokens if not present so submit_rsvp succeeds on Supabase
+      // Auto-seed broadcast slots pool if needed so that each respondent gets their own dedicated row:
       if (loadedEvent) {
-        const hasBroadcastKm = guestList.some(g => g.token === "broadcast-km" || g.token === `${loadedEvent.slug}-km`);
-        const hasBroadcastEn = guestList.some(g => g.token === "broadcast-en" || g.token === `${loadedEvent.slug}-en`);
-        if (!hasBroadcastKm || !hasBroadcastEn) {
-          const toSeed: any[] = [];
-          if (!hasBroadcastKm) {
+        const unassignedKm = rawGuestList.filter(g =>
+          g.token?.startsWith("broadcast-km") &&
+          g.rsvp_status === "pending" &&
+          !g.responded_at &&
+          (!g.message || !g.message.trim())
+        );
+        const unassignedEn = rawGuestList.filter(g =>
+          g.token?.startsWith("broadcast-en") &&
+          g.rsvp_status === "pending" &&
+          !g.responded_at &&
+          (!g.message || !g.message.trim())
+        );
+
+        const toSeed: any[] = [];
+        const hasBaseKm = rawGuestList.some(g => g.token === "broadcast-km" || g.token === `${loadedEvent.slug}-km`);
+        const hasBaseEn = rawGuestList.some(g => g.token === "broadcast-en" || g.token === `${loadedEvent.slug}-en`);
+
+        if (!hasBaseKm) {
+          toSeed.push({
+            event_id: id,
+            name: "ភ្ញៀវកិត្តិយស (Broadcast Khmer)",
+            token: "broadcast-km",
+            party_size: 1,
+            rsvp_status: "pending",
+          });
+        }
+        if (!hasBaseEn) {
+          toSeed.push({
+            event_id: id,
+            name: "Honored Guest (Broadcast English)",
+            token: "broadcast-en",
+            party_size: 1,
+            rsvp_status: "pending",
+          });
+        }
+
+        // Keep at least 15 unassigned broadcast slots available for each language
+        if (unassignedKm.length < 15) {
+          const needed = 15 - unassignedKm.length;
+          const nowPrefix = Date.now().toString(36);
+          for (let i = 1; i <= needed; i++) {
             toSeed.push({
               event_id: id,
               name: "ភ្ញៀវកិត្តិយស (Broadcast Khmer)",
-              token: "broadcast-km",
+              token: `broadcast-km-${nowPrefix}-${i.toString().padStart(2, "0")}`,
               party_size: 1,
               rsvp_status: "pending",
             });
           }
-          if (!hasBroadcastEn) {
+        }
+
+        if (unassignedEn.length < 15) {
+          const needed = 15 - unassignedEn.length;
+          const nowPrefix = Date.now().toString(36);
+          for (let i = 1; i <= needed; i++) {
             toSeed.push({
               event_id: id,
               name: "Honored Guest (Broadcast English)",
-              token: "broadcast-en",
+              token: `broadcast-en-${nowPrefix}-${i.toString().padStart(2, "0")}`,
               party_size: 1,
               rsvp_status: "pending",
             });
           }
+        }
+
+        if (toSeed.length > 0) {
           supabase.from("guests").insert(toSeed).select("*").then(({ data }) => {
             if (data && data.length) {
               setGuests(prev => [...(data as any[]), ...prev]);
             }
           });
         }
+
+        // Sync guest names for any broadcast row that has [Guest Name] in its message
+        rawGuestList.forEach(g => {
+          if (
+            g.token?.startsWith("broadcast-") &&
+            (g.name?.includes("Broadcast") || g.name === "Honored Guest" || g.name === "ភ្ញៀវកិត្តិយស") &&
+            g.message?.startsWith("[")
+          ) {
+            const match = g.message.match(/^\[(.*?)\](?:\s*(.*))?$/s);
+            if (match && match[1]) {
+              supabase.from("guests").update({ name: match[1] }).eq("id", g.id).then(() => {});
+            }
+          }
+        });
       }
 
-      setGuests(guestList);
+      const loadedGuests: Guest[] = rawGuestList.map(g => {
+        let cleanName = g.name;
+        let cleanMsg = g.message;
+        if (g.token?.startsWith("broadcast-") && g.message?.startsWith("[")) {
+          const match = g.message.match(/^\[(.*?)\](?:\s*(.*))?$/s);
+          if (match && match[1]) {
+            cleanName = match[1];
+            cleanMsg = match[2] || null;
+          }
+        }
+        return {
+          ...g,
+          name: cleanName,
+          message: cleanMsg,
+        };
+      });
+
+      setGuests(loadedGuests);
     } catch (err: any) {
       console.error("Error loading customer event:", err);
       toast.error(err?.message || "Failed to load event");
@@ -183,12 +258,22 @@ export default function CustomerEventDetail() {
     );
   }
 
+  const isUnassignedBroadcastSlot = (g: Guest) =>
+    Boolean(
+      g.token?.startsWith("broadcast-") &&
+      g.rsvp_status === "pending" &&
+      !g.responded_at &&
+      (!g.message || !g.message.trim())
+    );
+
+  const visibleGuests = guests.filter(g => !isUnassignedBroadcastSlot(g));
+
   const stats = {
-    total: guests.length,
-    yes: guests.filter(g => g.rsvp_status === "yes").length,
-    no: guests.filter(g => g.rsvp_status === "no").length,
-    pending: guests.filter(g => g.rsvp_status === "pending").length,
-    headcount: guests.filter(g => g.rsvp_status === "yes").reduce((sum, g) => sum + g.party_size, 0),
+    total: visibleGuests.length,
+    yes: visibleGuests.filter(g => g.rsvp_status === "yes").length,
+    no: visibleGuests.filter(g => g.rsvp_status === "no").length,
+    pending: visibleGuests.filter(g => g.rsvp_status === "pending").length,
+    headcount: visibleGuests.filter(g => g.rsvp_status === "yes").reduce((sum, g) => sum + g.party_size, 0),
   };
 
   return (
@@ -336,7 +421,7 @@ export default function CustomerEventDetail() {
             </Dialog>
           </div>
 
-          {guests.length === 0 ? (
+          {visibleGuests.length === 0 ? (
             <div className="p-12 text-center text-sm text-muted-foreground">
               No guests yet. Add your guest list to start sharing invitations.
             </div>
@@ -354,12 +439,19 @@ export default function CustomerEventDetail() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
-                  {guests.map(g => {
+                  {visibleGuests.map(g => {
                     const gLang = getGuestLang(g);
                     return (
                       <tr key={g.id} className="hover:bg-secondary/30 transition-smooth">
                         <td className="p-4">
-                          <div className="font-medium">{g.name}</div>
+                          <div className="font-medium flex items-center gap-2 flex-wrap">
+                            <span>{g.name}</span>
+                            {g.token?.startsWith("broadcast-") && (
+                              <span className="px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-300 text-[10px] font-semibold tracking-wide border border-amber-500/30">
+                                Broadcast RSVP
+                              </span>
+                            )}
+                          </div>
                           <div className="text-xs text-muted-foreground mt-0.5">
                             {g.responded_at ? `Responded ${formatDateTime(g.responded_at)}` : "Not yet responded"}
                           </div>

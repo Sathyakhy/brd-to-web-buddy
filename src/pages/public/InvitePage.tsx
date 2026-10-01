@@ -17,6 +17,15 @@ import { normalizeCoverInvitationStyle } from "@/lib/coverInvitationStyle";
 import { normalizeGuestNameStyle } from "@/lib/guestNameStyle";
 import Interactive3DEnvelopeUnboxing from "@/components/templates/Interactive3DEnvelopeUnboxing";
 import ErrorBoundary from "@/components/common/ErrorBoundary";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+} from "@/components/ui/alert-dialog";
+import { UserCheck } from "lucide-react";
 
 type Event = TemplateData & {
   id: string; slug: string; template: string;
@@ -85,16 +94,13 @@ export default function InvitePage() {
     if (!tok) return true;
     const t = tok.toLowerCase().trim();
     return (
-      t === "broadcast-km" ||
-      t === "broadcast-en" ||
-      t === "broadcast" ||
-      t === "open-km" ||
-      t === "open-en" ||
-      t === "open" ||
-      t === "public" ||
-      t === "general-km" ||
-      t === "general-en" ||
-      t === "general" ||
+      t.startsWith("broadcast-") ||
+      t.startsWith("broadcast") ||
+      t.startsWith("open-") ||
+      t.startsWith("open") ||
+      t.startsWith("public") ||
+      t.startsWith("general-") ||
+      t.startsWith("general") ||
       t === "km" ||
       t === "en" ||
       t === "kh"
@@ -172,14 +178,39 @@ export default function InvitePage() {
           const defaultOpenGreeting = initialLang === "en"
             ? ((ev as any).open_guest_greeting_en || (ev as any).section_visibility?.open_guest_greeting_en || "Honored Guest")
             : ((ev as any).open_guest_greeting_km || (ev as any).section_visibility?.open_guest_greeting_km || "ភ្ញៀវកិត្តិយស");
-          setGuest({
-            id: "open",
-            name: defaultOpenGreeting,
-            rsvp_status: "pending",
-            party_size: 1,
-            message: null,
-          });
-          setDbToken(rawTok);
+
+          // Restore saved broadcast session from device localStorage if present
+          let restored = false;
+          try {
+            const rawSession = localStorage.getItem(`rsvp_broadcast_session_${slug}`);
+            if (rawSession) {
+              const session = JSON.parse(rawSession);
+              if (session && session.token && (session.status === "yes" || session.status === "no")) {
+                setGuest({
+                  id: "saved-session",
+                  name: session.name || defaultOpenGreeting,
+                  rsvp_status: session.status,
+                  party_size: session.party_size || 1,
+                  message: session.message || null,
+                });
+                setPartySize(session.party_size || 1);
+                setMessage(session.message || "");
+                setDbToken(session.token);
+                restored = true;
+              }
+            }
+          } catch (_) {}
+
+          if (!restored) {
+            setGuest({
+              id: "open",
+              name: defaultOpenGreeting,
+              rsvp_status: "pending",
+              party_size: 1,
+              message: null,
+            });
+            setDbToken(rawTok);
+          }
         } else if (guestResponse.data) {
           const gRows = guestResponse.data;
           const g = Array.isArray(gRows) ? gRows[0] : gRows;
@@ -296,16 +327,99 @@ export default function InvitePage() {
     })();
   }, [slug, token, isPreview]);
 
-  const submit = async (status: "yes" | "no", chosenPartySize?: number, chosenMessage?: string, submittedName?: string) => {
+  type DuplicatePending = {
+    matchedGuest: any;
+    status: "yes" | "no";
+    chosenPartySize: number;
+    chosenMessage: string;
+    submittedName: string;
+    eventGuests: any[];
+  };
+
+  const [duplicatePending, setDuplicatePending] = useState<DuplicatePending | null>(null);
+
+  const executeRsvpSubmission = async (opts: {
+    targetTokenOverride?: string | null;
+    status: "yes" | "no";
+    size: number;
+    msg: string;
+    gName: string;
+    eventGuests?: any[];
+  }) => {
     if (!slug) return;
     setSubmitting(true);
-    const size = typeof chosenPartySize === "number" ? chosenPartySize : partySize;
-    const msg = typeof chosenMessage === "string" ? chosenMessage : message;
+    const { targetTokenOverride, status, size, msg, gName, eventGuests = [] } = opts;
     const rawTok = token?.trim() || "";
     const isOpen = isPreview ? false : isBroadcastToken(rawTok);
-    const gName = (submittedName || guest?.name || "").trim();
 
-    const targetToken = dbToken || rawTok || (isOpen ? `broadcast-${language}` : "");
+    let chosenToken = targetTokenOverride || dbToken || rawTok || (isOpen ? `broadcast-${language}` : "");
+
+    // If open invite and no specific token override or valid non-broadcast token, allocate a new slot:
+    if (isOpen && !targetTokenOverride && (!dbToken || isBroadcastToken(dbToken))) {
+      // 1. Try submit_open_rsvp RPC (if available on the database)
+      try {
+        const { data: openData, error: openErr } = await (supabase.rpc as any)("submit_open_rsvp", {
+          _event_slug: slug,
+          _name: gName,
+          _status: status,
+          _party_size: size,
+          _message: msg || null,
+          _language: language,
+        });
+        if (!openErr && openData) {
+          const newG = openData as Guest;
+          const assignedTok = (newG as any).token || (openData as any).token || chosenToken;
+          setGuest({
+            ...newG,
+            name: gName || newG.name,
+            rsvp_status: status,
+            party_size: size,
+            message: msg || null,
+          });
+          setPartySize(size);
+          setMessage(msg);
+          setDbToken(assignedTok);
+          try {
+            localStorage.setItem(`rsvp_broadcast_session_${slug}`, JSON.stringify({
+              token: assignedTok,
+              name: gName,
+              status,
+              party_size: size,
+              message: msg,
+              responded_at: new Date().toISOString(),
+            }));
+          } catch (_) {}
+          toast.success(
+            language === "en"
+              ? (status === "yes" ? "Thank you for accepting 💛" : "Your response has been recorded")
+              : (status === "yes" ? "សូមអរគុណសម្រាប់ការឆ្លើយតបចូលរួម 💛" : "សូមអរគុណ ការឆ្លើយតបរបស់អ្នកត្រូវបានកត់ត្រា")
+          );
+          setSubmitting(false);
+          return;
+        }
+      } catch (_) {}
+
+      // 2. Fallback: Find an available unassigned broadcast slot from eventGuests
+      const unassigned = eventGuests.filter(g =>
+        g.token &&
+        g.token.startsWith("broadcast-") &&
+        g.rsvp_status === "pending" &&
+        (!g.message || g.message.trim() === "") &&
+        !g.responded_at
+      );
+      const langPrefix = `broadcast-${language}`;
+      const slot = unassigned.find(g => g.token.startsWith(langPrefix) && g.token !== langPrefix)
+        || unassigned.find(g => g.token.startsWith("broadcast-") && g.token !== "broadcast-km" && g.token !== "broadcast-en")
+        || unassigned.find(g => g.token === langPrefix)
+        || unassigned[0];
+
+      if (slot && slot.token) {
+        chosenToken = slot.token;
+      } else {
+        chosenToken = `broadcast-${language}`;
+      }
+    }
+
     const effectiveMsg = (isOpen && gName && gName !== "Honored Guest" && gName !== "ភ្ញៀវកិត្តិយស")
       ? `[${gName}] ${msg}`.trim()
       : msg;
@@ -314,12 +428,11 @@ export default function InvitePage() {
       let rsvpSuccess = false;
       let recordedGuest: Guest | null = null;
 
-      // 1. Attempt submit_rsvp with targetToken
-      if (!isPreview && targetToken) {
+      if (!isPreview && chosenToken) {
         try {
           const { data, error } = await supabase.rpc("submit_rsvp", {
             _event_slug: slug,
-            _token: targetToken,
+            _token: chosenToken,
             _status: status,
             _party_size: size,
             _message: effectiveMsg || null,
@@ -329,10 +442,9 @@ export default function InvitePage() {
             rsvpSuccess = true;
             recordedGuest = data as Guest;
           } else if (error) {
-            console.warn("submit_rsvp with targetToken error:", error.message);
-            // If token had a suffix like -en or -km, retry with base token
-            const base = targetToken.replace(/-(en|km|kh)$/i, "");
-            if (base !== targetToken) {
+            console.warn("submit_rsvp error:", error.message);
+            const base = chosenToken.replace(/-(en|km|kh)$/i, "");
+            if (base !== chosenToken) {
               const retry = await supabase.rpc("submit_rsvp", {
                 _event_slug: slug,
                 _token: base,
@@ -343,6 +455,7 @@ export default function InvitePage() {
               if (!retry.error && retry.data) {
                 rsvpSuccess = true;
                 recordedGuest = retry.data as Guest;
+                chosenToken = base;
               }
             }
           }
@@ -351,37 +464,29 @@ export default function InvitePage() {
         }
       }
 
-      // Update state
-      if (rsvpSuccess && recordedGuest) {
-        setGuest({
-          ...recordedGuest,
-          name: gName || recordedGuest.name,
-        });
-        setPartySize(recordedGuest.party_size || size);
-        setMessage(effectiveMsg || "");
-      } else {
-        // Broadcast / preview or local persistence
-        const updated: Guest = {
-          id: guest?.id || "guest-" + Date.now(),
-          name: gName || (language === "en" ? "Honored Guest" : "ភ្ញៀវកិត្តិយស"),
-          rsvp_status: status,
-          party_size: size,
-          message: effectiveMsg || null,
-        };
-        setGuest(updated);
-        setPartySize(size);
-        setMessage(msg);
+      const updated: Guest = {
+        id: recordedGuest?.id || guest?.id || "guest-" + Date.now(),
+        name: gName || (language === "en" ? "Honored Guest" : "ភ្ញៀវកិត្តិយស"),
+        rsvp_status: status,
+        party_size: size,
+        message: effectiveMsg || null,
+      };
+      setGuest(updated);
+      setPartySize(size);
+      setMessage(msg);
+      setDbToken(chosenToken);
 
-        try {
-          localStorage.setItem(`rsvp_${slug}_${language}`, JSON.stringify({
-            name: updated.name,
-            status,
-            party_size: size,
-            message: effectiveMsg,
-            time: new Date().toISOString(),
-          }));
-        } catch (_) {}
-      }
+      // Save session on device so guest cannot accept again, but can edit:
+      try {
+        localStorage.setItem(`rsvp_broadcast_session_${slug}`, JSON.stringify({
+          token: chosenToken,
+          name: updated.name,
+          status,
+          party_size: size,
+          message: msg,
+          responded_at: new Date().toISOString(),
+        }));
+      } catch (_) {}
 
       toast.success(
         language === "en"
@@ -389,8 +494,7 @@ export default function InvitePage() {
           : (status === "yes" ? "សូមអរគុណសម្រាប់ការឆ្លើយតបចូលរួម 💛" : "សូមអរគុណ ការឆ្លើយតបរបស់អ្នកត្រូវបានកត់ត្រា")
       );
     } catch (err: any) {
-      console.error("RSVP submission error:", err);
-      // Even in catch, set status locally and thank the guest
+      console.error("RSVP error:", err);
       setGuest(prev => prev ? { ...prev, rsvp_status: status, party_size: size, message: effectiveMsg || null } : null);
       toast.success(
         language === "en"
@@ -400,6 +504,119 @@ export default function InvitePage() {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const submit = async (status: "yes" | "no", chosenPartySize?: number, chosenMessage?: string, submittedName?: string) => {
+    if (!slug) return;
+    const size = typeof chosenPartySize === "number" ? chosenPartySize : partySize;
+    const msg = typeof chosenMessage === "string" ? chosenMessage : message;
+    const rawTok = token?.trim() || "";
+    const isOpen = isPreview ? false : isBroadcastToken(rawTok);
+    const gName = (submittedName || guest?.name || "").trim();
+
+    // Check if device already has a saved broadcast session:
+    const sessionKey = `rsvp_broadcast_session_${slug}`;
+    let savedSession: any = null;
+    try {
+      const raw = localStorage.getItem(sessionKey);
+      if (raw) savedSession = JSON.parse(raw);
+    } catch (_) {}
+
+    // If this is an EDIT of an already saved response on this device:
+    if (isOpen && savedSession && savedSession.token && dbToken === savedSession.token) {
+      await executeRsvpSubmission({
+        targetTokenOverride: savedSession.token,
+        status,
+        size,
+        msg,
+        gName: gName || savedSession.name,
+      });
+      return;
+    }
+
+    // For open broadcast invites without a saved session, check for duplicate name among existing responded guests:
+    if (isOpen && event?.id && gName && gName !== "Honored Guest" && gName !== "ភ្ញៀវកិត្តិយស") {
+      try {
+        const { data: allGuests } = await supabase
+          .from("guests")
+          .select("id, name, token, rsvp_status, party_size, message, responded_at")
+          .eq("event_id", event.id);
+
+        const responded = (allGuests || []).filter(g => g.rsvp_status === "yes" || g.rsvp_status === "no");
+        const normalized = gName.trim().toLowerCase();
+        const match = responded.find(g => {
+          const direct = g.name && g.name.trim().toLowerCase() === normalized;
+          const inMsg = g.message && (
+            g.message.startsWith(`[${gName.trim()}]`) ||
+            g.message.toLowerCase().startsWith(`[${normalized}]`)
+          );
+          return direct || inMsg;
+        });
+
+        if (match) {
+          // Ask them to confirm if they already responded!
+          setDuplicatePending({
+            matchedGuest: match,
+            status,
+            chosenPartySize: size,
+            chosenMessage: msg,
+            submittedName: gName,
+            eventGuests: allGuests || [],
+          });
+          return;
+        }
+
+        // No duplicate found, proceed to allocate a new slot:
+        await executeRsvpSubmission({
+          targetTokenOverride: null,
+          status,
+          size,
+          msg,
+          gName,
+          eventGuests: allGuests || [],
+        });
+        return;
+      } catch (err) {
+        console.warn("Error checking duplicate names:", err);
+      }
+    }
+
+    // Default flow for named invite or fallback:
+    await executeRsvpSubmission({
+      targetTokenOverride: dbToken || null,
+      status,
+      size,
+      msg,
+      gName,
+    });
+  };
+
+  const handleConfirmDuplicateYes = () => {
+    if (!duplicatePending) return;
+    const { matchedGuest, status, chosenPartySize, chosenMessage, submittedName, eventGuests } = duplicatePending;
+    setDuplicatePending(null);
+    executeRsvpSubmission({
+      targetTokenOverride: matchedGuest.token,
+      status,
+      size: chosenPartySize,
+      msg: chosenMessage,
+      gName: submittedName,
+      eventGuests,
+    });
+  };
+
+  const handleConfirmDuplicateNo = () => {
+    if (!duplicatePending) return;
+    const { status, chosenPartySize, chosenMessage, submittedName, eventGuests } = duplicatePending;
+    setDuplicatePending(null);
+    executeRsvpSubmission({
+      targetTokenOverride: null, // Allocate a fresh new slot!
+      status,
+      size: chosenPartySize,
+      msg: chosenMessage,
+      gName: submittedName,
+      eventGuests,
+    });
   };
 
   if (loading) {
@@ -725,6 +942,77 @@ export default function InvitePage() {
             )}
           </div>
         )}
+
+        {/* Same guest name confirmation dialog */}
+        <AlertDialog open={Boolean(duplicatePending)} onOpenChange={(open) => { if (!open) setDuplicatePending(null); }}>
+          <AlertDialogContent className="max-w-md w-[92vw] rounded-2xl p-6 border-gold/40 shadow-2xl bg-white dark:bg-zinc-900 text-foreground">
+            <AlertDialogHeader className="text-center sm:text-left space-y-3">
+              <div className="mx-auto sm:mx-0 h-12 w-12 rounded-full bg-amber-500/15 flex items-center justify-center text-amber-600">
+                <UserCheck className="h-6 w-6" />
+              </div>
+              <AlertDialogTitle className="font-serif text-xl sm:text-2xl text-foreground">
+                {language === "en" ? "Did you already submit an RSVP?" : "តើលោកអ្នកធ្លាប់បានឆ្លើយតបរួចហើយមែនទេ?"}
+              </AlertDialogTitle>
+              <AlertDialogDescription className="text-xs sm:text-sm text-muted-foreground leading-relaxed space-y-2">
+                <div>
+                  {language === "en" ? (
+                    <>
+                      We found an existing response for <strong className="text-foreground">"{duplicatePending?.submittedName}"</strong>:
+                    </>
+                  ) : (
+                    <>
+                      យើងខ្ញុំបានរកឃើញឈ្មោះ <strong className="text-foreground">"{duplicatePending?.submittedName}"</strong> ធ្លាប់បានឆ្លើយតបរួចហើយ៖
+                    </>
+                  )}
+                </div>
+                <div className="p-3 rounded-lg bg-black/5 dark:bg-white/5 border border-black/10 text-xs text-foreground text-left space-y-1">
+                  <div>
+                    <span className="text-muted-foreground">{language === "en" ? "Status:" : "ស្ថានភាព៖"}</span>{" "}
+                    <strong className={duplicatePending?.matchedGuest?.rsvp_status === "yes" ? "text-green-600 dark:text-green-400" : "text-red-500 dark:text-red-400"}>
+                      {duplicatePending?.matchedGuest?.rsvp_status === "yes"
+                        ? (language === "en" ? "Joyfully Attending" : "យល់ព្រមចូលរួម")
+                        : (language === "en" ? "Declined" : "មិនអាចចូលរួម")}
+                    </strong>
+                  </div>
+                  {duplicatePending?.matchedGuest?.rsvp_status === "yes" && (
+                    <div>
+                      <span className="text-muted-foreground">{language === "en" ? "Party Size:" : "ចំនួនភ្ញៀវ៖"}</span>{" "}
+                      <strong>{duplicatePending?.matchedGuest?.party_size} {language === "en" ? "Guests" : "នាក់"}</strong>
+                    </div>
+                  )}
+                  {duplicatePending?.matchedGuest?.message && (
+                    <div className="italic text-muted-foreground text-[11px] truncate">
+                      "{duplicatePending?.matchedGuest?.message}"
+                    </div>
+                  )}
+                </div>
+                <div className="pt-1">
+                  {language === "en"
+                    ? "Is this you updating your previous response, or are you a different guest with the same name?"
+                    : "តើនេះជាលោកអ្នកចង់កែប្រែការឆ្លើយតបពីមុន ឬជាភ្ញៀវថ្មីដែលមានឈ្មោះដូចគ្នា?"}
+                </div>
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter className="flex-col sm:flex-row gap-2 mt-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleConfirmDuplicateNo}
+                className="w-full sm:w-auto text-xs order-2 sm:order-1"
+              >
+                {language === "en" ? "No, I'm a new guest (Add new data)" : "មិនមែនទេ ខ្ញុំជាភ្ញៀវថ្មី (បង្កើតថ្មី)"}
+              </Button>
+              <Button
+                type="button"
+                onClick={handleConfirmDuplicateYes}
+                className="w-full sm:w-auto text-xs text-white order-1 sm:order-2"
+                style={{ background: accentColor }}
+              >
+                {language === "en" ? "Yes, update my response" : "បាទ/ចាស ខ្ញុំចង់កែប្រែ (Update)"}
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </ErrorBoundary>
   );
