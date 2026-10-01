@@ -930,8 +930,13 @@ export default function InvitePage() {
               backgroundUrl={(event as any).cover_background_url ?? null}
               nameGraphicUrl={
                 language === "en"
-                  ? ((event as any).cover_image_url_en ?? null)
-                  : ((event as any).cover_image_url ?? templateDefaults.cover_image_url ?? null)
+                  ? ((event as any).cover_image_url_en ||
+                     (event as any).dual_language_config?.en?.cover_image_url ||
+                     (event as any).section_visibility?.dual_language?.en?.cover_image_url ||
+                     (event as any).cover_image_url ||
+                     templateDefaults.cover_image_url ||
+                     null)
+                  : ((event as any).cover_image_url || templateDefaults.cover_image_url || null)
               }
               accentColor={(event as any).text_color_accent ?? null}
               openButtonColor={(event as any).open_button_color ?? (event as any).section_visibility?.open_button_color ?? (templateDefaults as any)?.open_button_color ?? null}

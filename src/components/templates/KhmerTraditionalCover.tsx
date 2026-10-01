@@ -233,9 +233,16 @@ export default function KhmerTraditionalCover({
       <div
         className="relative z-10 flex flex-col items-center w-full"
       >
-      {/* Center decorative name graphic or English typography */}
+      {/* Center decorative name graphic or monogram */}
       <div className="flex items-center justify-center mt-0 mb-1 sm:mb-2">
-        {isEn && (!nameGraphicUrl || nameGraphicUrl === DEFAULT_NAME) ? (
+        {nameImg ? (
+          <img
+            src={nameImg}
+            alt={title || "Monogram"}
+            className="w-[clamp(220px,22vw,340px)] max-w-[80%]"
+            style={{ filter: resolvedMonogramFilter }}
+          />
+        ) : isEn && (coupleTitleEn || title) ? (
           <div className="flex flex-col items-center justify-center my-2 sm:my-3 px-4 max-w-[90%]">
             <div
               className="font-serif text-2xl sm:text-3xl lg:text-4xl tracking-wide font-medium italic text-center drop-shadow-sm"
@@ -254,14 +261,7 @@ export default function KhmerTraditionalCover({
               style={{ background: `linear-gradient(90deg, transparent, ${accent}, transparent)` }}
             />
           </div>
-        ) : (
-          <img
-            src={nameImg}
-            alt={title}
-            className="w-[clamp(220px,22vw,340px)] max-w-[80%]"
-            style={{ filter: resolvedMonogramFilter }}
-          />
-        )}
+        ) : null}
       </div>
 
       {/* "សូមគោរពអញ្ជើញ" / "INVITATION" */}
