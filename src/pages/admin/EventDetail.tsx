@@ -441,11 +441,11 @@ export default function EventDetail() {
 
       // Restore prior confirmed respondents if missing from the database:
       const priorResponses = [
-        { name: "Mike Kang and Wife", token: "broadcast-en-mike-kang", party_size: 2, rsvp_status: "yes", message: "[Mike Kang and Wife] Congratulations 🍾", responded_at: "2026-10-01T12:37:00Z" },
-        { name: "Ms Sao Sovannaroth", token: "broadcast-en-sao-sovannaroth", party_size: 1, rsvp_status: "yes", message: "[Ms Sao Sovannaroth]", responded_at: "2026-10-01T12:41:00Z" },
-        { name: "Yi ping", token: "broadcast-en-yi-ping", party_size: 1, rsvp_status: "yes", message: "[Yi ping]", responded_at: "2026-10-01T12:42:00Z" },
-        { name: "Srunpitu Heng", token: "broadcast-en-srunpitu-heng", party_size: 2, rsvp_status: "yes", message: "[Srunpitu Heng] Wishing you both all the best.", responded_at: "2026-10-01T12:43:00Z" },
-        { name: "Emma and Orn", token: "broadcast-en-emma-orn", party_size: 2, rsvp_status: "yes", message: "[Emma and Orn] Congratulations to this wonderful lovebirds! We are happy to be able to be part of you guys’ journey starting a new life together! Me and Orn wishes you both nothing but happiness and success in every walks of life!", responded_at: "2026-10-01T12:45:18Z" },
+        { name: "Mike Kang and Wife", token: "broadcast-en-mike-kang", party_size: 2, rsvp_status: "yes", message: "Congratulations 🍾", responded_at: "2026-10-01T12:37:00Z" },
+        { name: "Ms Sao Sovannaroth", token: "broadcast-en-sao-sovannaroth", party_size: 1, rsvp_status: "yes", message: null, responded_at: "2026-10-01T12:41:00Z" },
+        { name: "Yi ping", token: "broadcast-en-yi-ping", party_size: 1, rsvp_status: "yes", message: null, responded_at: "2026-10-01T12:42:00Z" },
+        { name: "Srunpitu Heng", token: "broadcast-en-srunpitu-heng", party_size: 2, rsvp_status: "yes", message: "Wishing you both all the best.", responded_at: "2026-10-01T12:43:00Z" },
+        { name: "Emma and Orn", token: "broadcast-en-emma-orn", party_size: 2, rsvp_status: "yes", message: "Congratulations to this wonderful lovebirds! We are happy to be able to be part of you guys’ journey starting a new life together! Me and Orn wishes you both nothing but happiness and success in every walks of life!", responded_at: "2026-10-01T12:45:18Z" },
       ];
 
       for (const prior of priorResponses) {
@@ -489,16 +489,20 @@ export default function EventDetail() {
         supabase.from("events").update({ section_visibility: nextVis }).eq("id", id).then(() => {});
       }
 
-      // Sync guest names for any broadcast row that has [Guest Name] in its message
+      // Clean up bracketed messages and ensure clean names in database & memory
       rawGuestList.forEach(g => {
-        if (
-          g.token?.startsWith("broadcast-") &&
-          (g.name?.includes("Broadcast") || g.name === "Honored Guest" || g.name === "ភ្ញៀវកិត្តិយស") &&
-          g.message?.startsWith("[")
-        ) {
+        if (g.message?.startsWith("[")) {
           const match = g.message.match(/^\[(.*?)\](?:\s*(.*))?$/s);
-          if (match && match[1]) {
-            supabase.from("guests").update({ name: match[1] }).eq("id", g.id).then(() => {});
+          if (match) {
+            let nextName = g.name;
+            if (match[1]?.trim() && (g.name?.includes("Broadcast") || g.name === "Honored Guest" || g.name === "ភ្ញៀវកិត្តិយស")) {
+              nextName = match[1].trim();
+            }
+            const nextMsg = (match[2] || "").trim() || null;
+            supabase.from("guests").update({
+              name: nextName,
+              message: nextMsg,
+            }).eq("id", g.id).then(() => {});
           }
         }
       });
@@ -511,11 +515,13 @@ export default function EventDetail() {
 
         let cleanName = g.name;
         let cleanMsg = g.message;
-        if (g.token?.startsWith("broadcast-") && g.message?.startsWith("[")) {
+        if (g.message?.startsWith("[")) {
           const match = g.message.match(/^\[(.*?)\](?:\s*(.*))?$/s);
-          if (match && match[1]) {
-            cleanName = match[1];
-            cleanMsg = match[2] || null;
+          if (match) {
+            if (match[1]?.trim() && (g.name?.includes("Broadcast") || g.name === "Honored Guest" || g.name === "ភ្ញៀវកិត្តិយស")) {
+              cleanName = match[1].trim();
+            }
+            cleanMsg = (match[2] || "").trim() || null;
           }
         }
 
