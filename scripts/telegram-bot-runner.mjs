@@ -235,11 +235,11 @@ let offset = 0;
 
 async function pollUpdates() {
   const url = offset > 0
-    ? `https://api.telegram.org/bot${BOT_TOKEN}/getUpdates?offset=${offset}&timeout=20`
-    : `https://api.telegram.org/bot${BOT_TOKEN}/getUpdates?timeout=20`;
+    ? `https://api.telegram.org/bot${BOT_TOKEN}/getUpdates?offset=${offset}&timeout=10`
+    : `https://api.telegram.org/bot${BOT_TOKEN}/getUpdates?timeout=10`;
 
   try {
-    const res = await fetch(url);
+    const res = await fetch(url, { signal: AbortSignal.timeout(18000) });
     const data = await res.json();
 
     if (!data.ok || !data.result || data.result.length === 0) {
