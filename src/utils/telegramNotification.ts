@@ -245,9 +245,20 @@ export function extractGuestNameAndWishes(g: any): { name: string; wishes: strin
 
 /**
  * Helper to partition guests into visible, attending, declined, and pending.
+ * Excludes unassigned broadcast placeholders and deduplicates any identical respondents.
  */
 function partitionGuests(guests: any[]) {
-  const visible = guests.filter((g) => {
+  const rawList = guests.filter((g) => {
+    // Exclude root broadcast template tokens if unassigned or holding legacy placeholder name
+    if (g.token === "broadcast-km" || g.token === "broadcast-en") {
+      const isPlaceholder =
+        g.name === "Kimsing" ||
+        g.name === "Honored Guest" ||
+        g.name === "ភ្ញៀវកិត្តិយស" ||
+        g.name?.includes("Broadcast") ||
+        g.rsvp_status === "pending";
+      if (isPlaceholder) return false;
+    }
     const isUnassigned =
       g.token?.startsWith("broadcast-") &&
       g.rsvp_status === "pending" &&
@@ -255,6 +266,23 @@ function partitionGuests(guests: any[]) {
       (!g.message || !g.message.trim());
     return !isUnassigned;
   });
+
+  // Deduplicate by clean name and message content so duplicate rows aren't tallied twice
+  const seenKeys = new Set<string>();
+  const visible: any[] = [];
+
+  for (const g of rawList) {
+    const { name, wishes } = extractGuestNameAndWishes(g);
+    const normName = name.trim().toLowerCase();
+    const dedupeKey = wishes.trim()
+      ? `${normName}::${wishes.trim().toLowerCase()}`
+      : `${normName}::${g.token || g.id}`;
+
+    if (!seenKeys.has(dedupeKey)) {
+      seenKeys.add(dedupeKey);
+      visible.push(g);
+    }
+  }
 
   const attending = visible.filter((g) => g.rsvp_status === "yes");
   const declined = visible.filter((g) => g.rsvp_status === "no");

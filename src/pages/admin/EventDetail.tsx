@@ -491,6 +491,17 @@ export default function EventDetail() {
 
       // Clean up bracketed messages and ensure clean names in database & memory
       rawGuestList.forEach(g => {
+        // Reset root broadcast placeholder if it held temporary test data
+        if (g.token === "broadcast-en" && (g.name === "Kimsing" || (g.message && g.message.includes("Emma and Orn")))) {
+          supabase.from("guests").update({
+            name: "Honored Guest (Broadcast English)",
+            rsvp_status: "pending",
+            party_size: 1,
+            message: null,
+            responded_at: null,
+          }).eq("id", g.id).then(() => {});
+        }
+
         if (g.message?.startsWith("[")) {
           const match = g.message.match(/^\[(.*?)\](?:\s*(.*))?$/s);
           if (match) {
@@ -507,7 +518,15 @@ export default function EventDetail() {
         }
       });
 
-      const loadedGuests: Guest[] = rawGuestList.map(g => {
+      const loadedGuests: Guest[] = [];
+      const seenGuestKeys = new Set<string>();
+
+      for (const g of rawGuestList) {
+        // Exclude root broadcast token if it is the legacy Kimsing duplicate
+        if (g.token === "broadcast-en" && (g.name === "Kimsing" || (g.message && g.message.includes("Emma and Orn")))) {
+          continue;
+        }
+
         let lang: "km" | "en" | null = null;
         if (g.token?.endsWith("-en")) lang = "en";
         else if (g.token?.endsWith("-km") || g.token?.endsWith("-kh")) lang = "km";
@@ -525,13 +544,21 @@ export default function EventDetail() {
           }
         }
 
-        return {
-          ...g,
-          name: cleanName,
-          message: cleanMsg,
-          default_language: lang,
-        };
-      });
+        // Deduplicate
+        const dedupeKey = cleanMsg
+          ? `${cleanName.trim().toLowerCase()}::${cleanMsg.trim().toLowerCase()}`
+          : `${cleanName.trim().toLowerCase()}::${g.token || g.id}`;
+
+        if (!seenGuestKeys.has(dedupeKey)) {
+          seenGuestKeys.add(dedupeKey);
+          loadedGuests.push({
+            ...g,
+            name: cleanName,
+            message: cleanMsg,
+            default_language: lang,
+          });
+        }
+      }
       setGuests(loadedGuests);
 
       // Build the list of customer-role profiles + already-linked ids.

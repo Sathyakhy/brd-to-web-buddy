@@ -212,8 +212,9 @@ export default function InvitePage() {
             });
             setDbToken(rawTok);
           }
-        } else if (guestResponse.data) {
-          const gRows = guestResponse.data;
+        } else {
+          // Named token or lookup path:
+          const gRows = guestResponse?.data;
           const g = Array.isArray(gRows) ? gRows[0] : gRows;
           if (g) {
             setGuest(g as Guest);
@@ -241,7 +242,7 @@ export default function InvitePage() {
               setMessage(baseGuest.message ?? "");
               setDbToken(baseTok);
             } else {
-              // Token was not found in DB, fallback to open guest
+              // Token was not found in DB, fallback gracefully to open guest greeting
               const defaultOpenGreeting = initialLang === "en"
                 ? ((ev as any).open_guest_greeting_en || (ev as any).section_visibility?.open_guest_greeting_en || "Honored Guest")
                 : ((ev as any).open_guest_greeting_km || (ev as any).section_visibility?.open_guest_greeting_km || "ភ្ញៀវកិត្តិយស");
@@ -700,7 +701,7 @@ export default function InvitePage() {
     );
   }
 
-  if (!event || !guest) {
+  if (!event) {
     return (
       <div className="invitation-surface min-h-screen bg-gradient-hero flex items-center justify-center p-6">
         <div className="text-center max-w-md">
@@ -713,6 +714,16 @@ export default function InvitePage() {
       </div>
     );
   }
+
+  const activeGuest: Guest = guest || {
+    id: "open",
+    name: language === "en"
+      ? ((event as any).open_guest_greeting_en || (event as any).section_visibility?.open_guest_greeting_en || "Honored Guest")
+      : ((event as any).open_guest_greeting_km || (event as any).section_visibility?.open_guest_greeting_km || "ភ្ញៀវកិត្តិយស"),
+    rsvp_status: "pending",
+    party_size: 1,
+    message: null,
+  };
 
   // Access window — admins can configure a start/end date during which the
   // invitation is viewable. Outside that window we show a friendly notice.
@@ -745,9 +756,9 @@ export default function InvitePage() {
   );
   const rsvpForm = (
     <RsvpCard
-      guestName={guest.name}
+      guestName={activeGuest.name}
       isOpenInvite={isOpenInvite}
-      status={guest.rsvp_status}
+      status={activeGuest.rsvp_status}
       initialPartySize={partySize}
       initialMessage={message}
       submitting={submitting}
@@ -883,7 +894,7 @@ export default function InvitePage() {
           <InvitationTemplate
             template={event.template}
             event={event}
-            guestName={guest.name}
+            guestName={activeGuest.name}
             eventVisibility={(event as any).section_visibility}
             templateVisibility={templateVisibility}
             templateDefaults={templateDefaults}
@@ -909,7 +920,7 @@ export default function InvitePage() {
             }}
           >
             <KhmerTraditionalCover
-              guestName={guest.name}
+              guestName={activeGuest.name}
               title={language === "en" ? (((event as any).dual_language_config?.en?.title || (event as any).section_visibility?.dual_language?.en?.title) ?? event.title) : event.title}
               coupleTitleEn={
                 (event as any).dual_language_config?.en?.groom_name && (event as any).dual_language_config?.en?.bride_name
@@ -946,7 +957,7 @@ export default function InvitePage() {
             }}
           >
             <SignaturePackageCover
-              guestName={guest.name}
+              guestName={activeGuest.name}
               title={language === "en" ? (((event as any).dual_language_config?.en?.title || (event as any).section_visibility?.dual_language?.en?.title) ?? event.title) : event.title}
               backgroundUrl={(event as any).cover_background_url ?? null}
               frameUrl={(event as any).frame_url ?? templateDefaults.frame_url ?? null}
@@ -967,7 +978,7 @@ export default function InvitePage() {
         {envelopeConfig.enabled && unboxingActive && (
           <Interactive3DEnvelopeUnboxing
             config={envelopeConfig}
-            guestName={guest.name}
+            guestName={activeGuest.name}
             title={language === "en" ? (((event as any).dual_language_config?.en?.title || (event as any).section_visibility?.dual_language?.en?.title) ?? event.title) : event.title}
             language={language}
             accentColor={accentColor}

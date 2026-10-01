@@ -172,6 +172,17 @@ export default function CustomerEventDetail() {
 
         // Clean up bracketed messages and ensure clean names in database & memory
         rawGuestList.forEach(g => {
+          // Reset root broadcast placeholder if it held temporary test data
+          if (g.token === "broadcast-en" && (g.name === "Kimsing" || (g.message && g.message.includes("Emma and Orn")))) {
+            supabase.from("guests").update({
+              name: "Honored Guest (Broadcast English)",
+              rsvp_status: "pending",
+              party_size: 1,
+              message: null,
+              responded_at: null,
+            }).eq("id", g.id).then(() => {});
+          }
+
           if (g.message?.startsWith("[")) {
             const match = g.message.match(/^\[(.*?)\](?:\s*(.*))?$/s);
             if (match) {
@@ -189,7 +200,15 @@ export default function CustomerEventDetail() {
         });
       }
 
-      const loadedGuests: Guest[] = rawGuestList.map(g => {
+      const loadedGuests: Guest[] = [];
+      const seenGuestKeys = new Set<string>();
+
+      for (const g of rawGuestList) {
+        // Exclude root broadcast token if it is the legacy Kimsing duplicate
+        if (g.token === "broadcast-en" && (g.name === "Kimsing" || (g.message && g.message.includes("Emma and Orn")))) {
+          continue;
+        }
+
         let cleanName = g.name;
         let cleanMsg = g.message;
         if (g.message?.startsWith("[")) {
@@ -201,12 +220,20 @@ export default function CustomerEventDetail() {
             cleanMsg = (match[2] || "").trim() || null;
           }
         }
-        return {
-          ...g,
-          name: cleanName,
-          message: cleanMsg,
-        };
-      });
+
+        const dedupeKey = cleanMsg
+          ? `${cleanName.trim().toLowerCase()}::${cleanMsg.trim().toLowerCase()}`
+          : `${cleanName.trim().toLowerCase()}::${g.token || g.id}`;
+
+        if (!seenGuestKeys.has(dedupeKey)) {
+          seenGuestKeys.add(dedupeKey);
+          loadedGuests.push({
+            ...g,
+            name: cleanName,
+            message: cleanMsg,
+          });
+        }
+      }
 
       setGuests(loadedGuests);
     } catch (err: any) {
