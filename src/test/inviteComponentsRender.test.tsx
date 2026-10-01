@@ -6,8 +6,21 @@ import SignaturePackageCover from "@/components/templates/SignaturePackageCover"
 import FloatingLanguageSwitch from "@/components/templates/FloatingLanguageSwitch";
 import FloatingMusicPlayer from "@/components/templates/FloatingMusicPlayer";
 import InvitationTemplate from "@/components/templates/InvitationTemplate";
+import InvitePage from "@/pages/public/InvitePage";
+import { MemoryRouter, Route, Routes } from "react-router-dom";
 
 describe("Public Invite Page Components Rendering Test", () => {
+  it("renders InvitePage component without throwing any reference error", () => {
+    const { container } = render(
+      <MemoryRouter initialEntries={["/kunsong-kimsing/invite?token=broadcast-en"]}>
+        <Routes>
+          <Route path="/:slug/invite" element={<InvitePage />} />
+        </Routes>
+      </MemoryRouter>
+    );
+    expect(container).toBeTruthy();
+  });
+
   it("renders KhmerTraditionalCover in Khmer without throwing", () => {
     const { container } = render(
       <KhmerTraditionalCover
