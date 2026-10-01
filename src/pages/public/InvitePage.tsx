@@ -430,24 +430,46 @@ export default function InvitePage() {
         }
       } catch (_) {}
 
-      // 2. Fallback: Find an available unassigned broadcast slot from eventGuests
-      const unassigned = eventGuests.filter(g =>
-        g.token &&
-        g.token.startsWith("broadcast-") &&
-        g.rsvp_status === "pending" &&
-        (!g.message || g.message.trim() === "") &&
-        !g.responded_at
-      );
+      // 2. Find an available unassigned broadcast slot from broadcast_pool or dynamically query available slots
       const langPrefix = `broadcast-${language}`;
-      const slot = unassigned.find(g => g.token.startsWith(langPrefix) && g.token !== langPrefix)
-        || unassigned.find(g => g.token.startsWith("broadcast-") && g.token !== "broadcast-km" && g.token !== "broadcast-en")
-        || unassigned.find(g => g.token === langPrefix)
-        || unassigned[0];
+      const pool: string[] = (event as any)?.section_visibility?.broadcast_pool?.[language] || [];
+      const candidates: string[] = [
+        ...pool.filter(t => t.startsWith(langPrefix) && t !== langPrefix),
+        ...Array.from({ length: 50 }, (_, i) => `${langPrefix}-${(i + 1).toString().padStart(3, "0")}`),
+        `${langPrefix}-01`,
+        `${langPrefix}-02`,
+        `${langPrefix}-03`,
+        `${langPrefix}-04`,
+        `${langPrefix}-05`,
+        langPrefix,
+      ];
 
-      if (slot && slot.token) {
-        chosenToken = slot.token;
+      // Deduplicate candidates
+      const uniqueCandidates = Array.from(new Set(candidates));
+
+      let foundEmptySlot: string | null = null;
+
+      for (const cand of uniqueCandidates) {
+        try {
+          const { data: gData, error: gErr } = await supabase.rpc("get_guest_by_token", {
+            _event_slug: slug,
+            _token: cand,
+          });
+          if (!gErr && gData) {
+            const rows = Array.isArray(gData) ? gData : [gData];
+            const g = rows[0];
+            if (g && g.rsvp_status === "pending" && !g.responded_at && (!g.message || !g.message.trim())) {
+              foundEmptySlot = cand;
+              break;
+            }
+          }
+        } catch (_) {}
+      }
+
+      if (foundEmptySlot) {
+        chosenToken = foundEmptySlot;
       } else {
-        chosenToken = `broadcast-${language}`;
+        chosenToken = `${langPrefix}-${Date.now().toString(36).slice(-4)}`;
       }
     }
 

@@ -84,68 +84,39 @@ export default function CustomerEventDetail() {
 
       // Auto-seed broadcast slots pool if needed so that each respondent gets their own dedicated row:
       if (loadedEvent) {
-        const unassignedKm = rawGuestList.filter(g =>
-          g.token?.startsWith("broadcast-km") &&
-          g.rsvp_status === "pending" &&
-          !g.responded_at &&
-          (!g.message || !g.message.trim())
-        );
-        const unassignedEn = rawGuestList.filter(g =>
-          g.token?.startsWith("broadcast-en") &&
-          g.rsvp_status === "pending" &&
-          !g.responded_at &&
-          (!g.message || !g.message.trim())
-        );
+        // Auto-seed broadcast slots pool (50 slots per language) and save them to section_visibility.broadcast_pool
+        // so public invite page can dynamically assign an empty slot for each new guest response without collision:
+        const rawVis = (loadedEvent.section_visibility as any) || {};
+        const existingKmTokens = new Set(rawGuestList.filter(g => g.token?.startsWith("broadcast-km")).map(g => g.token));
+        const existingEnTokens = new Set(rawGuestList.filter(g => g.token?.startsWith("broadcast-en")).map(g => g.token));
 
         const toSeed: any[] = [];
-        const hasBaseKm = rawGuestList.some(g => g.token === "broadcast-km" || g.token === `${loadedEvent.slug}-km`);
-        const hasBaseEn = rawGuestList.some(g => g.token === "broadcast-en" || g.token === `${loadedEvent.slug}-en`);
+        const allKmTokens: string[] = Array.from(existingKmTokens);
+        const allEnTokens: string[] = Array.from(existingEnTokens);
 
-        if (!hasBaseKm) {
-          toSeed.push({
-            event_id: id,
-            name: "ភ្ញៀវកិត្តិយស (Broadcast Khmer)",
-            token: "broadcast-km",
-            party_size: 1,
-            rsvp_status: "pending",
-          });
-        }
-        if (!hasBaseEn) {
-          toSeed.push({
-            event_id: id,
-            name: "Honored Guest (Broadcast English)",
-            token: "broadcast-en",
-            party_size: 1,
-            rsvp_status: "pending",
-          });
-        }
+        for (let i = 1; i <= 50; i++) {
+          const kmToken = `broadcast-km-${i.toString().padStart(3, "0")}`;
+          const enToken = `broadcast-en-${i.toString().padStart(3, "0")}`;
 
-        // Keep at least 15 unassigned broadcast slots available for each language
-        if (unassignedKm.length < 15) {
-          const needed = 15 - unassignedKm.length;
-          const nowPrefix = Date.now().toString(36);
-          for (let i = 1; i <= needed; i++) {
+          if (!existingKmTokens.has(kmToken)) {
             toSeed.push({
               event_id: id,
               name: "ភ្ញៀវកិត្តិយស (Broadcast Khmer)",
-              token: `broadcast-km-${nowPrefix}-${i.toString().padStart(2, "0")}`,
+              token: kmToken,
               party_size: 1,
               rsvp_status: "pending",
             });
+            allKmTokens.push(kmToken);
           }
-        }
-
-        if (unassignedEn.length < 15) {
-          const needed = 15 - unassignedEn.length;
-          const nowPrefix = Date.now().toString(36);
-          for (let i = 1; i <= needed; i++) {
+          if (!existingEnTokens.has(enToken)) {
             toSeed.push({
               event_id: id,
               name: "Honored Guest (Broadcast English)",
-              token: `broadcast-en-${nowPrefix}-${i.toString().padStart(2, "0")}`,
+              token: enToken,
               party_size: 1,
               rsvp_status: "pending",
             });
+            allEnTokens.push(enToken);
           }
         }
 
@@ -155,6 +126,19 @@ export default function CustomerEventDetail() {
               setGuests(prev => [...(data as any[]), ...prev]);
             }
           });
+        }
+
+        // Keep section_visibility in sync with the broadcast pool
+        const updatedBroadcastPool = {
+          km: allKmTokens,
+          en: allEnTokens,
+        };
+        if (
+          JSON.stringify(rawVis.broadcast_pool?.km) !== JSON.stringify(allKmTokens) ||
+          JSON.stringify(rawVis.broadcast_pool?.en) !== JSON.stringify(allEnTokens)
+        ) {
+          const nextVis = { ...rawVis, broadcast_pool: updatedBroadcastPool };
+          supabase.from("events").update({ section_visibility: nextVis }).eq("id", id).then(() => {});
         }
 
         // Sync guest names for any broadcast row that has [Guest Name] in its message
