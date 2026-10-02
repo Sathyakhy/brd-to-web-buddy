@@ -21,7 +21,7 @@ import { registerTelegramChatEvent } from "@/utils/telegramNotification";
 type Event = {
   id: string; slug: string; title: string; internal_title: string | null; template: string;
   event_date: string | null; venue: string | null; description: string | null;
-  cover_message: string | null; created_at: string;
+  cover_message: string | null; created_at: string; section_visibility?: any;
   price_total: number; paid_amount: number; price_currency: string; payment_status: string;
 };
 

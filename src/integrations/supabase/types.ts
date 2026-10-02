@@ -642,6 +642,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_event_by_telegram_chat_id: {
+        Args: { _chat_id: string }
+        Returns: Json
+      }
       get_event_public_by_slug: {
         Args: { _slug: string }
         Returns: {

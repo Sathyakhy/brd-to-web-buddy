@@ -1,11 +1,13 @@
 import { supabase } from "@/integrations/supabase/client";
 import { logTelegramDiagnostic } from "@/lib/telegramLogger";
 import {
+
   getCachedEventByChatId,
   registerChatToEventMapping,
   areChatIdsEquivalent,
 } from "@/lib/telegramChatMap";
 
+let lastHandledUpdateOffset = 0;
 export const DEFAULT_TELEGRAM_BOT_TOKEN = "8688668764:AAEgS0I4SHxevvGIYvKXAjajCG3TIioCwZc";
 export const DEFAULT_TELEGRAM_BOT_USERNAME = "EInvitation_Bot";
 
@@ -882,7 +884,7 @@ export async function processTelegramBotCommands(params?: {
 
         // 2. Try Supabase Security Definer RPC
         try {
-          const { data: rpcData, error: rpcError } = await supabase.rpc("get_event_by_telegram_chat_id", {
+          const { data: rpcData, error: rpcError } = await (supabase.rpc as any)("get_event_by_telegram_chat_id", {
             _chat_id: chatId,
           } as any);
 

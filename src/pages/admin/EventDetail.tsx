@@ -1791,7 +1791,7 @@ export default function EventDetail() {
                 toast.success(url ? "Background music updated" : "Background music removed");
               }
             }}
-            onUpload={handleUploadCoverMusic}
+            onUpload={async (f) => { await handleUploadCoverMusic(f); }}
             uploading={uploading}
             autoPlayCover={
               normalizeMusicSettings({
