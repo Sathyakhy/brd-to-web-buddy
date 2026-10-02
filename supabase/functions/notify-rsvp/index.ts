@@ -4,7 +4,7 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-const DEFAULT_BOT_TOKEN = "8688668764:AAHvH4iO_Jr60UzjZVN_wGDrpe8Tt1FjvcE";
+const DEFAULT_BOT_TOKEN = "8688668764:AAEgS0I4SHxevvGIYvKXAjajCG3TIioCwZc";
 
 function escapeTelegramHtml(str: string | null | undefined): string {
   if (!str) return "";
