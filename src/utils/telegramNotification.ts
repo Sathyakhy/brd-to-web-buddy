@@ -249,14 +249,15 @@ export function extractGuestNameAndWishes(g: any): { name: string; wishes: strin
  */
 function partitionGuests(guests: any[]) {
   const rawList = guests.filter((g) => {
-    // Exclude root broadcast template tokens if unassigned or holding legacy placeholder name
+    // Exclude unassigned root broadcast template tokens if still in pending state without any response
     if (g.token === "broadcast-km" || g.token === "broadcast-en") {
       const isPlaceholder =
-        g.name === "Kimsing" ||
-        g.name === "Honored Guest" ||
-        g.name === "ភ្ញៀវកិត្តិយស" ||
-        g.name?.includes("Broadcast") ||
-        g.rsvp_status === "pending";
+        (g.name === "Honored Guest" ||
+         g.name === "ភ្ញៀវកិត្តិយស" ||
+         g.name?.includes("Broadcast")) &&
+        g.rsvp_status === "pending" &&
+        !g.responded_at &&
+        (!g.message || !g.message.trim());
       if (isPlaceholder) return false;
     }
     const isUnassigned =

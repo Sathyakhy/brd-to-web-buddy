@@ -439,32 +439,35 @@ export default function EventDetail() {
         }
       }
 
-      // Restore prior confirmed respondents if missing from the database:
-      const priorResponses = [
-        { name: "Mike Kang and Wife", token: "broadcast-en-mike-kang", party_size: 2, rsvp_status: "yes", message: "Congratulations 🍾", responded_at: "2026-10-01T12:37:00Z" },
-        { name: "Ms Sao Sovannaroth", token: "broadcast-en-sao-sovannaroth", party_size: 1, rsvp_status: "yes", message: null, responded_at: "2026-10-01T12:41:00Z" },
-        { name: "Yi ping", token: "broadcast-en-yi-ping", party_size: 1, rsvp_status: "yes", message: null, responded_at: "2026-10-01T12:42:00Z" },
-        { name: "Srunpitu Heng", token: "broadcast-en-srunpitu-heng", party_size: 2, rsvp_status: "yes", message: "Wishing you both all the best.", responded_at: "2026-10-01T12:43:00Z" },
-        { name: "Emma and Orn", token: "broadcast-en-emma-orn", party_size: 2, rsvp_status: "yes", message: "Congratulations to this wonderful lovebirds! We are happy to be able to be part of you guys’ journey starting a new life together! Me and Orn wishes you both nothing but happiness and success in every walks of life!", responded_at: "2026-10-01T12:45:18Z" },
-      ];
+      // Restore prior confirmed respondents strictly for the kunsong-kimsing event:
+      if (raw?.slug === "kunsong-kimsing") {
+        const priorResponses = [
+          { name: "Mike Kang and Wife", token: "broadcast-en-mike-kang", party_size: 2, rsvp_status: "yes", message: "Congratulations 🍾", responded_at: "2026-10-01T12:37:00Z" },
+          { name: "Ms Sao Sovannaroth", token: "broadcast-en-sao-sovannaroth", party_size: 1, rsvp_status: "yes", message: null, responded_at: "2026-10-01T12:41:00Z" },
+          { name: "Yi ping", token: "broadcast-en-yi-ping", party_size: 1, rsvp_status: "yes", message: null, responded_at: "2026-10-01T12:42:00Z" },
+          { name: "Srunpitu Heng", token: "broadcast-en-srunpitu-heng", party_size: 2, rsvp_status: "yes", message: "Wishing you both all the best.", responded_at: "2026-10-01T12:43:00Z" },
+          { name: "Emma and Orn", token: "broadcast-en-emma-orn", party_size: 2, rsvp_status: "yes", message: "Congratulations to this wonderful lovebirds! We are happy to be able to be part of you guys’ journey starting a new life together! Me and Orn wishes you both nothing but happiness and success in every walks of life!", responded_at: "2026-10-01T12:45:18Z" },
+          { name: "Kimsing", token: "broadcast-en-kimsing", party_size: 1, rsvp_status: "no", message: null, responded_at: "2026-10-01T13:58:00Z" },
+        ];
 
-      for (const prior of priorResponses) {
-        const exists = rawGuestList.some(g =>
-          g.name === prior.name ||
-          g.token === prior.token ||
-          (g.message && g.message.includes(`[${prior.name}]`))
-        );
-        if (!exists) {
-          toSeed.push({
-            event_id: id,
-            name: prior.name,
-            token: prior.token,
-            party_size: prior.party_size,
-            rsvp_status: prior.rsvp_status,
-            message: prior.message,
-            responded_at: prior.responded_at,
-          });
-          allEnTokens.push(prior.token);
+        for (const prior of priorResponses) {
+          const exists = rawGuestList.some(g =>
+            g.name === prior.name ||
+            g.token === prior.token ||
+            (g.message && g.message.includes(`[${prior.name}]`))
+          );
+          if (!exists) {
+            toSeed.push({
+              event_id: id,
+              name: prior.name,
+              token: prior.token,
+              party_size: prior.party_size,
+              rsvp_status: prior.rsvp_status,
+              message: prior.message,
+              responded_at: prior.responded_at,
+            });
+            allEnTokens.push(prior.token);
+          }
         }
       }
 
@@ -491,17 +494,6 @@ export default function EventDetail() {
 
       // Clean up bracketed messages and ensure clean names in database & memory
       rawGuestList.forEach(g => {
-        // Reset root broadcast placeholder if it held temporary test data
-        if (g.token === "broadcast-en" && (g.name === "Kimsing" || (g.message && g.message.includes("Emma and Orn")))) {
-          supabase.from("guests").update({
-            name: "Honored Guest (Broadcast English)",
-            rsvp_status: "pending",
-            party_size: 1,
-            message: null,
-            responded_at: null,
-          }).eq("id", g.id).then(() => {});
-        }
-
         if (g.message?.startsWith("[")) {
           const match = g.message.match(/^\[(.*?)\](?:\s*(.*))?$/s);
           if (match) {
@@ -522,11 +514,6 @@ export default function EventDetail() {
       const seenGuestKeys = new Set<string>();
 
       for (const g of rawGuestList) {
-        // Exclude root broadcast token if it is the legacy Kimsing duplicate
-        if (g.token === "broadcast-en" && (g.name === "Kimsing" || (g.message && g.message.includes("Emma and Orn")))) {
-          continue;
-        }
-
         let lang: "km" | "en" | null = null;
         if (g.token?.endsWith("-en")) lang = "en";
         else if (g.token?.endsWith("-km") || g.token?.endsWith("-kh")) lang = "km";

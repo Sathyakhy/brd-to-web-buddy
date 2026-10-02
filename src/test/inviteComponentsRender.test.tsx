@@ -10,9 +10,42 @@ import InvitePage from "@/pages/public/InvitePage";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 
 describe("Public Invite Page Components Rendering Test", () => {
-  it("renders InvitePage component without throwing any reference error", () => {
+  it("renders InvitePage component with broadcast-en link without throwing", () => {
     const { container } = render(
       <MemoryRouter initialEntries={["/kunsong-kimsing/invite?token=broadcast-en"]}>
+        <Routes>
+          <Route path="/:slug/invite" element={<InvitePage />} />
+        </Routes>
+      </MemoryRouter>
+    );
+    expect(container).toBeTruthy();
+  });
+
+  it("renders InvitePage component with broadcast-km link without throwing", () => {
+    const { container } = render(
+      <MemoryRouter initialEntries={["/kunsong-kimsing/invite?token=broadcast-km"]}>
+        <Routes>
+          <Route path="/:slug/invite" element={<InvitePage />} />
+        </Routes>
+      </MemoryRouter>
+    );
+    expect(container).toBeTruthy();
+  });
+
+  it("renders InvitePage component with individual guest-token-en link without throwing", () => {
+    const { container } = render(
+      <MemoryRouter initialEntries={["/kunsong-kimsing/invite?token=mike-kang-en"]}>
+        <Routes>
+          <Route path="/:slug/invite" element={<InvitePage />} />
+        </Routes>
+      </MemoryRouter>
+    );
+    expect(container).toBeTruthy();
+  });
+
+  it("renders InvitePage component without token (open invite default) without throwing", () => {
+    const { container } = render(
+      <MemoryRouter initialEntries={["/kunsong-kimsing/invite"]}>
         <Routes>
           <Route path="/:slug/invite" element={<InvitePage />} />
         </Routes>
