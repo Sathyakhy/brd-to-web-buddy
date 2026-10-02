@@ -614,16 +614,26 @@ export function registerTelegramChatEvent(chatId: string, eventData: {
 }) {
   if (!chatId) return;
   const cleanId = String(chatId).trim();
-  inMemoryChatToEventMap.set(cleanId, eventData);
+  const existing = getCachedTelegramChatEvent(cleanId);
+  const finalGuests = (eventData.guests && eventData.guests.length > 0)
+    ? eventData.guests
+    : (existing?.guests && existing.guests.length > 0 ? existing.guests : []);
+
+  const merged = {
+    ...eventData,
+    guests: finalGuests,
+  };
+
+  inMemoryChatToEventMap.set(cleanId, merged);
   try {
     const raw = localStorage.getItem("telegram_chat_event_cache") || "{}";
     const cache = JSON.parse(raw);
     cache[cleanId] = {
-      eventTitle: eventData.eventTitle,
-      eventDate: eventData.eventDate,
-      guests: eventData.guests,
-      eventId: eventData.eventId,
-      slug: eventData.slug,
+      eventTitle: merged.eventTitle,
+      eventDate: merged.eventDate,
+      guests: merged.guests,
+      eventId: merged.eventId,
+      slug: merged.slug,
       updatedAt: Date.now(),
     };
     localStorage.setItem("telegram_chat_event_cache", JSON.stringify(cache));
@@ -730,7 +740,22 @@ export async function processTelegramBotCommands(params?: {
         // 1. Check in-memory / local cache first for instant resolution
         const cached = getCachedTelegramChatEvent(chatId);
         if (cached) {
-          console.info(`[TelegramBotRunner] ✅ Resolved via local event registry: "${cached.eventTitle}" (${cached.guests?.length || 0} guests)`);
+          let liveGuests = cached.guests || [];
+          if (cached.eventId) {
+            try {
+              const { data: freshGuests } = await supabase
+                .from("guests")
+                .select("*")
+                .eq("event_id", cached.eventId);
+              if (freshGuests && freshGuests.length > 0) {
+                liveGuests = freshGuests;
+                cached.guests = freshGuests;
+                registerTelegramChatEvent(chatId, cached);
+              }
+            } catch (_) {}
+          }
+
+          console.info(`[TelegramBotRunner] ✅ Resolved via local event registry: "${cached.eventTitle}" (${liveGuests.length} guests)`);
           logTelegramDiagnostic({
             updateId: update.update_id,
             chatId,
@@ -739,11 +764,14 @@ export async function processTelegramBotCommands(params?: {
             filterUsed: `cacheKey: ${chatId} (flexible prefix match)`,
             matchedEventId: cached.eventId,
             matchedEventTitle: cached.eventTitle,
-            guestCount: cached.guests?.length || 0,
+            guestCount: liveGuests.length,
             status: "success",
             details: { cacheSource: "memory_or_localStorage" },
           });
-          return cached;
+          return {
+            ...cached,
+            guests: liveGuests,
+          };
         }
 
         // 2. Try Supabase Security Definer RPC
