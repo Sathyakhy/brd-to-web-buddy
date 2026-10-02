@@ -550,6 +550,48 @@ export async function sendTelegramRsvpDetailList(params: {
 
 let lastHandledUpdateOffset = 0;
 const processedUpdateIds = new Set<number>();
+const DEDUP_STORAGE_KEY = "telegram_processed_update_ids";
+const UNLINKED_NOTICE_COOLDOWN_MS = 60000; // 1 minute cooldown per unlinked chat to prevent spam
+
+function isUpdateAlreadyHandledCrossTab(updateId: number): boolean {
+  if (processedUpdateIds.has(updateId)) return true;
+  processedUpdateIds.add(updateId);
+  if (processedUpdateIds.size > 500) {
+    const first = processedUpdateIds.values().next().value;
+    if (first !== undefined) processedUpdateIds.delete(first);
+  }
+
+  try {
+    const raw = localStorage.getItem(DEDUP_STORAGE_KEY);
+    const list: number[] = raw ? JSON.parse(raw) : [];
+    if (list.includes(updateId)) {
+      return true;
+    }
+    list.push(updateId);
+    if (list.length > 500) list.shift();
+    localStorage.setItem(DEDUP_STORAGE_KEY, JSON.stringify(list));
+    return false;
+  } catch (_) {
+    return false;
+  }
+}
+
+function shouldSendUnlinkedNotice(chatId: string): boolean {
+  try {
+    const raw = localStorage.getItem("telegram_unlinked_notices") || "{}";
+    const record = JSON.parse(raw);
+    const lastSent = record[chatId] || 0;
+    const now = Date.now();
+    if (now - lastSent < UNLINKED_NOTICE_COOLDOWN_MS) {
+      return false;
+    }
+    record[chatId] = now;
+    localStorage.setItem("telegram_unlinked_notices", JSON.stringify(record));
+    return true;
+  } catch (_) {
+    return true;
+  }
+}
 
 // Global in-memory registry of active events mapped to Telegram Chat IDs
 const inMemoryChatToEventMap = new Map<string, {
@@ -656,13 +698,7 @@ export async function processTelegramBotCommands(params?: {
     for (const update of data.result) {
       lastHandledUpdateOffset = Math.max(lastHandledUpdateOffset, update.update_id + 1);
 
-      if (processedUpdateIds.has(update.update_id)) continue;
-      processedUpdateIds.add(update.update_id);
-      if (processedUpdateIds.size > 500) {
-        // Keep set size bounded
-        const first = processedUpdateIds.values().next().value;
-        if (first !== undefined) processedUpdateIds.delete(first);
-      }
+      if (isUpdateAlreadyHandledCrossTab(update.update_id)) continue;
 
       const msg = update.message || update.channel_post;
       if (!msg || !msg.chat || !msg.text) continue;
@@ -805,7 +841,7 @@ export async function processTelegramBotCommands(params?: {
             guests: eventData.guests,
           });
           processed++;
-        } else {
+        } else if (shouldSendUnlinkedNotice(chatId)) {
           await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -829,7 +865,7 @@ export async function processTelegramBotCommands(params?: {
             guests: eventData.guests,
           });
           processed++;
-        } else {
+        } else if (shouldSendUnlinkedNotice(chatId)) {
           await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
