@@ -1,5 +1,10 @@
 import { supabase } from "@/integrations/supabase/client";
 import { logTelegramDiagnostic } from "@/lib/telegramLogger";
+import {
+  getCachedEventByChatId,
+  registerChatToEventMapping,
+  areChatIdsEquivalent,
+} from "@/lib/telegramChatMap";
 
 export const DEFAULT_TELEGRAM_BOT_TOKEN = "8688668764:AAEgS0I4SHxevvGIYvKXAjajCG3TIioCwZc";
 export const DEFAULT_TELEGRAM_BOT_USERNAME = "EInvitation_Bot";
@@ -685,6 +690,17 @@ export function registerTelegramChatEvent(chatId: string, eventData: {
   };
 
   inMemoryChatToEventMap.set(cleanId, merged);
+
+  if (merged.eventId) {
+    registerChatToEventMapping(cleanId, {
+      eventId: merged.eventId,
+      eventTitle: merged.eventTitle,
+      slug: merged.slug,
+      eventDate: merged.eventDate,
+      guests: merged.guests,
+    });
+  }
+
   try {
     const raw = localStorage.getItem("telegram_chat_event_cache") || "{}";
     const cache = JSON.parse(raw);
@@ -805,40 +821,48 @@ export async function processTelegramBotCommands(params?: {
           }
         }
 
-        // 1. Check in-memory / local cache first for instant resolution
-        const cached = getCachedTelegramChatEvent(chatId);
-        if (cached) {
-          let liveGuests = cached.guests || [];
-          if (cached.eventId) {
+        // 1. Fast O(1) Cached Map Lookup (No DB queries needed to find the event ID)
+        const cachedMap = getCachedEventByChatId(chatId);
+        if (cachedMap) {
+          let liveGuests = cachedMap.guests || [];
+          if (cachedMap.eventId) {
             try {
               const { data: freshGuests } = await supabase
                 .from("guests")
                 .select("*")
-                .eq("event_id", cached.eventId);
+                .eq("event_id", cachedMap.eventId);
               if (freshGuests && freshGuests.length > 0) {
                 liveGuests = freshGuests;
-                cached.guests = freshGuests;
-                registerTelegramChatEvent(chatId, cached);
+                registerChatToEventMapping(chatId, {
+                  eventId: cachedMap.eventId,
+                  eventTitle: cachedMap.eventTitle,
+                  slug: cachedMap.slug,
+                  eventDate: cachedMap.eventDate,
+                  guests: freshGuests,
+                });
               }
             } catch (_) {}
           }
 
-          console.info(`[TelegramBotRunner] ✅ Resolved via local event registry: "${cached.eventTitle}" (${liveGuests.length} guests)`);
+          console.info(`[TelegramBotRunner] ⚡ Fast O(1) resolved via cached map: "${cachedMap.eventTitle}" (${liveGuests.length} guests)`);
           logTelegramDiagnostic({
             updateId: update.update_id,
             chatId,
             command: rawText,
             lookupStrategy: "in_memory_cache",
-            filterUsed: `cacheKey: ${chatId} (flexible prefix match)`,
-            matchedEventId: cached.eventId,
-            matchedEventTitle: cached.eventTitle,
+            filterUsed: `Map.get('${chatId}') -> Event ID: ${cachedMap.eventId}`,
+            matchedEventId: cachedMap.eventId,
+            matchedEventTitle: cachedMap.eventTitle,
             guestCount: liveGuests.length,
             status: "success",
-            details: { cacheSource: "memory_or_localStorage" },
+            details: { cacheSource: "inMemoryChatMap" },
           });
           return {
-            ...cached,
+            eventTitle: cachedMap.eventTitle,
+            eventDate: cachedMap.eventDate,
             guests: liveGuests,
+            eventId: cachedMap.eventId,
+            slug: cachedMap.slug,
           };
         }
 
