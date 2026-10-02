@@ -556,9 +556,8 @@ export async function sendTelegramRsvpDetailList(params: {
   }
 }
 
-const currentTabId = "tab_" + Math.random().toString(36).substring(2, 9) + "_" + Date.now();
 const LEADER_KEY = "telegram_runner_leader_lock";
-const LEADER_TIMEOUT = 5000;
+const LEADER_TIMEOUT = 8000;
 const DEDUP_STORAGE_KEY = "telegram_processed_update_ids";
 const EXECUTED_COMMANDS_KEY = "telegram_executed_commands";
 const OFFSET_STORAGE_KEY = "telegram_last_update_offset";
@@ -566,19 +565,34 @@ const UNLINKED_NOTICE_COOLDOWN_MS = 60000; // 1 minute cooldown per unlinked cha
 
 const processedUpdateIds = new Set<number>();
 
+// Persistent tab ID per browser session
+function getTabSessionId(): string {
+  try {
+    let id = sessionStorage.getItem("telegram_tab_session_id");
+    if (!id) {
+      id = "tab_" + Math.random().toString(36).substring(2, 9) + "_" + Date.now();
+      sessionStorage.setItem("telegram_tab_session_id", id);
+    }
+    return id;
+  } catch (_) {
+    return "tab_single_" + Date.now();
+  }
+}
+
 export function isTabLeader(): boolean {
   const now = Date.now();
+  const myTabId = getTabSessionId();
   try {
     const raw = localStorage.getItem(LEADER_KEY);
     if (raw) {
       const { tabId, expiresAt } = JSON.parse(raw);
-      if (tabId && tabId !== currentTabId && now < expiresAt) {
+      if (tabId && tabId !== myTabId && now < expiresAt) {
         return false;
       }
     }
     localStorage.setItem(
       LEADER_KEY,
-      JSON.stringify({ tabId: currentTabId, expiresAt: now + LEADER_TIMEOUT })
+      JSON.stringify({ tabId: myTabId, expiresAt: now + LEADER_TIMEOUT })
     );
     return true;
   } catch (_) {
@@ -604,16 +618,16 @@ function setStoredUpdateOffset(offset: number): void {
   } catch (_) {}
 }
 
-function tryClaimCommandExecution(chatId: string, cmd: string, msgDate: number, updateId: number): boolean {
-  const key = `${chatId}_${cmd}_${msgDate || updateId}`;
+function tryClaimCommandExecution(updateId: number): boolean {
+  const key = `upd_${updateId}`;
   try {
     const raw = localStorage.getItem(EXECUTED_COMMANDS_KEY);
     const executed: string[] = raw ? JSON.parse(raw) : [];
     if (executed.includes(key)) {
-      return false; // Already claimed/executed by another runner or tab
+      return false; // Already claimed/executed
     }
     executed.push(key);
-    if (executed.length > 400) executed.shift();
+    if (executed.length > 500) executed.shift();
     localStorage.setItem(EXECUTED_COMMANDS_KEY, JSON.stringify(executed));
     return true;
   } catch (_) {
@@ -805,7 +819,7 @@ export async function processTelegramBotCommands(params?: {
       const cmd = firstToken.replace(/@[\w_]+/g, "");
 
       // Atomically claim execution for this exact chat command instance
-      if (!tryClaimCommandExecution(chatId, cmd, msg.date, update.update_id)) {
+      if (!tryClaimCommandExecution(update.update_id)) {
         continue;
       }
 

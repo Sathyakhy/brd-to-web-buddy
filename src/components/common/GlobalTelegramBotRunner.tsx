@@ -17,7 +17,7 @@ export function GlobalTelegramBotRunner() {
     warmupChatToEventMap().catch(() => {});
 
     const poll = async () => {
-      if (isCancelled || isBusy || !isTabLeader() || document.hidden) return;
+      if (isCancelled || isBusy || !isTabLeader()) return;
       isBusy = true;
       try {
         await processTelegramBotCommands();
@@ -31,14 +31,12 @@ export function GlobalTelegramBotRunner() {
     // Run initial check immediately
     poll();
 
-    // Fast active polling every 3 seconds (only leader tab executes)
+    // Fast active polling every 3 seconds (leader tab executes continuously in background)
     const interval = setInterval(poll, 3000);
 
     // Periodic map refresh every 60 seconds to keep cache fresh
     const mapWarmupInterval = setInterval(() => {
-      if (!document.hidden) {
-        warmupChatToEventMap().catch(() => {});
-      }
+      warmupChatToEventMap().catch(() => {});
     }, 60000);
 
     return () => {
