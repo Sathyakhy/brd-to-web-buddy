@@ -70,9 +70,20 @@ Deno.serve(async (req) => {
     const cmd = text.toLowerCase().split(/\s+/)[0].replace(/@\w+/g, "");
 
     // Check for supported commands (case-insensitive & bot username stripped)
-    const isSummary = cmd === "/summary" || cmd === "/detail" || cmd === "/guests" || cmd === "/list" || cmd === "/report";
-    const isRsvp = cmd === "/rsvp" || cmd === "/quick" || cmd === "/stats";
-    const isHelp = cmd === "/help" || cmd === "/start";
+    const isSummary =
+      cmd === "/summary" ||
+      cmd === "/sumary" ||
+      cmd === "/sum" ||
+      cmd === "/summery" ||
+      cmd === "/detail" ||
+      cmd === "/details" ||
+      cmd === "/guests" ||
+      cmd === "/guest" ||
+      cmd === "/list" ||
+      cmd === "/report" ||
+      cmd === "/attending";
+    const isRsvp = cmd === "/rsvp" || cmd === "/rvsp" || cmd === "/quick" || cmd === "/stats" || cmd === "/stat" || cmd === "/overview" || cmd === "/count";
+    const isHelp = cmd === "/help" || cmd === "/start" || cmd === "/info";
 
     if (!isSummary && !isRsvp && !isHelp) {
       return new Response(JSON.stringify({ ok: true }), {

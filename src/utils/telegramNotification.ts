@@ -721,7 +721,22 @@ export async function processTelegramBotCommands(params?: {
         return null;
       };
 
-      if (cmd === "/help" || cmd === "/start") {
+      const isHelpCmd = cmd === "/help" || cmd === "/start" || cmd === "/info";
+      const isRsvpCmd = cmd === "/rsvp" || cmd === "/rvsp" || cmd === "/quick" || cmd === "/stats" || cmd === "/stat" || cmd === "/overview" || cmd === "/count";
+      const isSummaryCmd =
+        cmd === "/summary" ||
+        cmd === "/sumary" ||
+        cmd === "/sum" ||
+        cmd === "/summery" ||
+        cmd === "/detail" ||
+        cmd === "/details" ||
+        cmd === "/guests" ||
+        cmd === "/guest" ||
+        cmd === "/list" ||
+        cmd === "/report" ||
+        cmd === "/attending";
+
+      if (isHelpCmd) {
         const eventData = await resolveEventData();
         const helpText = formatTelegramHelpMessage(eventData?.eventTitle, chatId);
 
@@ -735,7 +750,7 @@ export async function processTelegramBotCommands(params?: {
           }),
         });
         processed++;
-      } else if (cmd === "/rsvp" || cmd === "/quick" || cmd === "/stats") {
+      } else if (isRsvpCmd) {
         // 1. Quick Summary Command
         const eventData = await resolveEventData();
         if (eventData) {
@@ -759,7 +774,7 @@ export async function processTelegramBotCommands(params?: {
           });
           processed++;
         }
-      } else if (cmd === "/summary" || cmd === "/detail" || cmd === "/guests" || cmd === "/list" || cmd === "/report") {
+      } else if (isSummaryCmd) {
         // 2. Detailed Guest List & Wishes Command
         const eventData = await resolveEventData();
         if (eventData) {
