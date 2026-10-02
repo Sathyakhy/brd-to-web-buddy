@@ -678,26 +678,64 @@ export async function processTelegramBotCommands(params?: {
 
       // Helper to resolve event data via passed callback or direct Supabase lookup
       const resolveEventData = async () => {
+        console.info(`[TelegramBotRunner] 🔍 Resolving event for Chat ID: "${chatId}" (command: "${cmd}")`);
+
         if (params?.getEventDataForChat) {
           const res = await params.getEventDataForChat(chatId);
-          if (res) return res;
+          if (res) {
+            console.info(`[TelegramBotRunner] ✅ Resolved via callback params: "${res.eventTitle}" (${res.guests?.length || 0} guests)`);
+            return res;
+          }
         }
 
-        // Check in-memory / local cache first for instant resolution
+        // 1. Check in-memory / local cache first for instant resolution
         const cached = getCachedTelegramChatEvent(chatId);
-        if (cached) return cached;
+        if (cached) {
+          console.info(`[TelegramBotRunner] ✅ Resolved via local event registry: "${cached.eventTitle}" (${cached.guests?.length || 0} guests)`);
+          return cached;
+        }
 
-        // Direct database lookup fallback
+        // 2. Try Supabase Security Definer RPC
         try {
-          const { data: events } = await supabase
+          const { data: rpcData, error: rpcError } = await supabase.rpc("get_event_by_telegram_chat_id", {
+            _chat_id: chatId,
+          } as any);
+
+          if (!rpcError && rpcData && (rpcData as any).eventTitle) {
+            const resolved = {
+              eventTitle: (rpcData as any).eventTitle,
+              eventDate: (rpcData as any).eventDate,
+              guests: (rpcData as any).guests || [],
+              eventId: (rpcData as any).eventId,
+              slug: (rpcData as any).slug,
+            };
+            registerTelegramChatEvent(chatId, resolved);
+            console.info(`[TelegramBotRunner] ✅ Resolved via Supabase RPC: "${resolved.eventTitle}" (${resolved.guests.length} guests)`);
+            return resolved;
+          }
+        } catch (rpcErr) {
+          console.debug("[TelegramBotRunner] RPC lookup attempt notice:", rpcErr);
+        }
+
+        // 3. Direct database lookup fallback
+        try {
+          const { data: events, error: evError } = await supabase
             .from("events")
             .select("id, title, slug, event_date, section_visibility")
             .order("created_at", { ascending: false });
 
+          if (evError) {
+            console.warn(`[TelegramBotRunner] ⚠️ Supabase select query returned error: ${evError.message}`);
+          }
+
           if (events && events.length > 0) {
             const matched = events.find((e: any) => {
               const cId = e.section_visibility?.telegram_chat_id || (e as any).telegram_chat_id;
-              return chatIdsMatch(cId, chatId);
+              const matches = chatIdsMatch(cId, chatId);
+              if (matches) {
+                console.info(`[TelegramBotRunner] 🎯 Matched configured ID "${cId}" with incoming Chat ID "${chatId}"`);
+              }
+              return matches;
             });
 
             if (matched) {
@@ -714,10 +752,15 @@ export async function processTelegramBotCommands(params?: {
                 slug: matched.slug,
               };
               registerTelegramChatEvent(chatId, resolved);
+              console.info(`[TelegramBotRunner] ✅ Resolved via events table: "${resolved.eventTitle}" (${resolved.guests.length} guests)`);
               return resolved;
             }
           }
-        } catch (_) {}
+        } catch (dbErr) {
+          console.warn("[TelegramBotRunner] Database query exception:", dbErr);
+        }
+
+        console.warn(`[TelegramBotRunner] ❌ No event linked to Telegram Chat ID: "${chatId}" across in-memory cache, RPC, or database query.`);
         return null;
       };
 
