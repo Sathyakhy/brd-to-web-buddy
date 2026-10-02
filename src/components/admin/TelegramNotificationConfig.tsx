@@ -61,46 +61,6 @@ export default function TelegramNotificationConfig({
     }
   }, [chatId, eventTitle, eventDate, guests]);
 
-  // Safe live listener: Checks for /rsvp, /summary, /help commands in the linked Telegram group
-  useEffect(() => {
-    if (!enabled || !chatId?.trim() || detecting) return;
-
-    let isCancelled = false;
-    let isBusy = false;
-
-    const pollCommands = async () => {
-      if (isCancelled || isBusy || detecting || document.hidden) return;
-      isBusy = true;
-      try {
-        const res = await processTelegramBotCommands({
-          botToken: activeBotToken,
-          getEventDataForChat: async (targetChatId) => {
-            if (targetChatId === chatId.trim()) {
-              return {
-                eventTitle,
-                eventDate,
-                guests: guests || [],
-              };
-            }
-            return null;
-          },
-        });
-        if (!isCancelled && res.processedCount > 0) {
-          setListeningCount((prev) => prev + res.processedCount);
-        }
-      } catch (_) {}
-      isBusy = false;
-    };
-
-    pollCommands();
-    const interval = setInterval(pollCommands, 4000);
-
-    return () => {
-      isCancelled = true;
-      clearInterval(interval);
-    };
-  }, [enabled, chatId, activeBotToken, eventTitle, eventDate, guests, detecting]);
-
   const handleTest = async () => {
     if (!chatId?.trim()) {
       toast.error("Please enter a Telegram Chat ID or click 'Auto-Detect Group' first.");
