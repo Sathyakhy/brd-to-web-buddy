@@ -2,12 +2,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { logTelegramDiagnostic } from "@/lib/telegramLogger";
 import {
 
-let lastHandledUpdateOffset = 0;
   getCachedEventByChatId,
   registerChatToEventMapping,
   areChatIdsEquivalent,
 } from "@/lib/telegramChatMap";
 
+let lastHandledUpdateOffset = 0;
 export const DEFAULT_TELEGRAM_BOT_TOKEN = "8688668764:AAEgS0I4SHxevvGIYvKXAjajCG3TIioCwZc";
 export const DEFAULT_TELEGRAM_BOT_USERNAME = "EInvitation_Bot";
 
