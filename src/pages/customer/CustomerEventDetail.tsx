@@ -20,6 +20,7 @@ import { registerTelegramChatEvent } from "@/utils/telegramNotification";
 import type { TemplateData } from "@/components/templates/InvitationTemplate";
 
 type Event = TemplateData & {
+  section_visibility?: any;
   id: string; slug: string; title: string; template: string;
 };
 

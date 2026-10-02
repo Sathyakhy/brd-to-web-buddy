@@ -83,6 +83,8 @@ export default function SignaturePackageCover({
   coverInvitationStyle,
   guestNameStyle,
 }: Props) {
+  const [muted, setMuted] = useState(true);
+  const toggleSound = () => setMuted((m) => !m);
   const isEn = language === "en";
 
   // Cover invitation title custom styling (independent for Khmer & English)

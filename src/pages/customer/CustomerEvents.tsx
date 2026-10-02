@@ -9,7 +9,7 @@ import { registerTelegramChatEvent } from "@/utils/telegramNotification";
 
 type Event = {
   id: string; slug: string; title: string; template: string;
-  event_date: string | null; venue: string | null; cover_image_url: string | null;
+  event_date: string | null; venue: string | null; cover_image_url: string | null; section_visibility?: any;
 };
 
 export default function CustomerEvents() {

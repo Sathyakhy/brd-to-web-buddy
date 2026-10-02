@@ -29,6 +29,7 @@ import { UserCheck } from "lucide-react";
 import { sendTelegramRsvpNotification } from "@/utils/telegramNotification";
 
 type Event = TemplateData & {
+  section_visibility?: any;
   id: string; slug: string; template: string;
   access_starts_at?: string | null;
   access_ends_at?: string | null;

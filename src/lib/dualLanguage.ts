@@ -117,6 +117,7 @@ export const KM_TRANSLATIONS: TemplateTranslations = {
 
 export const EN_TRANSLATIONS: TemplateTranslations = {
   openInvitation: "Open Invitation",
+  dressCodeTitle: "Dress Code",
   cordiallyInvites: "INVITATION",
   honoredGuest: "Distinguished Guests, Family & Friends",
   weddingInvitation: "Wedding Invitation",

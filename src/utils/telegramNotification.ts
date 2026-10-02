@@ -1,6 +1,8 @@
 import { supabase } from "@/integrations/supabase/client";
 import { logTelegramDiagnostic } from "@/lib/telegramLogger";
 import {
+
+let lastHandledUpdateOffset = 0;
   getCachedEventByChatId,
   registerChatToEventMapping,
   areChatIdsEquivalent,
@@ -882,7 +884,7 @@ export async function processTelegramBotCommands(params?: {
 
         // 2. Try Supabase Security Definer RPC
         try {
-          const { data: rpcData, error: rpcError } = await supabase.rpc("get_event_by_telegram_chat_id", {
+          const { data: rpcData, error: rpcError } = await (supabase.rpc as any)("get_event_by_telegram_chat_id", {
             _chat_id: chatId,
           } as any);
 
