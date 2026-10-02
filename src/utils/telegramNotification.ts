@@ -554,17 +554,17 @@ const processedUpdateIds = new Set<number>();
 /**
  * Checks for commands (/help, /rsvp, /summary) in Telegram updates and replies immediately.
  * Handles case-insensitivity (/Help, /Summary, /RSVP) and bot username suffixes.
- * Guards against replaying historical past messages on initial load.
+ * Includes direct database fallback lookup for linked events.
  */
-export async function processTelegramBotCommands(params: {
+export async function processTelegramBotCommands(params?: {
   botToken?: string | null;
-  getEventDataForChat: (chatId: string) => Promise<{
+  getEventDataForChat?: (chatId: string) => Promise<{
     eventTitle: string;
     eventDate?: string | null;
     guests: any[];
   } | null>;
 }): Promise<{ processedCount: number }> {
-  const token = (params.botToken || "").trim() || DEFAULT_TELEGRAM_BOT_TOKEN;
+  const token = (params?.botToken || "").trim() || DEFAULT_TELEGRAM_BOT_TOKEN;
 
   try {
     const url = lastHandledUpdateOffset > 0
@@ -578,13 +578,6 @@ export async function processTelegramBotCommands(params: {
       return { processedCount: 0 };
     }
 
-    // On initial cold boot, advance the offset to the latest update without replaying old historical messages:
-    if (lastHandledUpdateOffset === 0) {
-      const maxId = Math.max(...data.result.map((u: any) => u.update_id));
-      lastHandledUpdateOffset = maxId + 1;
-      return { processedCount: 0 };
-    }
-
     let processed = 0;
     const nowSec = Math.floor(Date.now() / 1000);
 
@@ -593,7 +586,7 @@ export async function processTelegramBotCommands(params: {
 
       if (processedUpdateIds.has(update.update_id)) continue;
       processedUpdateIds.add(update.update_id);
-      if (processedUpdateIds.size > 200) {
+      if (processedUpdateIds.size > 500) {
         // Keep set size bounded
         const first = processedUpdateIds.values().next().value;
         if (first !== undefined) processedUpdateIds.delete(first);
@@ -602,16 +595,53 @@ export async function processTelegramBotCommands(params: {
       const msg = update.message || update.channel_post;
       if (!msg || !msg.chat || !msg.text) continue;
 
-      // Ignore messages older than 45 seconds
-      if (msg.date && (nowSec - msg.date) > 45) continue;
+      // Allow commands up to 10 minutes old (prevents dropping commands sent right before tab opened)
+      if (msg.date && (nowSec - msg.date) > 600) continue;
 
       const chatId = String(msg.chat.id);
       const rawText = msg.text.trim();
-      // Normalize command: lowercased, first word, remove @botname (e.g. "/Help@EInvitation_Bot" -> "/help")
-      const cmd = rawText.toLowerCase().split(/\s+/)[0].replace(/@\w+/g, "");
+      // Normalize command: lowercased, first word, remove @botname (e.g. "/Summary@EInvitation_Bot" -> "/summary")
+      const firstToken = rawText.toLowerCase().split(/\s+/)[0];
+      const cmd = firstToken.replace(/@[\w_]+/g, "");
+
+      // Helper to resolve event data via passed callback or direct Supabase lookup
+      const resolveEventData = async () => {
+        if (params?.getEventDataForChat) {
+          const res = await params.getEventDataForChat(chatId);
+          if (res) return res;
+        }
+        // Direct database lookup fallback
+        try {
+          const { data: events } = await supabase
+            .from("events")
+            .select("id, title, slug, event_date, section_visibility")
+            .order("created_at", { ascending: false });
+
+          if (events && events.length > 0) {
+            const matched = events.find((e: any) => {
+              const cId = e.section_visibility?.telegram_chat_id || (e as any).telegram_chat_id;
+              return cId && String(cId).trim() === chatId.trim();
+            });
+
+            if (matched) {
+              const { data: guests } = await supabase
+                .from("guests")
+                .select("*")
+                .eq("event_id", matched.id);
+
+              return {
+                eventTitle: matched.title,
+                eventDate: matched.event_date,
+                guests: guests || [],
+              };
+            }
+          }
+        } catch (_) {}
+        return null;
+      };
 
       if (cmd === "/help" || cmd === "/start") {
-        const eventData = await params.getEventDataForChat(chatId);
+        const eventData = await resolveEventData();
         const helpText = formatTelegramHelpMessage(eventData?.eventTitle, chatId);
 
         await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
@@ -626,7 +656,7 @@ export async function processTelegramBotCommands(params: {
         processed++;
       } else if (cmd === "/rsvp" || cmd === "/quick" || cmd === "/stats") {
         // 1. Quick Summary Command
-        const eventData = await params.getEventDataForChat(chatId);
+        const eventData = await resolveEventData();
         if (eventData) {
           await sendTelegramRsvpQuickSummary({
             chatId,
@@ -650,7 +680,7 @@ export async function processTelegramBotCommands(params: {
         }
       } else if (cmd === "/summary" || cmd === "/detail" || cmd === "/guests" || cmd === "/list" || cmd === "/report") {
         // 2. Detailed Guest List & Wishes Command
-        const eventData = await params.getEventDataForChat(chatId);
+        const eventData = await resolveEventData();
         if (eventData) {
           await sendTelegramRsvpDetailList({
             chatId,
