@@ -1,3 +1,6 @@
+import { supabase } from "@/integrations/supabase/client";
+import { logTelegramDiagnostic } from "@/lib/telegramLogger";
+
 export const DEFAULT_TELEGRAM_BOT_TOKEN = "8688668764:AAEgS0I4SHxevvGIYvKXAjajCG3TIioCwZc";
 export const DEFAULT_TELEGRAM_BOT_USERNAME = "EInvitation_Bot";
 
@@ -728,6 +731,18 @@ export async function processTelegramBotCommands(params?: {
         const cached = getCachedTelegramChatEvent(chatId);
         if (cached) {
           console.info(`[TelegramBotRunner] ✅ Resolved via local event registry: "${cached.eventTitle}" (${cached.guests?.length || 0} guests)`);
+          logTelegramDiagnostic({
+            updateId: update.update_id,
+            chatId,
+            command: rawText,
+            lookupStrategy: "in_memory_cache",
+            filterUsed: `cacheKey: ${chatId} (flexible prefix match)`,
+            matchedEventId: cached.eventId,
+            matchedEventTitle: cached.eventTitle,
+            guestCount: cached.guests?.length || 0,
+            status: "success",
+            details: { cacheSource: "memory_or_localStorage" },
+          });
           return cached;
         }
 
@@ -747,6 +762,17 @@ export async function processTelegramBotCommands(params?: {
             };
             registerTelegramChatEvent(chatId, resolved);
             console.info(`[TelegramBotRunner] ✅ Resolved via Supabase RPC: "${resolved.eventTitle}" (${resolved.guests.length} guests)`);
+            logTelegramDiagnostic({
+              updateId: update.update_id,
+              chatId,
+              command: rawText,
+              lookupStrategy: "supabase_rpc",
+              filterUsed: `RPC: get_event_by_telegram_chat_id(_chat_id='${chatId}')`,
+              matchedEventId: resolved.eventId,
+              matchedEventTitle: resolved.eventTitle,
+              guestCount: resolved.guests.length,
+              status: "success",
+            });
             return resolved;
           }
         } catch (rpcErr) {
@@ -789,6 +815,17 @@ export async function processTelegramBotCommands(params?: {
               };
               registerTelegramChatEvent(chatId, resolved);
               console.info(`[TelegramBotRunner] ✅ Resolved via events table: "${resolved.eventTitle}" (${resolved.guests.length} guests)`);
+              logTelegramDiagnostic({
+                updateId: update.update_id,
+                chatId,
+                command: rawText,
+                lookupStrategy: "events_table_scan",
+                filterUsed: `SELECT * FROM events -> chatIdsMatch(cId, '${chatId}')`,
+                matchedEventId: resolved.eventId,
+                matchedEventTitle: resolved.eventTitle,
+                guestCount: resolved.guests.length,
+                status: "success",
+              });
               return resolved;
             }
           }
@@ -797,6 +834,15 @@ export async function processTelegramBotCommands(params?: {
         }
 
         console.warn(`[TelegramBotRunner] ❌ No event linked to Telegram Chat ID: "${chatId}" across in-memory cache, RPC, or database query.`);
+        logTelegramDiagnostic({
+          updateId: update.update_id,
+          chatId,
+          command: rawText,
+          lookupStrategy: "none",
+          filterUsed: `Lookup across cache, RPC get_event_by_telegram_chat_id, and events table scan with chatId='${chatId}'`,
+          status: "no_event_linked",
+          details: { error: "Chat ID not linked to any event in the system" },
+        });
         return null;
       };
 
