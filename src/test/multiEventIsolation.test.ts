@@ -2,6 +2,9 @@ import { describe, it, expect } from "vitest";
 import {
   formatTelegramRsvpQuickSummary,
   formatTelegramRsvpDetailList,
+  registerTelegramChatEvent,
+  getCachedTelegramChatEvent,
+  chatIdsMatch,
 } from "@/utils/telegramNotification";
 
 describe("Multi-Event Guest Response & Telegram Isolation Verification", () => {
@@ -111,5 +114,34 @@ describe("Multi-Event Guest Response & Telegram Isolation Verification", () => {
     expect(storageKeyA).not.toEqual(storageKeyB);
     expect(storageKeyA).toBe("rsvp_broadcast_session_wedding-a");
     expect(storageKeyB).toBe("rsvp_broadcast_session_wedding-b");
+  });
+
+  it("robustly matches chat IDs across 3 different events without conflict", () => {
+    const event1Chat = "-5568784428";
+    const event2Chat = "-5128023564";
+    const event3Chat = "-1009988776655";
+
+    // Register 3 different events
+    registerTelegramChatEvent(event1Chat, {
+      eventTitle: "Event 1 (Wedding)",
+      guests: [{ name: "Guest 1", rsvp_status: "yes", party_size: 2 }],
+    });
+    registerTelegramChatEvent(event2Chat, {
+      eventTitle: "Event 2 (Testing)",
+      guests: [{ name: "Guest 2", rsvp_status: "yes", party_size: 1 }],
+    });
+    registerTelegramChatEvent(event3Chat, {
+      eventTitle: "Event 3 (Gala)",
+      guests: [{ name: "Guest 3", rsvp_status: "yes", party_size: 4 }],
+    });
+
+    // Verify lookup by exact ID
+    expect(getCachedTelegramChatEvent("-5568784428")?.eventTitle).toBe("Event 1 (Wedding)");
+    expect(getCachedTelegramChatEvent("-5128023564")?.eventTitle).toBe("Event 2 (Testing)");
+    expect(getCachedTelegramChatEvent("-1009988776655")?.eventTitle).toBe("Event 3 (Gala)");
+
+    // Verify lookup with/without -100 prefix
+    expect(chatIdsMatch("-5128023564", "-1005128023564")).toBe(true);
+    expect(chatIdsMatch("-5568784428", "-5128023564")).toBe(false);
   });
 });

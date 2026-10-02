@@ -585,18 +585,38 @@ export function registerTelegramChatEvent(chatId: string, eventData: {
   } catch (_) {}
 }
 
+export function normalizeChatId(id: string | number | null | undefined): string {
+  if (!id) return "";
+  return String(id).trim().replace(/^-100/, "-");
+}
+
+export function chatIdsMatch(a: string | number | null | undefined, b: string | number | null | undefined): boolean {
+  if (!a || !b) return false;
+  const strA = String(a).trim();
+  const strB = String(b).trim();
+  if (strA === strB) return true;
+  if (normalizeChatId(strA) === normalizeChatId(strB)) return true;
+  const numA = strA.replace(/^-/, "").replace(/^100/, "");
+  const numB = strB.replace(/^-/, "").replace(/^100/, "");
+  return numA.length > 4 && numA === numB;
+}
+
 export function getCachedTelegramChatEvent(chatId: string) {
   const cleanId = String(chatId).trim();
-  if (inMemoryChatToEventMap.has(cleanId)) {
-    return inMemoryChatToEventMap.get(cleanId) || null;
+  for (const [key, val] of inMemoryChatToEventMap.entries()) {
+    if (chatIdsMatch(key, cleanId)) {
+      return val;
+    }
   }
   try {
     const raw = localStorage.getItem("telegram_chat_event_cache");
     if (raw) {
       const cache = JSON.parse(raw);
-      if (cache[cleanId]) {
-        inMemoryChatToEventMap.set(cleanId, cache[cleanId]);
-        return cache[cleanId];
+      for (const [key, val] of Object.entries(cache)) {
+        if (chatIdsMatch(key, cleanId)) {
+          inMemoryChatToEventMap.set(cleanId, val as any);
+          return val as any;
+        }
       }
     }
   } catch (_) {}
@@ -677,7 +697,7 @@ export async function processTelegramBotCommands(params?: {
           if (events && events.length > 0) {
             const matched = events.find((e: any) => {
               const cId = e.section_visibility?.telegram_chat_id || (e as any).telegram_chat_id;
-              return cId && String(cId).trim() === chatId.trim();
+              return chatIdsMatch(cId, chatId);
             });
 
             if (matched) {

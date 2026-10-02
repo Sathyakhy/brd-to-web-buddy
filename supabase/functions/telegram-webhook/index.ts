@@ -8,6 +8,22 @@ const corsHeaders = {
 
 const DEFAULT_BOT_TOKEN = "8688668764:AAHvH4iO_Jr60UzjZVN_wGDrpe8Tt1FjvcE";
 
+function normalizeChatId(id: string | number | null | undefined): string {
+  if (!id) return "";
+  return String(id).trim().replace(/^-100/, "-");
+}
+
+function chatIdsMatch(a: string | number | null | undefined, b: string | number | null | undefined): boolean {
+  if (!a || !b) return false;
+  const strA = String(a).trim();
+  const strB = String(b).trim();
+  if (strA === strB) return true;
+  if (normalizeChatId(strA) === normalizeChatId(strB)) return true;
+  const numA = strA.replace(/^-/, "").replace(/^100/, "");
+  const numB = strB.replace(/^-/, "").replace(/^100/, "");
+  return numA.length > 4 && numA === numB;
+}
+
 function escapeTelegramHtml(str: string | null | undefined): string {
   if (!str) return "";
   return String(str)
@@ -106,8 +122,8 @@ Deno.serve(async (req) => {
 
     const matchedEvent = events.find((e) => {
       const vis = (e.section_visibility as any) ?? {};
-      const configuredId = String(vis.telegram_chat_id || (e as any).telegram_chat_id || "").trim();
-      return configuredId === chatId;
+      const configuredId = vis.telegram_chat_id || (e as any).telegram_chat_id || "";
+      return chatIdsMatch(configuredId, chatId);
     });
 
     if (!matchedEvent) {
