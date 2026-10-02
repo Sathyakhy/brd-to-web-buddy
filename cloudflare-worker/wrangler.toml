@@ -1,0 +1,6 @@
+name = "telegram-rsvp-bot"
+main = "telegram-bot.js"
+compatibility_date = "2024-01-01"
+
+[vars]
+TELEGRAM_BOT_TOKEN = "8688668764:AAEgS0I4SHxevvGIYvKXAjajCG3TIioCwZc"
