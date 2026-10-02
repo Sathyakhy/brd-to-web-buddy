@@ -13,6 +13,7 @@ import {
   sendTelegramRsvpDetailList,
   fetchRecentTelegramChats,
   processTelegramBotCommands,
+  registerTelegramChatEvent,
   DetectedTelegramChat,
 } from "@/utils/telegramNotification";
 
@@ -48,6 +49,17 @@ export default function TelegramNotificationConfig({
   const [listeningCount, setListeningCount] = useState(0);
 
   const activeBotToken = (botToken || "").trim() || DEFAULT_TELEGRAM_BOT_TOKEN;
+
+  // Immediately register this event in memory and cache when chatId is set
+  useEffect(() => {
+    if (chatId?.trim()) {
+      registerTelegramChatEvent(chatId.trim(), {
+        eventTitle,
+        eventDate,
+        guests: guests || [],
+      });
+    }
+  }, [chatId, eventTitle, eventDate, guests]);
 
   // Safe live listener: Checks for /rsvp, /summary, /help commands in the linked Telegram group
   useEffect(() => {

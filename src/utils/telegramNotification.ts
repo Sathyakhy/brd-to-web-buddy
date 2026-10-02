@@ -551,6 +551,58 @@ export async function sendTelegramRsvpDetailList(params: {
 let lastHandledUpdateOffset = 0;
 const processedUpdateIds = new Set<number>();
 
+// Global in-memory registry of active events mapped to Telegram Chat IDs
+const inMemoryChatToEventMap = new Map<string, {
+  eventTitle: string;
+  eventDate?: string | null;
+  guests: any[];
+  eventId?: string;
+  slug?: string;
+}>();
+
+export function registerTelegramChatEvent(chatId: string, eventData: {
+  eventTitle: string;
+  eventDate?: string | null;
+  guests: any[];
+  eventId?: string;
+  slug?: string;
+}) {
+  if (!chatId) return;
+  const cleanId = String(chatId).trim();
+  inMemoryChatToEventMap.set(cleanId, eventData);
+  try {
+    const raw = localStorage.getItem("telegram_chat_event_cache") || "{}";
+    const cache = JSON.parse(raw);
+    cache[cleanId] = {
+      eventTitle: eventData.eventTitle,
+      eventDate: eventData.eventDate,
+      guests: eventData.guests,
+      eventId: eventData.eventId,
+      slug: eventData.slug,
+      updatedAt: Date.now(),
+    };
+    localStorage.setItem("telegram_chat_event_cache", JSON.stringify(cache));
+  } catch (_) {}
+}
+
+export function getCachedTelegramChatEvent(chatId: string) {
+  const cleanId = String(chatId).trim();
+  if (inMemoryChatToEventMap.has(cleanId)) {
+    return inMemoryChatToEventMap.get(cleanId) || null;
+  }
+  try {
+    const raw = localStorage.getItem("telegram_chat_event_cache");
+    if (raw) {
+      const cache = JSON.parse(raw);
+      if (cache[cleanId]) {
+        inMemoryChatToEventMap.set(cleanId, cache[cleanId]);
+        return cache[cleanId];
+      }
+    }
+  } catch (_) {}
+  return null;
+}
+
 /**
  * Checks for commands (/help, /rsvp, /summary) in Telegram updates and replies immediately.
  * Handles case-insensitivity (/Help, /Summary, /RSVP) and bot username suffixes.
@@ -610,6 +662,11 @@ export async function processTelegramBotCommands(params?: {
           const res = await params.getEventDataForChat(chatId);
           if (res) return res;
         }
+
+        // Check in-memory / local cache first for instant resolution
+        const cached = getCachedTelegramChatEvent(chatId);
+        if (cached) return cached;
+
         // Direct database lookup fallback
         try {
           const { data: events } = await supabase
@@ -629,11 +686,15 @@ export async function processTelegramBotCommands(params?: {
                 .select("*")
                 .eq("event_id", matched.id);
 
-              return {
+              const resolved = {
                 eventTitle: matched.title,
                 eventDate: matched.event_date,
                 guests: guests || [],
+                eventId: matched.id,
+                slug: matched.slug,
               };
+              registerTelegramChatEvent(chatId, resolved);
+              return resolved;
             }
           }
         } catch (_) {}
