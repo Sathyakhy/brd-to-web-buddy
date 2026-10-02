@@ -16,6 +16,8 @@ import { useTemplates } from "@/hooks/useTemplates";
 import { formatMoney, paymentStatusClasses, paymentStatusLabel } from "@/lib/money";
 import ListToolbar from "@/components/admin/ListToolbar";
 
+import { registerTelegramChatEvent } from "@/utils/telegramNotification";
+
 type Event = {
   id: string; slug: string; title: string; internal_title: string | null; template: string;
   event_date: string | null; venue: string | null; description: string | null;
@@ -53,7 +55,23 @@ export default function Events() {
       supabase.from("event_customers").select("event_id, user_id"),
     ]);
     if (error) toast.error(error.message);
-    setEvents((data ?? []) as Event[]);
+    const loaded = (data ?? []) as Event[];
+    setEvents(loaded);
+
+    // Register all active Telegram Chat IDs across all events
+    for (const ev of loaded) {
+      const vis = (ev.section_visibility as any) || {};
+      const cId = vis.telegram_chat_id || (ev as any).telegram_chat_id;
+      if (cId) {
+        registerTelegramChatEvent(cId, {
+          eventTitle: ev.title,
+          eventDate: ev.event_date,
+          guests: [],
+          eventId: ev.id,
+          slug: ev.slug,
+        });
+      }
+    }
 
     const ecs = (ecRes.data ?? []) as { event_id: string; user_id: string }[];
     const userIds = Array.from(new Set(ecs.map(c => c.user_id)));

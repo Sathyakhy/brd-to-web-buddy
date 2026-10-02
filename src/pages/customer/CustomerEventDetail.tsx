@@ -16,6 +16,7 @@ import { RsvpBadge } from "@/components/admin/RsvpBadge";
 import PreviewPanel from "@/components/admin/PreviewPanel";
 import BroadcastLinksCard from "@/components/admin/BroadcastLinksCard";
 import TelegramNotificationConfig from "@/components/admin/TelegramNotificationConfig";
+import { registerTelegramChatEvent } from "@/utils/telegramNotification";
 import type { TemplateData } from "@/components/templates/InvitationTemplate";
 
 type Event = TemplateData & {
@@ -84,9 +85,17 @@ export default function CustomerEventDetail() {
 
       // Auto-seed broadcast slots pool if needed so that each respondent gets their own dedicated row:
       if (loadedEvent) {
-        // Auto-seed broadcast slots pool (50 slots per language) and save them to section_visibility.broadcast_pool
-        // so public invite page can dynamically assign an empty slot for each new guest response without collision:
         const rawVis = (loadedEvent.section_visibility as any) || {};
+        const cId = rawVis.telegram_chat_id || (loadedEvent as any).telegram_chat_id;
+        if (cId) {
+          registerTelegramChatEvent(cId, {
+            eventTitle: loadedEvent.title,
+            eventDate: loadedEvent.event_date,
+            guests: rawGuestList,
+            eventId: loadedEvent.id,
+            slug: loadedEvent.slug,
+          });
+        }
         const existingKmTokens = new Set(rawGuestList.filter(g => g.token?.startsWith("broadcast-km")).map(g => g.token));
         const existingEnTokens = new Set(rawGuestList.filter(g => g.token?.startsWith("broadcast-en")).map(g => g.token));
 

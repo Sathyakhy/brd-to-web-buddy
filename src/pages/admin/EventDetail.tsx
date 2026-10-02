@@ -64,6 +64,7 @@ import TextEffectsEditor from "@/components/admin/TextEffectsEditor";
 import MonogramEffectEditor from "@/components/admin/MonogramEffectEditor";
 import FontSelector from "@/components/admin/FontSelector";
 import TelegramNotificationConfig from "@/components/admin/TelegramNotificationConfig";
+import { registerTelegramChatEvent } from "@/utils/telegramNotification";
 import SideFrameEditor from "@/components/admin/SideFrameEditor";
 import CoverInvitationStyleEditor from "@/components/admin/CoverInvitationStyleEditor";
 import GuestNameStyleEditor from "@/components/admin/GuestNameStyleEditor";
@@ -403,6 +404,16 @@ export default function EventDetail() {
       }
       const guestLangs = (rawVis.guest_languages || {}) as Record<string, string>;
       const rawGuestList = ((gRes.data ?? []) as any[]);
+
+      if (raw && (rawVis.telegram_chat_id || (raw as any)?.telegram_chat_id)) {
+        registerTelegramChatEvent(rawVis.telegram_chat_id || (raw as any).telegram_chat_id, {
+          eventTitle: raw.title,
+          eventDate: raw.event_date,
+          guests: rawGuestList,
+          eventId: raw.id,
+          slug: raw.slug,
+        });
+      }
 
       // Auto-seed broadcast slots pool (50 slots per language) and save them to section_visibility.broadcast_pool
       // so public invite page can dynamically assign an empty slot for each new guest response without collision:

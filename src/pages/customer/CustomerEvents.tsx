@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { CalendarDays, Users, ExternalLink } from "lucide-react";
 import { formatDateTime } from "@/lib/invitation";
+import { registerTelegramChatEvent } from "@/utils/telegramNotification";
 
 type Event = {
   id: string; slug: string; title: string; template: string;
@@ -33,11 +34,26 @@ export default function CustomerEvents() {
 
       const { data } = await supabase
         .from("events")
-        .select("id, slug, title, template, event_date, venue, cover_image_url")
+        .select("id, slug, title, template, event_date, venue, cover_image_url, section_visibility")
         .in("id", ids)
         .order("event_date", { ascending: false });
 
-      setEvents((data ?? []) as Event[]);
+      const loaded = (data ?? []) as Event[];
+      setEvents(loaded);
+
+      for (const ev of loaded) {
+        const vis = (ev.section_visibility as any) || {};
+        const cId = vis.telegram_chat_id || (ev as any).telegram_chat_id;
+        if (cId) {
+          registerTelegramChatEvent(cId, {
+            eventTitle: ev.title,
+            eventDate: ev.event_date,
+            guests: [],
+            eventId: ev.id,
+            slug: ev.slug,
+          });
+        }
+      }
       setLoading(false);
     })();
   }, [user]);
