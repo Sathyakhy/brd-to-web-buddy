@@ -1,9 +1,10 @@
 import { useEffect } from "react";
-import { processTelegramBotCommands } from "@/utils/telegramNotification";
+import { processTelegramBotCommands, isTabLeader } from "@/utils/telegramNotification";
 
 /**
  * Global background listener that continuously processes Telegram bot commands
  * (/summary, /rsvp, /help) across any linked events in the system.
+ * Uses cross-tab leader election to ensure only ONE tab polls and replies.
  */
 export function GlobalTelegramBotRunner() {
   useEffect(() => {
@@ -11,7 +12,7 @@ export function GlobalTelegramBotRunner() {
     let isBusy = false;
 
     const poll = async () => {
-      if (isCancelled || isBusy) return;
+      if (isCancelled || isBusy || !isTabLeader() || document.hidden) return;
       isBusy = true;
       try {
         await processTelegramBotCommands();
@@ -25,7 +26,7 @@ export function GlobalTelegramBotRunner() {
     // Run initial check immediately
     poll();
 
-    // Fast active polling every 3 seconds
+    // Fast active polling every 3 seconds (only leader tab executes)
     const interval = setInterval(poll, 3000);
 
     return () => {

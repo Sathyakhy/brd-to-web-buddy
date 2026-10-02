@@ -551,10 +551,70 @@ export async function sendTelegramRsvpDetailList(params: {
   }
 }
 
-let lastHandledUpdateOffset = 0;
-const processedUpdateIds = new Set<number>();
+const currentTabId = "tab_" + Math.random().toString(36).substring(2, 9) + "_" + Date.now();
+const LEADER_KEY = "telegram_runner_leader_lock";
+const LEADER_TIMEOUT = 5000;
 const DEDUP_STORAGE_KEY = "telegram_processed_update_ids";
+const EXECUTED_COMMANDS_KEY = "telegram_executed_commands";
+const OFFSET_STORAGE_KEY = "telegram_last_update_offset";
 const UNLINKED_NOTICE_COOLDOWN_MS = 60000; // 1 minute cooldown per unlinked chat to prevent spam
+
+const processedUpdateIds = new Set<number>();
+
+export function isTabLeader(): boolean {
+  const now = Date.now();
+  try {
+    const raw = localStorage.getItem(LEADER_KEY);
+    if (raw) {
+      const { tabId, expiresAt } = JSON.parse(raw);
+      if (tabId && tabId !== currentTabId && now < expiresAt) {
+        return false;
+      }
+    }
+    localStorage.setItem(
+      LEADER_KEY,
+      JSON.stringify({ tabId: currentTabId, expiresAt: now + LEADER_TIMEOUT })
+    );
+    return true;
+  } catch (_) {
+    return true;
+  }
+}
+
+function getStoredUpdateOffset(): number {
+  try {
+    const raw = localStorage.getItem(OFFSET_STORAGE_KEY);
+    return raw ? parseInt(raw, 10) || 0 : 0;
+  } catch (_) {
+    return 0;
+  }
+}
+
+function setStoredUpdateOffset(offset: number): void {
+  try {
+    const current = getStoredUpdateOffset();
+    if (offset > current) {
+      localStorage.setItem(OFFSET_STORAGE_KEY, String(offset));
+    }
+  } catch (_) {}
+}
+
+function tryClaimCommandExecution(chatId: string, cmd: string, msgDate: number, updateId: number): boolean {
+  const key = `${chatId}_${cmd}_${msgDate || updateId}`;
+  try {
+    const raw = localStorage.getItem(EXECUTED_COMMANDS_KEY);
+    const executed: string[] = raw ? JSON.parse(raw) : [];
+    if (executed.includes(key)) {
+      return false; // Already claimed/executed by another runner or tab
+    }
+    executed.push(key);
+    if (executed.length > 400) executed.shift();
+    localStorage.setItem(EXECUTED_COMMANDS_KEY, JSON.stringify(executed));
+    return true;
+  } catch (_) {
+    return true;
+  }
+}
 
 function isUpdateAlreadyHandledCrossTab(updateId: number): boolean {
   if (processedUpdateIds.has(updateId)) return true;
@@ -694,8 +754,9 @@ export async function processTelegramBotCommands(params?: {
   const token = (params?.botToken || "").trim() || DEFAULT_TELEGRAM_BOT_TOKEN;
 
   try {
-    const url = lastHandledUpdateOffset > 0
-      ? `https://api.telegram.org/bot${token}/getUpdates?offset=${lastHandledUpdateOffset}&limit=20`
+    const currentOffset = Math.max(getStoredUpdateOffset(), lastHandledUpdateOffset);
+    const url = currentOffset > 0
+      ? `https://api.telegram.org/bot${token}/getUpdates?offset=${currentOffset}&limit=20`
       : `https://api.telegram.org/bot${token}/getUpdates?limit=20`;
 
     const res = await fetch(url, { method: "GET" });
@@ -709,7 +770,9 @@ export async function processTelegramBotCommands(params?: {
     const nowSec = Math.floor(Date.now() / 1000);
 
     for (const update of data.result) {
-      lastHandledUpdateOffset = Math.max(lastHandledUpdateOffset, update.update_id + 1);
+      const nextOffset = update.update_id + 1;
+      lastHandledUpdateOffset = Math.max(lastHandledUpdateOffset, nextOffset);
+      setStoredUpdateOffset(nextOffset);
 
       if (isUpdateAlreadyHandledCrossTab(update.update_id)) continue;
 
@@ -724,6 +787,11 @@ export async function processTelegramBotCommands(params?: {
       // Normalize command: lowercased, first word, remove @botname (e.g. "/Summary@EInvitation_Bot" -> "/summary")
       const firstToken = rawText.toLowerCase().split(/\s+/)[0];
       const cmd = firstToken.replace(/@[\w_]+/g, "");
+
+      // Atomically claim execution for this exact chat command instance
+      if (!tryClaimCommandExecution(chatId, cmd, msg.date, update.update_id)) {
+        continue;
+      }
 
       // Helper to resolve event data via passed callback or direct Supabase lookup
       const resolveEventData = async () => {
